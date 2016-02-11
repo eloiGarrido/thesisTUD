@@ -83,6 +83,8 @@
 
 #define WITH_AGGREGATE		0
 
+#define ENERGY_HARV    1 //Enable dynamic budget depending on Energy Harvesting capabilities
+
 /*-------------------------- MACROS -------------------------------------------------*/
 #define MIN(a, b) ((a) < (b)? (a) : (b))
 #define MAX(a, b) ((a) > (b)? (a) : (b))

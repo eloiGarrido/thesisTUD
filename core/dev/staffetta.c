@@ -58,7 +58,12 @@ static struct ctimer backoff_ctimer;
 static uint32_t rendezvous_time,rendezvous_starting_time,rendezvous_sum;
 static uint32_t rendezvous[AVG_SIZE];
 static uint8_t rendezvous_idx;
+
+#if ENERGY_HARV
+static uint32_t avg_rendezvous = NS_ENERGY_LOW;
+#else
 static uint32_t avg_rendezvous = BUDGET;
+#endif /*ENERGY_HARV*/
 
 #if ORW_GRADIENT
 // Edc expected duty cycle
@@ -624,10 +629,27 @@ int staffetta_send_packet(void) {
 			#endif /*ORW_GRADIENT*/
 
 			#if DYN_DC
+            //TODO Add variable BUDGET depending on node NS_ENERGY_STATE
+            #if ENERGY_HARV
+            switch (node_energy_state)
+            {
+                case NS_LOW:
+                    num_wakeups = MAX(1,(NS_ENERGY_LOW*10)/avg_rendezvous);
+                    break;
+                case NS_MID:
+                    num_wakeups = MAX(1,(NS_ENERGY_MID*10)/avg_rendezvous);
+                    break;
+                case NS_HIGH:
+                    num_wakeups = MAX(1,(NS_ENERGY_HIGH*10)/avg_rendezvous);
+                    break;
+            }
+            #else
 			num_wakeups = MAX(1,(BUDGET*10)/avg_rendezvous);
-			#else
+            #endif /*ENERGY_HARV*/
+            #else
 			num_wakeups = 10;
-			#endif /*DYN_DC*/
+            #endif /*DYN_DC*/
+            
 			if (!IS_SINK) {
 				printf("2 %d %ld\n",strobe_ack[PKT_SRC],num_wakeups);
 			}
@@ -789,7 +811,7 @@ int staffetta_send_packet(void) {
 
 		#if ORW_GRADIENT
 		printf("3 %ld %ld\n",(on_time*1000)/elapsed_time,avg_edc);
-		printf("6 %d %ld %d\n", node_energy_state, remaining_energy, harvesting_rate);
+//		printf("6 %d %ld %d\n", node_energy_state, remaining_energy, harvesting_rate);
 		#else
 		printf("3 %ld %d\n",(on_time*1000)/elapsed_time,q_size);
 		#endif /*ORW_GRADIENT*/
@@ -800,7 +822,6 @@ int staffetta_send_packet(void) {
 	void staffetta_add_data(uint8_t _seq){
 	    printf("4 %d %d\n",node_id,_seq);
 	    add_data(node_id,0,_seq);
-
 	}
 
 	void staffetta_init(void) {
@@ -812,9 +833,15 @@ int staffetta_send_packet(void) {
 
 	    current_state = idle;
 	    //Clear average buffer
+        #if ENERGY_HARV
+        for (i=0;i<AVG_SIZE;i++) rendezvous[i]=NS_ENERGY_LOW;
+        rendezvous_sum = NS_ENERGY_LOW*AVG_SIZE;
+        #else
 	    for (i=0;i<AVG_SIZE;i++) rendezvous[i]=BUDGET;
 	    rendezvous_sum = BUDGET*AVG_SIZE;
-	    rendezvous_idx = 0;
+        #endif /*ENERGY_HARV*/
+
+        rendezvous_idx = 0;
 
 		#if ORW_GRADIENT
 	    //    for (i=0;i<AVG_SIZE;i++) edc[i]=100000;

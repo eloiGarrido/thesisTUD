@@ -37,20 +37,21 @@
  *         Xin Wang
  */
 
-#include "contiki.h"
-#include "contiki-lib.h"
-#include "sys/compower.h"
-#include "lib/random.h"
+#include "../../core/contiki.h"
+#include "../../core/contiki-lib.h"
+
 #include "energytrace.h"
-#include "net/rime/rime.h"
-#include "../dev/cc2420/cc2420.h"
-#include "rimeaddr.h"
-#include "metric.h"
+
+#include "../../core/dev/dev/cc2420/cc2420.h"
+
+#include "../../core/dev/metric.h"
 
 #include <stdio.h>
 #include <string.h>
-
-
+#include "/home/jester/thesisTUDelft/eh_staffetta/core/sys/compower.h"
+#include "/home/jester/thesisTUDelft/eh_staffetta/core/lib/random.h"
+//#include "rimeaddr.h"
+//#include "net/rime/rime.h"
 
 struct energytrace_sniff_stats {
 	struct energytrace_sniff_stats *next;
@@ -78,7 +79,7 @@ static havest_state_t harvest_state;
 node_state_t node_state;
 node_state_t node_state_old = NODE_INACTIVE;
 
-ndoe_dc_state_t ndoe_dc_state = ZERO;
+node_dc_state_t node_dc_state = ZERO;
 #define PROB_SCALE_FACTOR 1000
 
 /* Markov model */
@@ -193,8 +194,9 @@ PROCESS_THREAD(energytrace_process, ev, data)
 	period = data;
 
 	// random seed
-	random_init((unsigned short)(rimeaddr_node_addr.u8[0]));
-
+//	random_init((unsigned short)(rimeaddr_node_addr.u8[0]));
+	int r = rand();
+	random_init((unsigned short) (r));
 	if (period == NULL) {
 		PROCESS_EXIT();
 	}
@@ -268,6 +270,7 @@ PROCESS_THREAD(energytrace_process, ev, data)
 			{
 				remaining_energy = 0;
 			}
+
             compute_node_state();
             compute_node_duty_cycle();
             compute_harvesting_rate();

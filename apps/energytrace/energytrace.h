@@ -8,7 +8,7 @@
 #ifndef ENERGYTRACE_H
 #define ENERGYTRACE_H
 
-#include "sys/clock.h"
+#include "../../core/sys/clock.h"
 
 
 #define SHOW_ENERGY_INFO 1

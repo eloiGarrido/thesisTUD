@@ -38,10 +38,12 @@
  */
 
 #include "staffetta.h"
-#include "node-id.h"
+#include "../../platform/sky/node-id.h"
 
-#include "dev/gpio.h"
-
+#include "../../core/dev/gpio.h"
+//#include "metric.h"
+#include "../../core/dev/metric.h"
+#include "../../apps/energytrace/energytrace.h"
 
 
 /*---------------------------VARIABLES------------------------------------------------*/
@@ -85,6 +87,8 @@ static enum mac_state current_state = disabled;
 
 static struct pt pt;
 
+uint16_t harvesting_rate;
+node_energy_state_t node_energy_state;
 /* --------------------------- RADIO FUNCTIONS ---------------------- */
 
 static inline void radio_flush_tx(void) {
@@ -785,6 +789,7 @@ int staffetta_send_packet(void) {
 
 		#if ORW_GRADIENT
 		printf("3 %ld %ld\n",(on_time*1000)/elapsed_time,avg_edc);
+		printf("6 %d %ld %d\n", node_energy_state, remaining_energy, harvesting_rate);
 		#else
 		printf("3 %ld %d\n",(on_time*1000)/elapsed_time,q_size);
 		#endif /*ORW_GRADIENT*/

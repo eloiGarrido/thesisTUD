@@ -52,7 +52,7 @@
 #include <legacymsp430.h>
 #include <stdlib.h>
 
-#include "metric.h"
+
 /*------------------------- OPTIONS --------------------------------------------------*/
 
 //TODO implement all the options

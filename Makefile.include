@@ -30,7 +30,7 @@ savetarget:
 	@echo "saving Makefile.target"
 	@echo >Makefile.target "TARGET = $(TARGET)"
 
-savedefines:
+savedefines:cp
 	-@rm -f Makefile.$(TARGET).defines
 	@echo "saving Makefile.$(TARGET).defines"
 	@echo >Makefile.$(TARGET).defines "DEFINES = $(DEFINES)"
@@ -46,8 +46,8 @@ TARGET_UPPERCASE := ${shell echo $(TARGET) | sed 'y!$(LOWERCASE)!$(UPPERCASE)!'}
 CFLAGS += -DCONTIKI_TARGET_$(TARGET_UPPERCASE)
 
 SYSTEM  = process.c autostart.c
-THREADS = 
-LIBS    = assert.c rand.c random.c list.c timer.c etimer.c ctimer.c energest.c rtimer.c ringbuf.c
+THREADS =
+LIBS    = assert.c rand.c random.c list.c timer.c etimer.c ctimer.c energest.c rtimer.c ringbuf.c metric.c
 DEV     = gpio.c
 NET     = 
 
@@ -63,7 +63,7 @@ endif
 CONTIKI_SOURCEFILES += $(CONTIKIFILES)
 
 CONTIKIDIRS += ${addprefix $(CONTIKI)/core/,dev lib net net/mac net/rime \
-                 net/routing sys cfs ctk lib/ctk loader . }
+                net/routing sys cfs ctk lib/ctk loader . }
 
 oname = ${patsubst %.c,%.o,${patsubst %.S,%.o,$(1)}}
 

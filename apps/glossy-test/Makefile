@@ -1,4 +1,5 @@
-CONTIKI_PROJECT = glossy-test
+CONTIKI_PROJECT = staffetta-test
+
 all: $(CONTIKI_PROJECT)
 
 APPS += energytrace

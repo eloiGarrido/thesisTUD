@@ -148,7 +148,15 @@ cc2420_set_txpower(uint8_t power)
   reg = (reg & 0xffe0) | (power & 0x1f);
   FASTSPI_SETREG(CC2420_TXCTRL, reg);
 }
-
+int
+cc2420_get_txpower(void)
+{
+  int power;
+  uint16_t reg;
+  FASTSPI_GETREG(CC2420_RXCTRL1, reg);
+  power = reg & 0x001f;
+  return power;
+}
 
 
 

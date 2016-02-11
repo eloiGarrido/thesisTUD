@@ -47,5 +47,5 @@ int cc2420_init(void);
 void cc2420_set_channel(int channel);
 
 void cc2420_set_txpower(uint8_t power);
-
+int cc2420_get_txpower(void);
 #endif /* __CC2420_H__ */

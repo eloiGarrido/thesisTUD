@@ -65,6 +65,22 @@ static inline void radio_flush_rx(void) {
 	FASTSPI_STROBE(CC2420_SFLUSHRX);
 }
 /*---------------------------------------------------------------------------*/
+static uint8_t locked, lock_on, lock_off;
+#define GET_LOCK() locked++
+static void RELEASE_LOCK(void) {
+    if(locked == 1) {
+        if(lock_on) {
+            on();
+            lock_on = 0;
+        }
+        if(lock_off) {
+            off();
+            lock_off = 0;
+        }
+    }
+    locked--;
+}
+
 int
 cc2420_init(void)
 {
@@ -153,7 +169,7 @@ cc2420_get_txpower(void)
 {
   int power;
   uint16_t reg;
-  FASTSPI_GETREG(CC2420_RXCTRL1, reg);
+  FASTSPI_GETREG(CC2420_TXCTRL, reg);
   power = reg & 0x001f;
   return power;
 }

@@ -1,4 +1,5 @@
-apps/glossy-test/obj_sky/*
+
+*.d
 *.sky
 *.map
 *.cproject

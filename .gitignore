@@ -1,9 +1,9 @@
 apps/glossy-test/obj_sky/*
-.sky
-.map
-.cproject
-.idea/*
-.project
+*.sky
+*.map
+*.cproject
+*.idea/*
+*.project
 CMakeLists.txt
 doc/*
 doxygen/*

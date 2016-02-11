@@ -48,8 +48,8 @@
 
 #include <stdio.h>
 #include <string.h>
-#include "/home/jester/thesisTUDelft/eh_staffetta/core/sys/compower.h"
-#include "/home/jester/thesisTUDelft/eh_staffetta/core/lib/random.h"
+#include "../../core/sys/compower.h"
+#include "../../core/lib/random.h"
 //#include "rimeaddr.h"
 //#include "net/rime/rime.h"
 

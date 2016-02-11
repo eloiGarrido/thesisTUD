@@ -36,9 +36,9 @@
  * \author
  * 			Eloi Garrido Barrabés
  */
-#include "/home/jester/thesisTUDelft/eh_staffetta/core/contiki.h"
-#include "/home/jester/thesisTUDelft/eh_staffetta/core/dev/metric.h"
-#include "/home/jester/thesisTUDelft/eh_staffetta/apps/energytrace/energytrace.h"
+//#include "contiki.h"
+#include "metric.h"
+#include "../apps/energytrace/energytrace.h"
 #include <stdio.h>
 /*---------------------------------------------------------------------------*/
 /* DEFINES */

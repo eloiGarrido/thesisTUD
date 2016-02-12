@@ -231,7 +231,7 @@ PROCESS_THREAD(energytrace_process, ev, data)
 			harvesting_array_index++;
 			if (harvesting_array_index > 4){ harvesting_array_index = 0;}
 			
-			if ((uint32_t)ENERGY_MAX_CAPACITY_SOLAR - remaining_energy <= (uint32_t)rd )
+			if ((uint32_t)ENERGY_MAX_CAPACITY_SOLAR - remaining_energy < (uint32_t)rd )
 			{
 				remaining_energy = (uint32_t)ENERGY_MAX_CAPACITY_SOLAR;
 			}

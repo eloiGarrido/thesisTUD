@@ -92,8 +92,8 @@ static enum mac_state current_state = disabled;
 
 static struct pt pt;
 
-uint16_t harvesting_rate;
-node_energy_state_t node_energy_state;
+//uint16_t harvesting_rate;
+//node_energy_state_t node_energy_state;
 /* --------------------------- RADIO FUNCTIONS ---------------------- */
 
 static inline void radio_flush_tx(void) {
@@ -142,7 +142,7 @@ static void powercycle_turn_radio_off(void) {
 
 static void powercycle_turn_radio_on(void) {
     if (current_state != disabled) {
-		PRINTF("on\n");
+//		PRINTF("on\n");
 		radio_on();
 		leds_on(LEDS_BLUE);
 		rendezvous_time = 0;
@@ -266,7 +266,7 @@ int staffetta_send_packet(void) {
 			if (strobe[PKT_LEN]>=(STAFFETTA_PKT_LEN+3)) {
 				radio_flush_rx();
 				goto_idle();
-				printf("goto sleep after waiting for SELECT. Wrong packet length\n");
+//				printf("goto sleep after waiting for SELECT. Wrong packet length\n");
 				return RET_FAIL_RX_BUFF;
 			}
 
@@ -279,7 +279,7 @@ int staffetta_send_packet(void) {
 					if (!RTIMER_CLOCK_LT(RTIMER_NOW(), t1 + RTIMER_ARCH_SECOND/200)) {
 						radio_flush_rx();
 						goto_idle();
-						printf("goto sleep after waiting for BEACON's byte %u from radio\n",bytes_read);
+//						printf("goto sleep after waiting for BEACON's byte %u from radio\n",bytes_read);
 						return RET_FAIL_RX_BUFF;
 					}
 				};
@@ -303,7 +303,7 @@ int staffetta_send_packet(void) {
 				leds_off(LEDS_GREEN);
 				radio_flush_rx();
 				goto_idle();
-				PRINTF("Wrong CRC\n");
+//				PRINTF("Wrong CRC\n");
 				return RET_WRONG_CRC;
 				#endif /*WITH_CRC*/
 			}
@@ -321,7 +321,7 @@ int staffetta_send_packet(void) {
 					leds_off(LEDS_GREEN);
 					radio_flush_rx();
 					goto_idle();
-					PRINTF("sender is closer to the sink than me\n");
+//					PRINTF("sender is closer to the sink than me\n");
 					return RET_WRONG_GRADIENT;
 				}
 				#endif /*WITH_GRADIENT*/
@@ -333,7 +333,7 @@ int staffetta_send_packet(void) {
 					leds_off(LEDS_GREEN);
 					radio_flush_rx();
 					goto_idle();
-					printf("expected beacon, got type %d\n",strobe[PKT_TYPE]);
+//					printf("expected beacon, got type %d\n",strobe[PKT_TYPE]);
 					return RET_WRONG_TYPE;
 				}
 			}
@@ -377,7 +377,7 @@ int staffetta_send_packet(void) {
 					if (select[PKT_LEN]>=(STAFFETTA_PKT_LEN+3)) {
 						radio_flush_rx();
 						goto_idle();
-						printf("goto sleep after waiting for SELECT. Wrong packet length\n");
+//						printf("goto sleep after waiting for SELECT. Wrong packet length\n");
 						return RET_FAIL_RX_BUFF;
 					}
 
@@ -390,7 +390,7 @@ int staffetta_send_packet(void) {
 							if (!RTIMER_CLOCK_LT(RTIMER_NOW(), t2 + RTIMER_ARCH_SECOND/200)) {
 								radio_flush_rx();
 								goto_idle();
-								printf("goto sleep after waiting for SELECT's byte %u from radio\n",bytes_read);
+//								printf("goto sleep after waiting for SELECT's byte %u from radio\n",bytes_read);
 								return RET_FAIL_RX_BUFF;
 							}
 						};
@@ -405,7 +405,7 @@ int staffetta_send_packet(void) {
 						leds_off(LEDS_GREEN);
 						radio_flush_rx();
 						goto_idle();
-						PRINTF("Wrong CRC\n");
+//						PRINTF("Wrong CRC\n");
 						return RET_WRONG_CRC;
 						#endif /*WITH_CRC*/
 					}
@@ -416,7 +416,7 @@ int staffetta_send_packet(void) {
 			//Save received data
 			if((current_state==select_received)&&(select[PKT_DST]!=node_id)){
 				//if we received a select and it is not for us, trash the packet.
-				printf("select not for us\n");
+//				printf("select not for us\n");
 			}else{
 				//otherwise save the packet
 				add_data(strobe[PKT_DATA], strobe[PKT_TTL]+1, strobe[PKT_SEQ]);
@@ -488,7 +488,7 @@ int staffetta_send_packet(void) {
 					if (strobe_ack[PKT_LEN]>=(STAFFETTA_PKT_LEN+3)) {
 						radio_flush_rx();
 						goto_idle();
-						printf("goto sleep after waiting for SELECT. Wrong packet length\n");
+//						printf("goto sleep after waiting for SELECT. Wrong packet length\n");
 						return RET_FAIL_RX_BUFF;
 					}
 
@@ -501,7 +501,7 @@ int staffetta_send_packet(void) {
 							if (!RTIMER_CLOCK_LT(RTIMER_NOW(), t2 + RTIMER_ARCH_SECOND/200)) {
 								radio_flush_rx();
 								goto_idle();
-								printf("goto sleep after waiting for BEACON's byte %u from radio\n",bytes_read);
+//								printf("goto sleep after waiting for BEACON's byte %u from radio\n",bytes_read);
 								return RET_FAIL_RX_BUFF;
 							}
 						};
@@ -533,7 +533,7 @@ int staffetta_send_packet(void) {
 
 						radio_flush_rx();
 						goto_idle();
-						PRINTF("Wrong CRC\n");
+//						PRINTF("Wrong CRC\n");
 						return RET_WRONG_CRC;
 						#endif /*WITH_CRC*/
 					}
@@ -543,15 +543,15 @@ int staffetta_send_packet(void) {
 						if ((strobe_ack[PKT_DST] == node_id)&&(strobe_ack[PKT_DATA] == strobe[PKT_DATA] )) {
 							current_state = beacon_sent;
 							//radio_flush_tx();
-							PRINTF("beacon ack for us from %d\n", strobe_ack[PKT_SRC]);
+//							PRINTF("beacon ack for us from %d\n", strobe_ack[PKT_SRC]);
 						}
 						else {
-							printf("beacon ack not for us. For %d, from %d\n", strobe_ack[PKT_DST],strobe_ack[PKT_SRC]);
+//							printf("beacon ack not for us. For %d, from %d\n", strobe_ack[PKT_DST],strobe_ack[PKT_SRC]);
 							collisions++;
 						}
 					}
 					else {
-						printf("expected beacon ack, got type %d\n",strobe_ack[PKT_TYPE]);
+//						printf("expected beacon ack, got type %d\n",strobe_ack[PKT_TYPE]);
 						collisions++;
 					}
 				}
@@ -649,9 +649,9 @@ int staffetta_send_packet(void) {
             #else
 			num_wakeups = 10;
             #endif /*DYN_DC*/
-            
+
 			if (!IS_SINK) {
-				printf("2 %d %ld\n",strobe_ack[PKT_SRC],num_wakeups);
+				printf("2,%d,%ld\n",strobe_ack[PKT_SRC],num_wakeups);
 			}
 	    }
 
@@ -661,7 +661,7 @@ int staffetta_send_packet(void) {
 	}
 
 	void sink_busy_wait(void) {
-	    printf("Sink busy loop\n");
+//	    printf("Sink busy loop\n");
 	    while (1);
 	    printf("Sink end busy loop\n");
 	}
@@ -696,7 +696,7 @@ int staffetta_send_packet(void) {
 					leds_off(LEDS_GREEN);
 					radio_flush_rx();
 					current_state=idle;
-					printf("sink got a too long beacon\n");
+//					printf("sink got a too long beacon\n");
 					continue;
 				}
 
@@ -710,7 +710,7 @@ int staffetta_send_packet(void) {
 							leds_off(LEDS_GREEN);
 							radio_flush_rx();
 							current_state=idle;
-							printf("sink goto sleep after waiting for BEACON's byte %u from radio\n",bytes_read);
+//							printf("sink goto sleep after waiting for BEACON's byte %u from radio\n",bytes_read);
 							continue;
 						}
 					};
@@ -750,7 +750,7 @@ int staffetta_send_packet(void) {
 					leds_off(LEDS_GREEN);
 					radio_flush_rx();
 					current_state=idle;
-					PRINTF("Wrong CRC\n");
+//					PRINTF("Wrong CRC\n");
 					continue;
 					#endif /*WITH_CRC*/
 				}
@@ -794,10 +794,10 @@ int staffetta_send_packet(void) {
 		    radio_flush_rx();
 		    current_state=idle;
 		    //SINK output
-		    printf("%u %u %u\n", strobe[PKT_DATA],strobe[PKT_SEQ],strobe[PKT_TTL]+1);
-
+//		    printf("%u %u %u\n", strobe[PKT_DATA],strobe[PKT_SEQ],strobe[PKT_TTL]+1); //TODO This printf has been commented, check its functionallity
+            //TODO Add sink receive msg statistics and log them
 			#if WITH_AGGREGATE
-		    printf("A %u\n",aggregateValue);
+//		    printf("A %u\n",aggregateValue);
 			#endif /*WITH_AGGREGATE*/
 			}
 		}
@@ -810,17 +810,17 @@ int staffetta_send_packet(void) {
 	    if (!(IS_SINK)){
 
 		#if ORW_GRADIENT
-		printf("3 %ld %ld\n",(on_time*1000)/elapsed_time,avg_edc);
-//		printf("6 %d %ld %d\n", node_energy_state, remaining_energy, harvesting_rate);
+		printf("3,%ld,%ld\n",(on_time*1000)/elapsed_time,avg_edc);
+//		printf("6,%d,%ld,%d\n", node_energy_state, remaining_energy, harvesting_rate);
 		#else
-		printf("3 %ld %d\n",(on_time*1000)/elapsed_time,q_size);
+		printf("3,%ld,%d\n",(on_time*1000)/elapsed_time,q_size);
 		#endif /*ORW_GRADIENT*/
 	    }
 	    //printf("id: %d\n",node_id);
 	}
 
 	void staffetta_add_data(uint8_t _seq){
-	    printf("4 %d %d\n",node_id,_seq);
+	    printf("4,%d,%d\n",node_id,_seq);
 	    add_data(node_id,0,_seq);
 	}
 
@@ -869,13 +869,13 @@ int staffetta_send_packet(void) {
 		#if WITH_AGGREGATE
 		aggregateValue = node_id;
 		#endif /*WITH_AGGREGATE*/
-	    PRINTF("SS: INIT\n");
+//	    PRINTF("SS: INIT\n");
 	    //If the node is a sink, start listening indefinitely
 
 	    if (IS_SINK){
-			printf("Sink active\n");
+//			printf("Sink active\n");
 			sink_listen();
-			PRINTF("Sink done\n");
+//			PRINTF("Sink done\n");
 	    }
 	    // button not presses
 	    //leds_on(LEDS_GREEN);

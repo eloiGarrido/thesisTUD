@@ -1,8 +1,10 @@
 #include "staffetta.h"
 #include "node-id.h"
+#include "../../apps/energytrace/energytrace.h"
+#include "../../core/dev/metric.h"
 
-
-
+//uint16_t harvesting_rate;
+//node_energy_state_t node_energy_state;
 static uint8_t round_stats;
 static int loop_stats;
 
@@ -26,7 +28,9 @@ PROCESS_THREAD(staffetta_print_stats_process, ev, data){
         staffetta_print_stats();
 
         staffetta_add_data(round_stats++);
-
+        #if ENERGY_HARV
+        printf("6,%d,%ld,%d\n", node_energy_state, remaining_energy, harvesting_rate);
+        #endif /*ENERGY_HARV*/
         etimer_set(&et,CLOCK_SECOND*10);
         PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
     }
@@ -50,6 +54,11 @@ PROCESS_THREAD(staffetta_test, ev, data){
     watchdog_stop();
     leds_off(LEDS_GREEN);
 
+    #if ENERGY_HARV
+    PROCESS_EXITHANDLER(energytrace_stop();)
+    energytrace_start();
+    #endif /*WITH_ENERGY_HARV*/
+
     process_start(&staffetta_print_stats_process, NULL);
     while(1){
         //Get wakeups/period from Staffetta
@@ -60,9 +69,18 @@ PROCESS_THREAD(staffetta_test, ev, data){
         etimer_set(&et,((Tw*3)/4) + (random_rand()%(Tw/2)));
         PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
         //Perform a data exchange
+
+        #if ENERGY_HARV
+//        printf("6,%d,%ld,%d\n", node_energy_state, remaining_energy, harvesting_rate);
+        if (node_energy_state != NS_ZERO){
+            staffetta_result = staffetta_send_packet();
+        }
+        #else
         staffetta_result = staffetta_send_packet();
+        #endif /*ENERGY_HARV*/
+
         //TODO compute histogram of staffetta results
-        leds_off(LEDS_RED);
+//        leds_off(LEDS_RED);
     }
 
     PROCESS_END();

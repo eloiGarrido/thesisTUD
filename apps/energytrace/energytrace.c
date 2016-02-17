@@ -125,7 +125,7 @@ static long voltage = 3;
 
 /* Remaining energy (uJ) */
 uint32_t remaining_energy = ENERGY_INITIAL;
-uint16_t harvesting_rate_array[5] = {0,0,0,0,0};
+uint32_t harvesting_rate_array[5] = {0,0,0,0,0};
 uint8_t harvesting_array_index = 0;
 // static uint32_t high_th = 1838;
 // static uint32_t low_th = 1738;
@@ -227,7 +227,7 @@ PROCESS_THREAD(energytrace_process, ev, data)
 			rd = rd / 100;
 			// printf("rd %lu\n",rd );
 			// printf("remaining_energy + rd: %lu\n", remaining_energy + rd);
-			harvesting_rate_array[harvesting_array_index] = (uint16_t)rd;
+			harvesting_rate_array[harvesting_array_index] = (uint32_t)rd;
 			harvesting_array_index++;
 			if (harvesting_array_index > 4){ harvesting_array_index = 0;}
 			
@@ -249,7 +249,7 @@ PROCESS_THREAD(energytrace_process, ev, data)
 		}
 		else
 		{
-			printf("ERROR! Node Class not defined\n");
+//			printf("ERROR! Node Class not defined\n");
 		}
 
 		#ifdef MODEL_BERNOULLI
@@ -395,7 +395,7 @@ PROCESS_THREAD(energytrace_process_print, ev, data)
 	while (1) {
 		PROCESS_WAIT_UNTIL(etimer_expired(&periodic2));
 		etimer_reset(&periodic2);
-		energytrace_print("");
+//		energytrace_print("");
 	}
 	PROCESS_END();
 }
@@ -406,13 +406,13 @@ energytrace_start(void)
 	clock_time_t period = CLOCK_SECOND / 1000; //Addapt period to a smaller scale (1us) &EGB
 	clock_time_t long_period = CLOCK_SECOND * 5;
 	process_start(&energytrace_process, (void *)&period);
-	process_start(&energytrace_process_print, (void *)&long_period);
+//	process_start(&energytrace_process_print, (void *)&long_period);
 }
 
 void
 energytrace_stop(void)
 {
 	process_exit(&energytrace_process);
-	process_exit(&energytrace_process_print);
+//	process_exit(&energytrace_process_print);
 }
 

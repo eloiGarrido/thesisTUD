@@ -651,7 +651,7 @@ int staffetta_send_packet(void) {
             #endif /*DYN_DC*/
 
 			if (!IS_SINK) {
-				printf("2,%d,%ld\n",strobe_ack[PKT_SRC],num_wakeups);
+				// printf("2,%d,%ld\n",strobe_ack[PKT_SRC],num_wakeups);
 			}
 	    }
 
@@ -808,19 +808,20 @@ int staffetta_send_packet(void) {
 	    on_time = ((energest_type_time(ENERGEST_TYPE_TRANSMIT)+energest_type_time(ENERGEST_TYPE_LISTEN)) * 1000) / RTIMER_ARCH_SECOND;
 	    elapsed_time = clock_time() * 1000 / CLOCK_SECOND;
 	    if (!(IS_SINK)){
-
-		#if ORW_GRADIENT
-		printf("3,%ld,%ld\n",(on_time*1000)/elapsed_time,avg_edc);
-//		printf("6,%d,%ld,%d\n", node_energy_state, remaining_energy, harvesting_rate);
-		#else
-		printf("3,%ld,%d\n",(on_time*1000)/elapsed_time,q_size);
-		#endif /*ORW_GRADIENT*/
+			#if ORW_GRADIENT
+			printf("3|%ld|%ld\n",(on_time*1000)/elapsed_time,avg_edc);
+			printf("2|%ld\n",num_wakeups);
+			
+	//		printf("6,%d,%ld,%d\n", node_energy_state, remaining_energy, harvesting_rate);
+			#else
+			printf("3|%ld|%d\n",(on_time*1000)/elapsed_time,q_size);
+			#endif /*ORW_GRADIENT*/
 	    }
 	    //printf("id: %d\n",node_id);
 	}
 
 	void staffetta_add_data(uint8_t _seq){
-	    printf("4,%d,%d\n",node_id,_seq);
+	    printf("4|%d\n",_seq);
 	    add_data(node_id,0,_seq);
 	}
 

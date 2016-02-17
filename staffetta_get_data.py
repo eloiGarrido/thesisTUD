@@ -4,32 +4,38 @@
 # @Date:   2016-02-12
 __author__ = 'egarrido'
 import sys
+import matplotlib.pyplot as plt
 
 '''
 Log Converter
 convert Cooja results into statistical data and graphs
 '''
-general_path = "~/thesisTUDelft/eh_staffetta/tests/"
+general_path = "/home/egarrido/contiki/tools/cooja/build/"
 
 class LogConverter(object):
 
     def __init__(self, filename, number_of_nodes):
-        try:
-            content = open(filename).read().split(',')
-            print ('>> Reading file {}'.format(filename))
+        # try:
+            # content = open(filename).read().split(',')
+            # print ('>> Reading file {}'.format(filename))
+            #
+            # self.output_filename = '{}.log'.format(filename)
+            # self.content = content[1:]
+        self.output = []
 
-            self.output_filename = '{}.log'.format(filename)
-            self.content = content[1:]
-            self.output = []
+        self.nodes = []
+        self.number_of_nodes = number_of_nodes
 
-            self.nodes = []
-            self.number_of_nodes = number_of_nodes
+        # Add here function calls to output data
+        self.create_structure()
+        # print self.nodes
+        print len(self.nodes)
+        self.read_file(filename)
 
-            # Add here function calls to output data
-            self.create_structure()
-            self.parse()
-        except Exception as e:
-            print ('>> Open file error: ',e)
+        self.generateGraphs()
+
+        # except Exception as e:
+        #     print ('>> Error on LogConverter: ',e)
 
 
 
@@ -37,8 +43,9 @@ class LogConverter(object):
         '''
         Create data structure,  array of dictionaries containing all node information
         '''
-        for i in range (0, self.number_of_nodes):
-            self.nodes.append({'id':i, 'time':[], 'strobe_ack':[], 'num_wakeups':[], 'on_time': [], 'avg_edc':[], 'seq':[], 'node_energy_state':[], 'remaining_energy':[], 'harvesting_rate':[]})
+        for i in range (1, self.number_of_nodes):
+            self.nodes.append({'id':i, 'time2':[], 'time3':[], 'time4':[], 'time6':[], 'num_wakeups':[], 'on_time': [], 'avg_edc':[], 'seq':[], 'node_energy_state':[], 'remaining_energy':[], 'harvesting_rate':[]})
+
 
 #TODO Create a function to output each type of file data
     def output_energy_values(self, filename):
@@ -48,19 +55,147 @@ class LogConverter(object):
             fp.write('\n'.join(self.output))
 
 
+    def read_file(self, filename):
+        file_name = general_path + str(filename)
 
-    def parse(self):
+        # try:
+        print ('>> Reading file: ' + file_name + '...')
+        f = open(file_name,'r')
+        for line in f:
+            self.parse(line)
+        f.close()
+
+        # except Exception as e:
+        #     print ('>> Error, No file with that name: ',e)
+
+        print ('>> Reading done')
+
+    def format_seq(self, msg):
+        result = ""
+        for i in range (3,len(msg)):
+            result += str(msg[i])
+            result += ","
+        return result
+
+
+    def store_information(self,id,time,msg_type,msg):
+        # print id
+        # print msg
+        if msg_type == 2:
+            self.nodes[id-2]['num_wakeups'].append(msg[3])
+            self.nodes[id-2]['time2'].append(time)
+        elif msg_type == 3:
+            self.nodes[id-2]['on_time'].append(msg[3])
+            self.nodes[id-2]['avg_edc'].append(msg[4])
+            self.nodes[id-2]['time3'].append(time)
+        elif msg_type == 4:
+            self.nodes[id-2]['seq'].append(self.format_seq(msg))
+            self.nodes[id-2]['time4'].append(time)
+        elif msg_type == 6:
+            self.nodes[id-2]['node_energy_state'].append(msg[3])
+            self.nodes[id-2]['remaining_energy'].append(msg[4])
+            self.nodes[id-2]['harvesting_rate'].append(msg[5])
+            self.nodes[id-2]['time6'].append(time)
+
+
+
+    def parse(self, line):
         '''
-        Parses each line
+        Parse each line
         '''
-        for line in self.content:
-            if len(line) == 0:
-                continue
+        if len(line) == 0:
+            return False
+        else:
+            msg = line.split('|')
+            if len(msg) < 5 or msg[0].isdigit() == False:
+                return False
+            else:
+                print msg
+                id = int(msg[0])
+                time = int(msg[1])
+                msg_type = int(msg[2])
+                self.store_information(id,time,msg_type,msg)
+                return True
 
+#--------------------------- Printing Functions ---------------------------#
+    def format_figure(self,title, xlab, ylab, filename):
+        plt.title(title)
+        plt.xlabel(xlab)
+        plt.ylabel(ylab)
+        plt.draw()
+        plt.savefig(filename)
 
+    def printEnergyLevels(self):
+        print ('>> Printing energy levels...')
+        plt.figure()
+        for i in range (0, self.number_of_nodes-1):
+            plt.plot(self.nodes[i]['remaining_energy'])
 
+        self.format_figure('Node Energy Levels','Time', 'Energy', 'node_energy')
+        return
+
+    def printNodeState(self):
+        print ('>> Printing node state...')
+        plt.figure()
+        for i in range (0, self.number_of_nodes-1):
+            plt.plot(self.nodes[i]['node_energy_state'])
+
+        self.format_figure('Node State','Time', 'State', 'node_state')
+        return
+
+    def printHarvestingRate(self):
+        print ('>> Printing harvesting rate...')
+        plt.figure()
+        for i in range (0, self.number_of_nodes-1):
+            plt.plot(self.nodes[i]['harvesting_rate'])
+
+        self.format_figure('Harvesting Rate','Time', 'HR', 'node_harv')
+        return
+
+    def printAvgEdc(self):
+        print ('>> Printing average EDC...')
+        plt.figure()
+        for i in range (0, self.number_of_nodes-1):
+            plt.plot(self.nodes[i]['avg_edc'])
+
+        self.format_figure('Node Avg EDC','Time', 'Metric', 'avg_edc')
+        return
+
+    def printWakeups(self):
+        print ('>> Printing number of wake-ups...')
+        plt.figure()
+        for i in range (0, self.number_of_nodes-1):
+            plt.plot(self.nodes[i]['num_wakeups'])
+
+        self.format_figure('Node Number of Wake-ups','Time', 'Wake-ups', 'wakeups')
+        return
+
+    def printOnTime(self):
+        print ('>> Printing ON time...')
+        plt.figure()
+        for i in range (0, self.number_of_nodes-1):
+            plt.plot(self.nodes[i]['on_time'])
+        self.format_figure('Node ON Time','Time', 'ON Time', 'on_time')
+        return
+
+    def generateGraphs(self):
+        print ('>> Generating graphics...')
+        self.printAvgEdc()
+        self.printEnergyLevels()
+        self.printHarvestingRate()
+        self.printNodeState()
+        self.printOnTime()
+        self.printWakeups()
+        plt.show()
+        return
+
+#--------------------------- Main Function ---------------------------#
 if __name__ == '__main__':
-    if len(sys.argv) != 2:
+    '''
+    Main function call, pass file name + number of nodes.
+    '''
+    if len(sys.argv) < 2:
         print('Usage: python log_converter.py <LOG_FILENAME>')
+        print len(sys.argv)
         exit(1)
-    adapter = LogConverter(sys.argv[1], sys.argv[2])
+    adapter = LogConverter(sys.argv[1], int(sys.argv[2]))

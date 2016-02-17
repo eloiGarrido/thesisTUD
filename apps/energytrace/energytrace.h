@@ -33,13 +33,15 @@
 /* the energy (uJ) which is consumed per second (to simulate node activity) */
 #define ENERGY_CONSUMES_PER_SECOND 500
 /*---------------------------------------------------------------------------*/
-#define ENERGY_MAX_CAPACITY_SOLAR  54450 	//0.5 * 100mF * 3.3v^2 	-> in uJ
+// #define ENERGY_MAX_CAPACITY_SOLAR  54450 	//0.5 * 100mF * 3.3v^2 	-> in uJ
+
+#define ENERGY_MAX_CAPACITY_SOLAR  5445
 #define ENERGY_MAX_CAPACITY_MOVER  5450		//0.5 * 1mF * 3.3v^2	-> in uJ
 
 #define ENERGY_HARVEST_STEP_SOLAR 	100		//Average solar harvest amount 
 #define ENERGY_HARVEST_STEP_MOVER	70		//Average mover harvest amount
 
-#define ENERGY_CONSUMES_PER_MS 		80		//Energy consumed per in uJ
+#define ENERGY_CONSUMES_PER_MS 		100		//Energy consumed per in uJ
 /*---------------------------------------------------------------------------*/
 void energytrace_start(void);
 void energytrace_stop(void);
@@ -74,7 +76,7 @@ typedef enum {
 void energytrace_print(char *str);
 
 extern uint32_t remaining_energy;
-extern uint16_t harvesting_rate_array[5];
+extern uint32_t harvesting_rate_array[5];
 /* node state */
 extern node_state_t node_state;
 extern node_state_t node_state_old;

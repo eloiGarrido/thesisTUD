@@ -1,4 +1,4 @@
-
+*.png
 *.d
 *.sky
 *.map
@@ -8,7 +8,7 @@
 CMakeLists.txt
 doc/*
 doxygen/*
-
+/apps/glossy-test/obj_sky/*
 # Object files
 *.o
 *.ko

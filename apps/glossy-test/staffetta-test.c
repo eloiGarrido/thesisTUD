@@ -21,7 +21,7 @@ PROCESS_THREAD(staffetta_print_stats_process, ev, data){
     loop_stats = node_id;
 
     //etimer_set(&et,random_rand()%(CLOCK_SECOND*5));
-    etimer_set(&et,CLOCK_SECOND*55+(random_rand()%(CLOCK_SECOND*10)));
+    etimer_set(&et,CLOCK_SECOND*25+(random_rand()%(CLOCK_SECOND*10)));
 
     PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
     while(1) {
@@ -29,7 +29,7 @@ PROCESS_THREAD(staffetta_print_stats_process, ev, data){
 
         staffetta_add_data(round_stats++);
         #if ENERGY_HARV
-        printf("6,%d,%ld,%d\n", node_energy_state, remaining_energy, harvesting_rate);
+        printf("6|%d|%ld|%d\n", node_energy_state, remaining_energy, harvesting_rate);
         #endif /*ENERGY_HARV*/
         etimer_set(&et,CLOCK_SECOND*10);
         PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));

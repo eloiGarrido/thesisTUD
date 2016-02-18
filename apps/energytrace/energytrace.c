@@ -212,11 +212,11 @@ PROCESS_THREAD(energytrace_process, ev, data)
 		if (node_state == NODE_ACTIVE && remaining_energy < (uint32_t)ENERGY_LOWER_THRESHOLD) {
 			node_state = NODE_INACTIVE;
 			//Notify main process with node state change
-			process_post(PROCESS_BROADCAST,PROCESS_EVENT_MSG, "INACTIVE");
+//			process_post(PROCESS_BROADCAST,PROCESS_EVENT_MSG, "INACTIVE");
 		} else if (node_state == NODE_INACTIVE && remaining_energy > (uint32_t)ENERGY_UPPER_THRESHOLD) {
 			node_state = NODE_ACTIVE;
 			//Notify main process with node state change
-			process_post(PROCESS_BROADCAST,PROCESS_EVENT_MSG, "ACTIVE");
+//			process_post(PROCESS_BROADCAST,PROCESS_EVENT_MSG, "ACTIVE");
 		}
 
 

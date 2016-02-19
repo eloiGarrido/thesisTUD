@@ -794,7 +794,7 @@ int staffetta_send_packet(void) {
 		    radio_flush_rx();
 		    current_state=idle;
 		    //SINK output
-//		    printf("%u %u %u\n", strobe[PKT_DATA],strobe[PKT_SEQ],strobe[PKT_TTL]+1); //TODO This printf has been commented, check its functionallity
+		    printf("5|%u|%u|%u\n", strobe[PKT_DATA],strobe[PKT_SEQ],strobe[PKT_TTL]+1); //TODO This printf has been commented, check its functionallity
             //TODO Add sink receive msg statistics and log them
 			#if WITH_AGGREGATE
 //		    printf("A %u\n",aggregateValue);

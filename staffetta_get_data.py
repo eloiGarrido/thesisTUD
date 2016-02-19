@@ -11,7 +11,7 @@ Log Converter
 convert Cooja results into statistical data and graphs
 '''
 general_path = "/home/egarrido/contiki/tools/cooja/build/"
-
+file_path = "/home/egarrido/staffetta_sensys2015/eh_staffetta/"
 class LogConverter(object):
 
     def __init__(self, filename, number_of_nodes):
@@ -32,8 +32,11 @@ class LogConverter(object):
         print len(self.nodes)
         self.read_file(filename)
 
-        self.generateGraphs()
 
+
+        self.output_pkt_seq("origSeq.txt")
+
+        self.generateGraphs()
         # except Exception as e:
         #     print ('>> Error on LogConverter: ',e)
 
@@ -46,7 +49,7 @@ class LogConverter(object):
         for i in range (1, self.number_of_nodes):
             self.nodes.append({'id':i, 'time2':[], 'time3':[], 'time4':[], 'time6':[], 'num_wakeups':[], 'on_time': [], 'avg_edc':[], 'seq':[], 'node_energy_state':[], 'remaining_energy':[], 'harvesting_rate':[]})
 
-
+#--------------------------- Output Functions ---------------------------#
 #TODO Create a function to output each type of file data
     def output_energy_values(self, filename):
         txt_name = str(filename)
@@ -54,9 +57,25 @@ class LogConverter(object):
         with open(txt_name, 'w') as fp:
             fp.write('\n'.join(self.output))
 
+    def output_pkt_seq(self, filename):
+        print '>> Writing packet sequence file...'
+        txt_name = file_path + str(filename)
 
+        with open(txt_name, 'w') as fp:
+            for i in range (0, self.number_of_nodes-1):
+                fp.write(str(self.nodes[i]['seq'])+"\n")
+        fp.close()
+
+    def output_sink_file(self, filename):
+        print '>> Writing sink file...'
+        txt_name = file_path + str(filename)
+        with open(txt_name, 'w') as fp:
+            # TODO fix this output for the sink
+            fp.write(str(self.nodes[0]['seq'])+"\n")
+        fp.close()
+#--------------------------- Read and Store Functions ---------------------------#
     def read_file(self, filename):
-        file_name = general_path + str(filename)
+        file_name = general_path + filename
 
         # try:
         print ('>> Reading file: ' + file_name + '...')

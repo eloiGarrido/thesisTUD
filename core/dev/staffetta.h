@@ -148,7 +148,7 @@ struct staffetta_hdr {
 #define PKT_SEQ			4
 #define PKT_TTL			5
 #define PKT_DATA		6
-#define PKT_GRADIENT		7
+#define PKT_GRADIENT	7
 #define PKT_RSSI		8
 #define PKT_CRC			9 //last field + 2
 

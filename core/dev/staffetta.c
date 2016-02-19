@@ -151,6 +151,7 @@ static void powercycle_turn_radio_on(void) {
 }
 
 static void goto_idle() {
+
     radio_flush_rx();
     radio_flush_tx();
     current_state = idle;
@@ -159,6 +160,7 @@ static void goto_idle() {
     leds_off(LEDS_GREEN);
     fast_forward = 0;
     STOP_IDLE(); // if we go to idle before the idle timer expire we remove the timer
+
 }
 
 /*--------------------------- DATA FUNCTIONS ------------------------------------------------*/
@@ -420,6 +422,7 @@ int staffetta_send_packet(void) {
 			}else{
 				//otherwise save the packet
 				add_data(strobe[PKT_DATA], strobe[PKT_TTL]+1, strobe[PKT_SEQ]);
+                printf("8|%u|%u|%u\n",strobe[PKT_SRC],strobe[PKT_DST],strobe[PKT_SEQ]);
 			}
 			//Give time to the radio to finish sending the data
 			t2 = RTIMER_NOW (); while(RTIMER_CLOCK_LT (RTIMER_NOW (), t2 + RTIMER_ARCH_SECOND/1000));
@@ -689,7 +692,7 @@ int staffetta_send_packet(void) {
 			if(FIFO_IS_1){
 				leds_on(LEDS_GREEN);
 				t2 = RTIMER_NOW (); while(RTIMER_CLOCK_LT (RTIMER_NOW (), t2 + 3));
-				FASTSPI_READ_FIFO_BYTE(strobe[PKT_LEN]);
+				FASTSPI_READ_FIFO_BYTE(strobe[PKT_LEN]); //Read received packet
 				bytes_read = 1;
 
 				if (strobe[PKT_LEN]>=(STAFFETTA_PKT_LEN+3)) {
@@ -757,6 +760,7 @@ int staffetta_send_packet(void) {
                 //TODO Add logging method to gather data at the sink
 				//PRINTF("sink beacon: %u %u %u %u %u %u %u %u\n",strobe[0],strobe[1],strobe[2],strobe[3],strobe[4],strobe[5],strobe[6],strobe[7]);
 				//strobe received, process it
+                printf("7|%u|%u|%u\n", strobe[PKT_SRC], strobe[PKT_DST], strobe[PKT_SEQ]);
 				if (strobe[PKT_TYPE] == TYPE_BEACON){
 					current_state = sending_ack;
 				}
@@ -794,7 +798,8 @@ int staffetta_send_packet(void) {
 		    radio_flush_rx();
 		    current_state=idle;
 		    //SINK output
-		    printf("5|%u|%u|%u\n", strobe[PKT_DATA],strobe[PKT_SEQ],strobe[PKT_TTL]+1); //TODO This printf has been commented, check its functionallity
+
+//		    printf("5|%u|%u|%u\n", strobe[PKT_DATA],strobe[PKT_SEQ],strobe[PKT_TTL]+1); //TODO This printf has been commented, check its functionallity
             //TODO Add sink receive msg statistics and log them
 			#if WITH_AGGREGATE
 //		    printf("A %u\n",aggregateValue);

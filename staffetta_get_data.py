@@ -46,8 +46,8 @@ class LogConverter(object):
         '''
         Create data structure,  array of dictionaries containing all node information
         '''
-        for i in range (1, self.number_of_nodes):
-            self.nodes.append({'id':i, 'time2':[], 'time3':[], 'time4':[], 'time6':[], 'num_wakeups':[], 'on_time': [], 'avg_edc':[], 'seq':[], 'node_energy_state':[], 'remaining_energy':[], 'harvesting_rate':[]})
+        for i in range (0, self.number_of_nodes):
+            self.nodes.append({'id':i, 'time2':[], 'time3':[], 'time4':[], 'time6':[], 'time_on': [], 'time_off': [], 'pkt':[], 'num_wakeups':[], 'on_time': [], 'avg_edc':[], 'seq':[], 'node_energy_state':[], 'remaining_energy':[], 'harvesting_rate':[]})
 
 #--------------------------- Output Functions ---------------------------#
 #TODO Create a function to output each type of file data
@@ -101,22 +101,28 @@ class LogConverter(object):
         # print id
         # print msg
         if msg_type == 2:
-            self.nodes[id-2]['num_wakeups'].append(msg[3])
-            self.nodes[id-2]['time2'].append(time)
+            self.nodes[id-1]['num_wakeups'].append(msg[3])
+            self.nodes[id-1]['time2'].append(time)
         elif msg_type == 3:
-            self.nodes[id-2]['on_time'].append(msg[3])
-            self.nodes[id-2]['avg_edc'].append(msg[4])
-            self.nodes[id-2]['time3'].append(time)
+            self.nodes[id-1]['on_time'].append(msg[3])
+            self.nodes[id-1]['avg_edc'].append(msg[4])
+            self.nodes[id-1]['time3'].append(time)
         elif msg_type == 4:
-            self.nodes[id-2]['seq'].append(self.format_seq(msg))
-            self.nodes[id-2]['time4'].append(time)
+            self.nodes[id-1]['seq'].append(self.format_seq(msg))
+            self.nodes[id-1]['time4'].append(time)
         elif msg_type == 6:
-            self.nodes[id-2]['node_energy_state'].append(msg[3])
-            self.nodes[id-2]['remaining_energy'].append(msg[4])
-            self.nodes[id-2]['harvesting_rate'].append(msg[5])
-            self.nodes[id-2]['time6'].append(time)
-
-
+            self.nodes[id-1]['node_energy_state'].append(msg[3])
+            self.nodes[id-1]['remaining_energy'].append(msg[4])
+            self.nodes[id-1]['harvesting_rate'].append(msg[5])
+            self.nodes[id-1]['time6'].append(time)
+        elif msg_type == 7: #Packet path (Sink)
+            self.nodes[id-1]['pkt'].append(msg[3] + msg[4] + msg[5])
+        elif msg_type == 8: #Packet path (Node)
+            self.nodes[id-1]['pkt'].append(msg[3] + msg[4] + msg[5])
+        elif msg_type == 9: #Node goes ON
+            self.nodes[id-1]['time_off'].append(time)
+        elif msg_type == 10:#Node goes OFF
+            self.nodes[id-1]['time_on'].append(time)
 
     def parse(self, line):
         '''
@@ -126,7 +132,7 @@ class LogConverter(object):
             return False
         else:
             msg = line.split('|')
-            if len(msg) < 5 or msg[0].isdigit() == False:
+            if msg[0].isdigit() == False or msg[2].isdigit() == False:
                 return False
             else:
                 print msg
@@ -147,7 +153,7 @@ class LogConverter(object):
     def printEnergyLevels(self):
         print ('>> Printing energy levels...')
         plt.figure()
-        for i in range (0, self.number_of_nodes-1):
+        for i in range (1, self.number_of_nodes):
             plt.plot(self.nodes[i]['remaining_energy'])
 
         self.format_figure('Node Energy Levels','Time', 'Energy', 'node_energy')
@@ -156,7 +162,7 @@ class LogConverter(object):
     def printNodeState(self):
         print ('>> Printing node state...')
         plt.figure()
-        for i in range (0, self.number_of_nodes-1):
+        for i in range (1, self.number_of_nodes):
             plt.plot(self.nodes[i]['node_energy_state'])
 
         self.format_figure('Node State','Time', 'State', 'node_state')
@@ -165,7 +171,7 @@ class LogConverter(object):
     def printHarvestingRate(self):
         print ('>> Printing harvesting rate...')
         plt.figure()
-        for i in range (0, self.number_of_nodes-1):
+        for i in range (1, self.number_of_nodes):
             plt.plot(self.nodes[i]['harvesting_rate'])
 
         self.format_figure('Harvesting Rate','Time', 'HR', 'node_harv')
@@ -174,7 +180,7 @@ class LogConverter(object):
     def printAvgEdc(self):
         print ('>> Printing average EDC...')
         plt.figure()
-        for i in range (0, self.number_of_nodes-1):
+        for i in range (1, self.number_of_nodes):
             plt.plot(self.nodes[i]['avg_edc'])
 
         self.format_figure('Node Avg EDC','Time', 'Metric', 'avg_edc')
@@ -183,7 +189,7 @@ class LogConverter(object):
     def printWakeups(self):
         print ('>> Printing number of wake-ups...')
         plt.figure()
-        for i in range (0, self.number_of_nodes-1):
+        for i in range (1, self.number_of_nodes):
             plt.plot(self.nodes[i]['num_wakeups'])
 
         self.format_figure('Node Number of Wake-ups','Time', 'Wake-ups', 'wakeups')
@@ -192,7 +198,7 @@ class LogConverter(object):
     def printOnTime(self):
         print ('>> Printing ON time...')
         plt.figure()
-        for i in range (0, self.number_of_nodes-1):
+        for i in range (1, self.number_of_nodes):
             plt.plot(self.nodes[i]['on_time'])
         self.format_figure('Node ON Time','Time', 'ON Time', 'on_time')
         return

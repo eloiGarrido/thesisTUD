@@ -421,8 +421,9 @@ int staffetta_send_packet(void) {
 //				printf("select not for us\n");
 			}else{
 				//otherwise save the packet
+				printf("8|%u|%u|%u|%u\n",strobe[PKT_SRC],strobe[PKT_DST],strobe[PKT_SEQ],strobe[PKT_DATA]);
 				add_data(strobe[PKT_DATA], strobe[PKT_TTL]+1, strobe[PKT_SEQ]);
-                printf("8|%u|%u|%u\n",strobe[PKT_SRC],strobe[PKT_DST],strobe[PKT_SEQ]);
+
 			}
 			//Give time to the radio to finish sending the data
 			t2 = RTIMER_NOW (); while(RTIMER_CLOCK_LT (RTIMER_NOW (), t2 + RTIMER_ARCH_SECOND/1000));
@@ -760,7 +761,7 @@ int staffetta_send_packet(void) {
                 //TODO Add logging method to gather data at the sink
 				//PRINTF("sink beacon: %u %u %u %u %u %u %u %u\n",strobe[0],strobe[1],strobe[2],strobe[3],strobe[4],strobe[5],strobe[6],strobe[7]);
 				//strobe received, process it
-                printf("7|%u|%u|%u\n", strobe[PKT_SRC], strobe[PKT_DST], strobe[PKT_SEQ]);
+
 				if (strobe[PKT_TYPE] == TYPE_BEACON){
 					current_state = sending_ack;
 				}
@@ -773,6 +774,7 @@ int staffetta_send_packet(void) {
 			}
 		// we received a beacon
 		if(current_state==sending_ack){
+		    printf("7|%u|%u|%u|%u\n", strobe[PKT_SRC], strobe[PKT_DST], strobe[PKT_SEQ], strobe[PKT_DATA]);
 		    leds_off(LEDS_GREEN);
 		    leds_on(LEDS_BLUE);
 		    strobe_ack[PKT_DST] = strobe[PKT_SRC];

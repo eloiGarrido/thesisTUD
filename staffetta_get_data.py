@@ -5,19 +5,19 @@
 __author__ = 'egarrido'
 import sys
 import matplotlib.pyplot as plt
-
+import os
 '''
 Log Converter
 convert Cooja results into statistical data and graphs
 '''
-env = 'uni'
-# env = 'home'
+# env = 'uni'
+env = 'home'
 if env == 'uni':
     general_path = "/home/egarrido/contiki/tools/cooja/build/"
-    file_path = "/home/egarrido/staffetta_sensys2015/eh_staffetta/"
+    file_path = "/home/egarrido/staffetta_sensys2015/eh_staffetta/results/"
 elif env == 'home':
     general_path = "/home/jester/contiki/tools/cooja/build/"
-    file_path = "/home/jester/thesisTUDelft/eh_staffetta/"
+    file_path = "/home/jester/thesisTUDelft/eh_staffetta/results/"
 
 
 class LogConverter(object):
@@ -40,11 +40,13 @@ class LogConverter(object):
         # print len(self.nodes)
         self.read_file(filename)
 
+        pkts = self.organize_pkts()
+        self.output_file(pkts, "packets")
 
-
-        self.output_pkt_seq("origSeq.txt")
-
+        self.output_pkt_seq("origSeq")
+        self.printDC()
         self.generateGraphs()
+
         # except Exception as e:
         #     print ('>> Error on LogConverter: ',e)
 
@@ -65,9 +67,18 @@ class LogConverter(object):
         with open(txt_name, 'w') as fp:
             fp.write('\n'.join(self.output))
 
+    def output_file(self, element, filename):
+        # txt_name = file_path + str(filename) + str(i) + ".txt"
+        for i in range (0, len(element)):
+            txt_name = file_path + str(filename) + str(i) + ".txt"
+            with open(txt_name, 'w') as fp:
+                fp.write(str(element[i])+"\n")
+            fp.close()
+
+
     def output_pkt_seq(self, filename):
         print '>> Writing packet sequence file...'
-        txt_name = file_path + str(filename)
+        txt_name = file_path + str(filename) + ".txt"
 
         with open(txt_name, 'w') as fp:
             for i in range (0, self.number_of_nodes-1):
@@ -151,12 +162,27 @@ class LogConverter(object):
                 return True
 
 
+    def organize_pkts(self):
+        print ('>> Organizing packets....')
+        pkts_with_origin = []
+        for i in range(0, self.number_of_nodes):
+            pkts_with_origin.append([])
+        for i in range(0, self.number_of_nodes):
+            for j in range(0, len(self.nodes[i]['pkt'])):
+                temp = self.nodes[i]['pkt'][j]
+                temp_t = temp.split(',')
+                idx = int ( temp_t[len(temp_t)-1] )
+                if (temp in pkts_with_origin[ idx-1 ]) == False:
+                    pkts_with_origin[ idx -1 ].append(temp)
+        return pkts_with_origin
+
+
     def get_node_dc(self, node_id):
         node_dc = []
         counter = 0.0
         total_on = 0.0
 
-        for i in range (0, len(self.nodes[node_id]['time_on'])):
+        for i in range (0, len(self.nodes[node_id]['time_on'])-1%uh):
 
             period = self.nodes[node_id]['time_off'][i+1] - self.nodes[node_id]['time_off'][i]
             on = abs( self.nodes[node_id]['time_on'][i] - self.nodes[node_id]['time_off'][i+1] )
@@ -175,6 +201,8 @@ class LogConverter(object):
         plt.ylabel(ylab)
         plt.draw()
         plt.savefig(filename)
+
+
 
     def printEnergyLevels(self):
         print ('>> Printing energy levels...')

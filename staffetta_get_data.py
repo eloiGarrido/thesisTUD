@@ -12,13 +12,20 @@ convert Cooja results into statistical data and graphs
 '''
 # env = 'uni'
 env = 'home'
+simulation = 'orig'
+# simulation = 'eh'
 if env == 'uni':
     general_path = "/home/egarrido/contiki/tools/cooja/build/"
-    file_path = "/home/egarrido/staffetta_sensys2015/eh_staffetta/results/"
+    if simulation == 'orig':
+        file_path = "/home/egarrido/staffetta_sensys2015/eh_staffetta/results/origina/l"
+    elif simulation == 'eh':
+        file_path = "/home/egarrido/staffetta_sensys2015/eh_staffetta/results/eh_staffetta/"
 elif env == 'home':
     general_path = "/home/jester/contiki/tools/cooja/build/"
-    file_path = "/home/jester/thesisTUDelft/eh_staffetta/results/"
-
+    if simulation == 'orig':
+        file_path = "/home/jester/thesisTUDelft/eh_staffetta/results/original/"
+    elif simulation == 'eh':
+        file_path = "/home/jester/thesisTUDelft/eh_staffetta/results/eh_staffetta/"
 
 class LogConverter(object):
 
@@ -41,7 +48,9 @@ class LogConverter(object):
         self.read_file(filename)
 
         pkts = self.organize_pkts()
-        self.output_file(pkts, "packets")
+        paths = self.create_pkt_path(pkts)
+        self.output_file(paths,"paths",0)
+        self.output_file(pkts, "packets",1)
 
         self.output_pkt_seq("origSeq")
         self.printDC()
@@ -67,12 +76,19 @@ class LogConverter(object):
         with open(txt_name, 'w') as fp:
             fp.write('\n'.join(self.output))
 
-    def output_file(self, element, filename):
+    def output_file(self, element, filename, num):
         # txt_name = file_path + str(filename) + str(i) + ".txt"
-        for i in range (0, len(element)):
-            txt_name = file_path + str(filename) + str(i) + ".txt"
+        if num == 1:
+            for i in range (0, len(element)):
+                txt_name = file_path + str(filename) + str(i) + ".txt"
+                with open(txt_name, 'w') as fp:
+                    fp.write(str(element[i])+"\n")
+                fp.close()
+        elif num == 0:
+            txt_name = file_path + str(filename) + ".txt"
             with open(txt_name, 'w') as fp:
-                fp.write(str(element[i])+"\n")
+                for i in range (0, len(element)):
+                    fp.write(str(element[i])+"\n")
             fp.close()
 
 
@@ -108,6 +124,45 @@ class LogConverter(object):
 
         print ('>> Reading done')
 
+    def format_pkt_path(self, split_packet):
+
+        main_split = []
+        for l in range (0, len(split_packet)):
+            splited = []
+            for idx in range (0, len(split_packet[l])):
+                splited.append([])
+                if split_packet[l] != []:
+                    if (split_packet[l][idx] not in splited) :
+                        splited[idx].append(split_packet[l][idx])
+                        for j in range (0, len(split_packet[l])):
+                            src = splited[idx][0][3]
+                            seq = splited[idx][0][2]
+                            if (split_packet[l][j] not in splited[idx]) and split_packet[l][j][3] == src and split_packet[l][j][2] == seq:
+                                # splited[idx].append([])
+                                splited[idx].append(split_packet[l][j])
+
+                main_split.append(splited[idx])
+
+
+        return main_split
+
+    def create_pkt_path(self,pkts):
+        print ('>> Creating packet paths...')
+        pkt_paths = []
+        split_packets = []
+        path = {'src':999, 'seq': 999, 'path': []}
+        for i in range (0, len(pkts)):
+            split_packets.append([])
+            if pkts[i] != []:
+                pkts_t = pkts[i]
+                for j in range (0, len(pkts_t)):
+                    pkt_split = pkts_t[j].split(',')
+                    split_packets[i].append(pkt_split)
+
+        main_split = self.format_pkt_path(split_packets)
+
+        return main_split
+
     def format_seq(self, msg):
         result = ""
         for i in range (3,len(msg)):
@@ -117,8 +172,6 @@ class LogConverter(object):
 
 
     def store_information(self,id,time,msg_type,msg):
-        # print id
-        # print msg
         if msg_type == 2:
             self.nodes[id-1]['num_wakeups'].append(msg[3])
             self.nodes[id-1]['time2'].append(time)
@@ -135,7 +188,7 @@ class LogConverter(object):
             self.nodes[id-1]['harvesting_rate'].append(msg[5])
             self.nodes[id-1]['time6'].append(time)
         elif msg_type == 7: #Packet path (Sink)
-            self.nodes[id-1]['pkt'].append(msg[3] + ',' +  msg[4] + ',' + msg[5] + ',' + msg[6])
+            self.nodes[id-1]['pkt'].append(msg[3] + ',' +  msg[4] + ',' + msg[5] + ',' + msg[6]) #FIXME There is no file from SINK
         elif msg_type == 8: #Packet path (Node)
             self.nodes[id-1]['pkt'].append(msg[3] + ',' + msg[4] + ',' + msg[5] + ',' + msg[6])
         elif msg_type == 9: #Node goes ON
@@ -182,7 +235,7 @@ class LogConverter(object):
         counter = 0.0
         total_on = 0.0
 
-        for i in range (0, len(self.nodes[node_id]['time_on'])-1%uh):
+        for i in range (0, len(self.nodes[node_id]['time_on'])-1):
 
             period = self.nodes[node_id]['time_off'][i+1] - self.nodes[node_id]['time_off'][i]
             on = abs( self.nodes[node_id]['time_on'][i] - self.nodes[node_id]['time_off'][i+1] )
@@ -268,9 +321,9 @@ class LogConverter(object):
         self.format_figure('Node DC', 'Time', 'DC (%)', 'duty_cycle')
 
         plt.figure()
-        for i in range (1, len(avg_dc_array)):
-            plt.plot(avg_dc_array[i])
-        self.format_figure('Node avg DC', 'Time', 'avg DC (%)', 'avg_duty_cycle')
+        for i in range (0, len(avg_dc_array)):
+            plt.bar(i,avg_dc_array[i],width=0.3)
+        self.format_figure('Node avg DC', 'Node', 'avg DC (%)', 'avg_duty_cycle')
 
     def generateGraphs(self):
         print ('>> Generating graphics...')

@@ -12,12 +12,12 @@ convert Cooja results into statistical data and graphs
 '''
 # env = 'uni'
 env = 'home'
-simulation = 'orig'
-# simulation = 'eh'
+# simulation = 'orig'
+simulation = 'eh'
 if env == 'uni':
     general_path = "/home/egarrido/contiki/tools/cooja/build/"
     if simulation == 'orig':
-        file_path = "/home/egarrido/staffetta_sensys2015/eh_staffetta/results/origina/l"
+        file_path = "/home/egarrido/staffetta_sensys2015/eh_staffetta/results/original/"
     elif simulation == 'eh':
         file_path = "/home/egarrido/staffetta_sensys2015/eh_staffetta/results/eh_staffetta/"
 elif env == 'home':
@@ -109,6 +109,7 @@ class LogConverter(object):
             fp.write(str(self.nodes[0]['seq'])+"\n")
         fp.close()
 #--------------------------- Read and Store Functions ---------------------------#
+
     def read_file(self, filename):
         file_name = general_path + filename
 
@@ -253,8 +254,9 @@ class LogConverter(object):
         plt.xlabel(xlab)
         plt.ylabel(ylab)
         plt.draw()
-        plt.savefig(filename)
 
+        # plt.savefig(filename)
+        plt.savefig(file_path+filename)
 
 
     def printEnergyLevels(self):

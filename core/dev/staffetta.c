@@ -700,7 +700,7 @@ int staffetta_send_packet(void) {
 					leds_off(LEDS_GREEN);
 					radio_flush_rx();
 					current_state=idle;
-//					printf("sink got a too long beacon\n");
+					//printf("sink got a too long beacon\n");
 					continue;
 				}
 
@@ -714,7 +714,7 @@ int staffetta_send_packet(void) {
 							leds_off(LEDS_GREEN);
 							radio_flush_rx();
 							current_state=idle;
-//							printf("sink goto sleep after waiting for BEACON's byte %u from radio\n",bytes_read);
+							//printf("sink goto sleep after waiting for BEACON's byte %u from radio\n",bytes_read);
 							continue;
 						}
 					};
@@ -754,14 +754,14 @@ int staffetta_send_packet(void) {
 					leds_off(LEDS_GREEN);
 					radio_flush_rx();
 					current_state=idle;
-//					PRINTF("Wrong CRC\n");
+					//PRINTF("Wrong CRC\n");
 					continue;
 					#endif /*WITH_CRC*/
 				}
                 //TODO Add logging method to gather data at the sink
 				//PRINTF("sink beacon: %u %u %u %u %u %u %u %u\n",strobe[0],strobe[1],strobe[2],strobe[3],strobe[4],strobe[5],strobe[6],strobe[7]);
 				//strobe received, process it
-
+                printf("7|%u|%u|%u|%u\n", strobe[PKT_SRC], strobe[PKT_DST], strobe[PKT_SEQ], strobe[PKT_DATA]);
 				if (strobe[PKT_TYPE] == TYPE_BEACON){
 					current_state = sending_ack;
 				}
@@ -774,7 +774,7 @@ int staffetta_send_packet(void) {
 			}
 		// we received a beacon
 		if(current_state==sending_ack){
-		    printf("7|%u|%u|%u|%u\n", strobe[PKT_SRC], strobe[PKT_DST], strobe[PKT_SEQ], strobe[PKT_DATA]);
+		    //printf("7|%u|%u|%u|%u\n", strobe[PKT_SRC], strobe[PKT_DST], strobe[PKT_SEQ], strobe[PKT_DATA]);
 		    leds_off(LEDS_GREEN);
 		    leds_on(LEDS_BLUE);
 		    strobe_ack[PKT_DST] = strobe[PKT_SRC];
@@ -801,10 +801,10 @@ int staffetta_send_packet(void) {
 		    current_state=idle;
 		    //SINK output
 
-//		    printf("5|%u|%u|%u\n", strobe[PKT_DATA],strobe[PKT_SEQ],strobe[PKT_TTL]+1); //TODO This printf has been commented, check its functionallity
+		    //printf("5|%u|%u|%u\n", strobe[PKT_DATA],strobe[PKT_SEQ],strobe[PKT_TTL]+1); //TODO This printf has been commented, check its functionallity
             //TODO Add sink receive msg statistics and log them
 			#if WITH_AGGREGATE
-//		    printf("A %u\n",aggregateValue);
+		    //printf("A %u\n",aggregateValue);
 			#endif /*WITH_AGGREGATE*/
 			}
 		}

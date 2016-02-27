@@ -12,8 +12,8 @@ convert Cooja results into statistical data and graphs
 '''
 # env = 'uni'
 env = 'home'
-# simulation = 'orig'
-simulation = 'eh'
+simulation = 'orig'
+# simulation = 'eh'
 if env == 'uni':
     general_path = "/home/egarrido/contiki/tools/cooja/build/"
     if simulation == 'orig':
@@ -30,21 +30,13 @@ elif env == 'home':
 class LogConverter(object):
 
     def __init__(self, filename, number_of_nodes):
-        # try:
-            # content = open(filename).read().split(',')
-            # print ('>> Reading file {}'.format(filename))
-            #
-            # self.output_filename = '{}.log'.format(filename)
-            # self.content = content[1:]
+        # self.output = []
         self.output = []
-
         self.nodes = []
         self.number_of_nodes = number_of_nodes
 
         # Add here function calls to output data
         self.create_structure()
-        # print self.nodes
-        # print len(self.nodes)
         self.read_file(filename)
 
         pkts = self.organize_pkts()
@@ -52,13 +44,12 @@ class LogConverter(object):
         self.output_file(paths,"paths",0)
         self.output_file(pkts, "packets",1)
 
+        pkt_delay = self.get_end_to_end_delay(pkts)
+        self.output_file(pkt_delay,"delay", 0)
+
         self.output_pkt_seq("origSeq")
         self.printDC()
         self.generateGraphs()
-
-        # except Exception as e:
-        #     print ('>> Error on LogConverter: ',e)
-
 
 
     def create_structure(self):
@@ -158,11 +149,52 @@ class LogConverter(object):
                 pkts_t = pkts[i]
                 for j in range (0, len(pkts_t)):
                     pkt_split = pkts_t[j].split(',')
+                    del pkt_split[-1]
                     split_packets[i].append(pkt_split)
 
         main_split = self.format_pkt_path(split_packets)
 
         return main_split
+    def create_pkt_delay(self,orig_packet, sink_packet):
+        pkt_delay = []
+
+        for idx in range(0, len(orig_packet)):
+            if orig_packet[idx] != []:
+                if sink_packet[idx] == []:
+                    orig_t = orig_packet[idx].split(',')
+                    pkt_delay.append({'src':orig_t[3], 'seq':orig_t[2], 'delay': 'lost' })
+                else:
+                    orig_t = orig_packet[idx].split(',')
+                    sink_t = sink_packet[idx].split(',')
+                    pkt_delay.append({'src':int(orig_t[3]), 'seq':int(orig_t[2]), 'delay': (int(sink_t[4]) - int(orig_t[4]))})
+
+        sorted_pkt_list = sorted(pkt_delay, key=lambda k: (k['src'], k['seq']))
+        return sorted_pkt_list
+
+
+    def get_end_to_end_delay(self, packets):
+        orig_packet = []
+        sink_packet = []
+        for i in range(1, self.number_of_nodes):
+            if self.nodes[i]['pkt'] != []:
+                for len_pkt in range (0, len(self.nodes[i]['pkt'])):
+                    packet_t = self.nodes[i]['pkt'][len_pkt].split(',')
+                    if packet_t[0] == packet_t[3]: #Is a original packet
+                        orig_packet.append(  self.nodes[i]['pkt'][len_pkt] )
+
+        # Look for received packets timestamp
+        for len_orig_pkt in range( 0 , len(orig_packet)):
+            sink_packet.append([])
+            for sink in range (0, len(self.nodes[0]['pkt'])):
+                if self.nodes[0]['pkt'] != []:
+                    packet_orig_t = orig_packet[len_orig_pkt].split(',')
+                    packet_sink_t = self.nodes[0]['pkt'][sink].split(',')
+                    if packet_sink_t[2] == packet_orig_t[2] and packet_sink_t[3] == packet_orig_t[3]: # Same origin and sequence code
+                        sink_packet[len_orig_pkt] = self.nodes[0]['pkt'][sink]
+
+        pkt_delay = self.create_pkt_delay(orig_packet, sink_packet)
+
+        return pkt_delay
 
     def format_seq(self, msg):
         result = ""
@@ -189,9 +221,9 @@ class LogConverter(object):
             self.nodes[id-1]['harvesting_rate'].append(msg[5])
             self.nodes[id-1]['time6'].append(time)
         elif msg_type == 7: #Packet path (Sink)
-            self.nodes[id-1]['pkt'].append(msg[3] + ',' +  msg[4] + ',' + msg[5] + ',' + msg[6]) #FIXME There is no file from SINK
+            self.nodes[id-1]['pkt'].append(msg[3] + ',' +  msg[4] + ',' + msg[5] + ',' + msg[6] + ',' + str(time)) #FIXME There is no file from SINK
         elif msg_type == 8: #Packet path (Node)
-            self.nodes[id-1]['pkt'].append(msg[3] + ',' + msg[4] + ',' + msg[5] + ',' + msg[6])
+            self.nodes[id-1]['pkt'].append(msg[3] + ',' + msg[4] + ',' + msg[5] + ',' + msg[6] + ',' + str(time))
         elif msg_type == 9: #Node goes ON
             self.nodes[id-1]['time_off'].append(time)
         elif msg_type == 10:#Node goes OFF
@@ -225,7 +257,7 @@ class LogConverter(object):
             for j in range(0, len(self.nodes[i]['pkt'])):
                 temp = self.nodes[i]['pkt'][j]
                 temp_t = temp.split(',')
-                idx = int ( temp_t[len(temp_t)-1] )
+                idx = int ( temp_t[len(temp_t)-2] )
                 if (temp in pkts_with_origin[ idx-1 ]) == False:
                     pkts_with_origin[ idx -1 ].append(temp)
         return pkts_with_origin
@@ -248,6 +280,8 @@ class LogConverter(object):
         avg_dc = float(total_on) / float(self.nodes[node_id]['time_off'][len(self.nodes[node_id]['time_off'])-1])
         # avg_dc = avg_dc / counter
         return node_dc, avg_dc
+
+
 #--------------------------- Printing Functions ---------------------------#
     def format_figure(self,title, xlab, ylab, filename):
         plt.title(title)

@@ -225,6 +225,7 @@ PROCESS_THREAD(energytrace_process, ev, data)
 			rd = random_rand() % 100;
 			rd = rd * 2 * ENERGY_HARVEST_STEP_SOLAR;
 			rd = rd / 100;
+			rd = rd * 0.5
 			// printf("rd %lu\n",rd );
 			// printf("remaining_energy + rd: %lu\n", remaining_energy + rd);
 			harvesting_rate_array[harvesting_array_index] = (uint32_t)rd;

@@ -294,7 +294,7 @@ int staffetta_send_packet(void) {
 			else {
 				#if WITH_CRC
 				// packet is corrupted. we send a beacon ack to a non-existing node as a NACK
-				strobe_ack[PKT_DST] = 255;
+				strobe_ack[PKT_DST] = MAX_EDC;
 				strobe_ack[PKT_DATA] = 0;
 				strobe_ack[PKT_SEQ] = 0;
 				strobe_ack[PKT_TTL] = 0;
@@ -350,7 +350,7 @@ int staffetta_send_packet(void) {
 			strobe_ack[PKT_TTL] = strobe[PKT_TTL];
 
 			#if ORW_GRADIENT
-			strobe_ack[PKT_GRADIENT] = (uint8_t)(MIN(avg_edc,255)); // limit to 255
+			strobe_ack[PKT_GRADIENT] = (uint8_t)(MIN(avg_edc,MAX_EDC)); // limit to 255
 			#endif /*ORW_GRADIENT*/
 
 			#if WITH_AGGREGATE
@@ -456,9 +456,9 @@ int staffetta_send_packet(void) {
 		#if BCP_GRADIENT
 	    strobe[PKT_GRADIENT] = (uint8_t)(MIN(q_size,255)); // we limit the queue size to 255
 		#elif ORW_GRADIENT
-	    strobe[PKT_GRADIENT] = (uint8_t)(MIN(avg_edc,255)); // limit to 255
+	    strobe[PKT_GRADIENT] = (uint8_t)(MIN(avg_edc,MAX_EDC)); // limit to 255
 		#else
-	    strobe[PKT_GRADIENT] = (uint8_t)(MIN(num_wakeups,255)); // we limit the # of wakeups to 25
+	    strobe[PKT_GRADIENT] = (uint8_t)(MIN(num_wakeups,25)); // we limit the # of wakeups to 25
         #endif /*ORW_GRADIENT*/
 
 		#if WITH_AGGREGATE
@@ -526,7 +526,7 @@ int staffetta_send_packet(void) {
 						select[PKT_TTL] = 0;
 						select[PKT_SEQ] = 0;
 						select[PKT_GRADIENT] = 0;
-						select[PKT_DST] = 255;
+						select[PKT_DST] = MAX_EDC;
 						radio_flush_tx();
 						FASTSPI_WRITE_FIFO(select, STAFFETTA_PKT_LEN+1);
 						FASTSPI_STROBE(CC2420_STXON);
@@ -629,7 +629,7 @@ int staffetta_send_packet(void) {
 				    edc_sum += edc[i];
 				}
 			}
-			avg_edc = MIN(((rendezvous_time/100)+(edc_sum/AVG_EDC_SIZE)),255); //limit to 255
+			avg_edc = MIN(((rendezvous_time/100)+(edc_sum/AVG_EDC_SIZE)),MAX_EDC); //limit to 255
 			#endif /*ORW_GRADIENT*/
 
 			#if DYN_DC
@@ -743,7 +743,7 @@ int staffetta_send_packet(void) {
 				else {
 					#if WITH_CRC
 					//CRC wrong, send an ack to a non-existing node (NACK)
-					strobe_ack[PKT_DST] = 255;
+					strobe_ack[PKT_DST] = MAX_EDC;
 					strobe_ack[PKT_DATA] = 0;
 					strobe_ack[PKT_SEQ] = 0;
 					strobe_ack[PKT_TTL] = 0;
@@ -797,13 +797,11 @@ int staffetta_send_packet(void) {
 		    //We wait until transmission has ended
 		    BUSYWAIT_UNTIL(!(radio_status() & BV(CC2420_TX_ACTIVE)), RTIMER_SECOND / 10);
 		    //t2 = RTIMER_NOW (); while(RTIMER_CLOCK_LT (RTIMER_NOW (), t2 + RTIMER_ARCH_SECOND/500)); //give time to the radio to send a message (1ms) TODO: add this time to .h file
+		    printf("7|%u|%u|%u|%u\n", strobe[PKT_SRC], strobe[PKT_DST], strobe[PKT_SEQ], strobe[PKT_DATA]);
 		    leds_off(LEDS_BLUE);
 		    radio_flush_rx();
 		    current_state=idle;
 		    //SINK output
-            printf("7|%u|%u|%u|%u\n", strobe[PKT_SRC], strobe[PKT_DST], strobe[PKT_SEQ], strobe[PKT_DATA]);
-		    //printf("5|%u|%u|%u\n", strobe[PKT_DATA],strobe[PKT_SEQ],strobe[PKT_TTL]+1); //TODO This printf has been commented, check its functionallity
-            //TODO Add sink receive msg statistics and log them
 			#if WITH_AGGREGATE
 		    //printf("A %u\n",aggregateValue);
 			#endif /*WITH_AGGREGATE*/
@@ -856,10 +854,10 @@ int staffetta_send_packet(void) {
 	    //    for (i=0;i<AVG_SIZE;i++) edc[i]=100000;
 	    //    edc_sum = 100000*AVG_SIZE;
 	    //    edc_idx = 0;
-	    for (i=0;i<AVG_EDC_SIZE;i++) edc[i]=255;
-	    edc_min = 255;
+	    for (i=0;i<AVG_EDC_SIZE;i++) edc[i]=MAX_EDC;
+	    edc_min = MAX_EDC;
 	    edc_idx = 0;
-	    avg_edc = 255;
+	    avg_edc = MAX_EDC;
 		#endif /*ORW_GRADIENT*/
 
 	    //Init message vars

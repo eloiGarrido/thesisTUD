@@ -6,26 +6,44 @@ __author__ = 'egarrido'
 import sys
 import matplotlib.pyplot as plt
 import os
+import shutil
+from operator import add
 '''
 Log Converter
 convert Cooja results into statistical data and graphs
 '''
-# env = 'uni'
-env = 'home'
-simulation = 'orig'
-# simulation = 'eh'
+env = 'uni'
+# env = 'home'
+# simulation = 'orig'
+simulation = 'eh'
+
+simulation_name = str(simulation) + "_" + str(env) + "_test16_10min"
+file_path = ""
 if env == 'uni':
     general_path = "/home/egarrido/contiki/tools/cooja/build/"
     if simulation == 'orig':
-        file_path = "/home/egarrido/staffetta_sensys2015/eh_staffetta/results/original/"
+        file_path = "/home/egarrido/staffetta_sensys2015/eh_staffetta/results/original/" + simulation_name
     elif simulation == 'eh':
-        file_path = "/home/egarrido/staffetta_sensys2015/eh_staffetta/results/eh_staffetta/"
+        file_path = "/home/egarrido/staffetta_sensys2015/eh_staffetta/results/eh_staffetta/" + simulation_name
 elif env == 'home':
     general_path = "/home/jester/contiki/tools/cooja/build/"
     if simulation == 'orig':
-        file_path = "/home/jester/thesisTUDelft/eh_staffetta/results/original/"
+        file_path = "/home/jester/thesisTUDelft/eh_staffetta/results/original/" + simulation_name
     elif simulation == 'eh':
-        file_path = "/home/jester/thesisTUDelft/eh_staffetta/results/eh_staffetta/"
+        file_path = "/home/jester/thesisTUDelft/eh_staffetta/results/eh_staffetta/" + simulation_name
+
+not_created = 0
+idx = 0
+while not_created == 0:
+    if os.path.isdir(file_path):
+        file_path += "_" + str(idx)
+    try:
+        os.mkdir(file_path)
+        file_path += "/"
+        not_created = 1
+    except:
+        file_path = file_path.rstrip('_'+ str(idx))
+        idx += 1
 
 class LogConverter(object):
 
@@ -39,18 +57,26 @@ class LogConverter(object):
         self.create_structure()
         self.read_file(filename)
 
+
         pkts = self.organize_pkts()
         paths = self.create_pkt_path(pkts)
         self.output_file(paths,"paths",0)
         self.output_file(pkts, "packets",1)
 
-        pkt_delay = self.get_end_to_end_delay(pkts)
+        pkt_delay, pkt_delay_raw = self.get_end_to_end_delay(pkts)
         self.output_file(pkt_delay,"delay", 0)
+        self.output_file(pkt_delay_raw,"delay_raw", 0)
 
         self.output_pkt_seq("origSeq")
-        self.printDC()
-        self.generateGraphs()
 
+        self.print_delay(pkt_delay)
+
+        self.print_dc()
+        self.generateGraphs()
+        try:
+            shutil.copy( general_path + "COOJA.testlog", file_path )
+        except:
+            print ('>> Error when moving COOJA.testlog')
 
     def create_structure(self):
         '''
@@ -66,6 +92,8 @@ class LogConverter(object):
 
         with open(txt_name, 'w') as fp:
             fp.write('\n'.join(self.output))
+
+
 
     def output_file(self, element, filename, num):
         # txt_name = file_path + str(filename) + str(i) + ".txt"
@@ -155,16 +183,46 @@ class LogConverter(object):
         main_split = self.format_pkt_path(split_packets)
 
         return main_split
+
+    def repeated(self, orig_t, pkt_delay):
+        result = False
+        for i in range(0, len(pkt_delay)):
+            if (int(orig_t[3]) == pkt_delay[i]['src']) and (int(orig_t[2]) == pkt_delay[i]['seq']):
+                result = True
+        return result
+
     def create_pkt_delay(self,orig_packet, sink_packet):
         pkt_delay = []
-
+        print ('>> Create packet delay...')
         for idx in range(0, len(orig_packet)):
             if orig_packet[idx] != []:
+                orig_t = orig_packet[idx].split(',')
+                if self.repeated(orig_t,pkt_delay) == True:
+                    continue
+                else:
+                    if sink_packet[idx] == []:
+
+                        pkt_delay.append({'src':orig_t[3], 'seq':orig_t[2], 'delay': 'lost' })
+                    else:
+                        # orig_t = orig_packet[idx].split(',')
+                        sink_t = sink_packet[idx].split(',')
+                        if (long(sink_t[4]) - long(orig_t[4]) < 0):
+                            continue
+                        else:
+                            pkt_delay.append({'src':int(orig_t[3]), 'seq':int(orig_t[2]), 'delay': (long(sink_t[4]) - long(orig_t[4]))})
+
+        sorted_pkt_list = sorted(pkt_delay, key=lambda k: (k['src'], k['seq']))
+        return sorted_pkt_list
+
+    def create_pkt_delay_raw(self,orig_packet, sink_packet):
+        pkt_delay = []
+        print ('>> Create packet delay...')
+        for idx in range(0, len(orig_packet)):
+            orig_t = orig_packet[idx].split(',')
+            if orig_packet[idx] != []:
                 if sink_packet[idx] == []:
-                    orig_t = orig_packet[idx].split(',')
                     pkt_delay.append({'src':orig_t[3], 'seq':orig_t[2], 'delay': 'lost' })
                 else:
-                    orig_t = orig_packet[idx].split(',')
                     sink_t = sink_packet[idx].split(',')
                     pkt_delay.append({'src':int(orig_t[3]), 'seq':int(orig_t[2]), 'delay': (int(sink_t[4]) - int(orig_t[4]))})
 
@@ -173,6 +231,7 @@ class LogConverter(object):
 
 
     def get_end_to_end_delay(self, packets):
+        print ('>> Getting end-to-end delay...')
         orig_packet = []
         sink_packet = []
         for i in range(1, self.number_of_nodes):
@@ -193,8 +252,8 @@ class LogConverter(object):
                         sink_packet[len_orig_pkt] = self.nodes[0]['pkt'][sink]
 
         pkt_delay = self.create_pkt_delay(orig_packet, sink_packet)
-
-        return pkt_delay
+        pkt_delay_raw = self.create_pkt_delay_raw(orig_packet, sink_packet)
+        return pkt_delay ,pkt_delay_raw
 
     def format_seq(self, msg):
         result = ""
@@ -283,6 +342,32 @@ class LogConverter(object):
 
 
 #--------------------------- Printing Functions ---------------------------#
+    def print_delay(self,pkt_delay):
+        print ('>> Printing delay...')
+        plt.figure()
+        avg_delay_node = []
+        counter = []
+        acum = 0.0
+        for i in range(0, self.number_of_nodes-1):
+            avg_delay_node.append(0.0)
+            counter.append(0.0)
+        for i in range(0, len(pkt_delay)):
+            node = pkt_delay[i]['src']
+            if pkt_delay[i]['delay'] == 'lost':
+                continue
+            else:
+                avg_delay_node[node-2] += pkt_delay[i]['delay']
+                counter[node-2] += 1.0
+
+        for i in range (0, self.number_of_nodes-1):
+            avg_delay_node[i] = avg_delay_node[i] / counter[i]
+            acum += long(float(avg_delay_node[i] / self.number_of_nodes))
+            plt.bar(i,avg_delay_node[i])
+
+        plt.axhline(int(acum), color='r')
+
+        self.format_figure('Node average delay','Time', 'Delay', 'node_delay')
+
     def format_figure(self,title, xlab, ylab, filename):
         plt.title(title)
         plt.xlabel(xlab)
@@ -296,18 +381,35 @@ class LogConverter(object):
     def printEnergyLevels(self):
         print ('>> Printing energy levels...')
         plt.figure()
-        for i in range (1, self.number_of_nodes):
-            plt.plot(self.nodes[i]['remaining_energy'])
+        avg = []
+        for i in range (0, len(self.nodes[1]['remaining_energy'])):
+            avg.append(0.0)
 
+        for i in range (1, self.number_of_nodes):
+            for j in range (0, len(avg)):
+                avg[j] += float(self.nodes[i]['remaining_energy'][j]) / float(self.number_of_nodes)
+
+        plt.plot(avg)
+        # plt.plot(self.nodes[i]['remaining_energy'])
         self.format_figure('Node Energy Levels','Time', 'Energy', 'node_energy')
         return
 
     def printNodeState(self):
         print ('>> Printing node state...')
         plt.figure()
-        for i in range (1, self.number_of_nodes):
-            plt.plot(self.nodes[i]['node_energy_state'])
+        avg_state = []
 
+        for i in range (1, self.number_of_nodes):
+            sum  = 0.0
+            counter = 0.0
+            for j in range (0, len(self.nodes[i]['node_energy_state'])):
+                sum += float(self.nodes[i]['node_energy_state'][j])
+                counter += 1.0
+            avg_state.append(sum/counter)
+
+            # plt.plot(self.nodes[i]['node_energy_state'])
+        for i in range(0,self.number_of_nodes-1):
+            plt.bar(i, avg_state[i])
         self.format_figure('Node State','Time', 'State', 'node_state')
         return
 
@@ -332,8 +434,18 @@ class LogConverter(object):
     def printWakeups(self):
         print ('>> Printing number of wake-ups...')
         plt.figure()
+        avg_wup = []
+        avg_count = []
+
         for i in range (1, self.number_of_nodes):
-            plt.plot(self.nodes[i]['num_wakeups'])
+            avg_count.append(0.0)
+            avg_wup.append(0.0)
+            for j in range (0, len(self.nodes[i]['num_wakeups'])):
+                avg_wup[i-1] += float(self.nodes[i]['num_wakeups'][j])
+                avg_count[i-1] += 1.0
+        for i in range (0, self.number_of_nodes-1):
+            avg_wup[i] = float(avg_wup[i]) / avg_count[i]
+            plt.bar(i, avg_wup[i])
 
         self.format_figure('Node Number of Wake-ups','Time', 'Wake-ups', 'wakeups')
         return
@@ -341,12 +453,22 @@ class LogConverter(object):
     def printOnTime(self):
         print ('>> Printing ON time...')
         plt.figure()
+        avg = []
+        for i in range (0, len(self.nodes[1]['on_time'])):
+            avg.append(float(self.nodes[1]['on_time'][i]) / float(self.number_of_nodes))
+
+        for j in range (2, self.number_of_nodes):
+            for i in range (0, len(avg)):
+                avg[i] += float(self.nodes[j]['on_time'][i]) / float(self.number_of_nodes)
+
         for i in range (1, self.number_of_nodes):
             plt.plot(self.nodes[i]['on_time'])
+        plt.plot(avg,'dr', linewidth=5)
+
         self.format_figure('Node ON Time','Time', 'ON Time', 'on_time')
         return
 
-    def printDC(self):
+    def print_dc(self):
         print ('>> Printing DC...')
         plt.figure()
         avg_dc_array = []

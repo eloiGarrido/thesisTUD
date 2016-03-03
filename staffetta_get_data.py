@@ -12,12 +12,12 @@ from operator import add
 Log Converter
 convert Cooja results into statistical data and graphs
 '''
-env = 'uni'
-# env = 'home'
+# env = 'uni'
+env = 'home'
 # simulation = 'orig'
 simulation = 'eh'
 
-simulation_name = str(simulation) + "_" + str(env) + "_test16_10min"
+simulation_name = str(simulation) + "_" + str(env) + "_test16_40min"
 file_path = ""
 if env == 'uni':
     general_path = "/home/egarrido/contiki/tools/cooja/build/"
@@ -72,6 +72,7 @@ class LogConverter(object):
         self.print_delay(pkt_delay)
 
         self.print_dc()
+        self.print_drop_ratio(pkt_delay)
         self.generateGraphs()
         try:
             shutil.copy( general_path + "COOJA.testlog", file_path )
@@ -335,8 +336,11 @@ class LogConverter(object):
 
             total_on += abs( self.nodes[node_id]['time_on'][i] - self.nodes[node_id]['time_off'][i+1] )
             counter += 1.0
-
-        avg_dc = float(total_on) / float(self.nodes[node_id]['time_off'][len(self.nodes[node_id]['time_off'])-1])
+        try:
+            avg_dc =   float(self.nodes[node_id]['time_off'][len(self.nodes[node_id]['time_off'])-1]) / float(total_on)
+        except:
+            avg_dc = 0
+            print ('>> ERROR: No DC data')
         # avg_dc = avg_dc / counter
         return node_dc, avg_dc
 
@@ -360,13 +364,42 @@ class LogConverter(object):
                 counter[node-2] += 1.0
 
         for i in range (0, self.number_of_nodes-1):
-            avg_delay_node[i] = avg_delay_node[i] / counter[i]
-            acum += long(float(avg_delay_node[i] / self.number_of_nodes))
+            try:
+                avg_delay_node[i] = avg_delay_node[i] / counter[i]
+                acum += long(float(avg_delay_node[i] / self.number_of_nodes))
+            except:
+                print ('>> ERROR: No delay data')
+                avg_delay_node[i] = 0.0
             plt.bar(i,avg_delay_node[i])
 
         plt.axhline(int(acum), color='r')
 
-        self.format_figure('Node average delay','Time', 'Delay', 'node_delay')
+        self.format_figure('Node average delay','Node', 'Delay', 'node_delay')
+
+    def print_drop_ratio(self, pkt_delay):
+        print ('>> Printing packet drop ratio...')
+        plt.figure()
+        drop_pkt = []
+        total_pkt = []
+        for i in range(0, self.number_of_nodes-1):
+            drop_pkt.append(0)
+            total_pkt.append(0)
+        for i in range(0, len(pkt_delay)):
+            node = int(pkt_delay[i]['src'])
+            total_pkt[node-2] += 1
+            if pkt_delay[i]['delay'] != 'lost':
+                continue
+            else:
+                drop_pkt[node-2] += 1
+        # TODO Fix it, not getting the packets dropped
+        for i in range(0, len(total_pkt)):
+            try:
+                plt.bar(i, ( float(drop_pkt[i]) / float(total_pkt)) )
+            except:
+                plt.bar(i, 0)
+
+        self.format_figure('Node packet drop ratio', 'Node', 'Packet Dropped', 'packet_drop')
+
 
     def format_figure(self,title, xlab, ylab, filename):
         plt.title(title)

@@ -41,7 +41,7 @@
 #define ENERGY_HARVEST_STEP_SOLAR 	100		//Average solar harvest amount 
 #define ENERGY_HARVEST_STEP_MOVER	70		//Average mover harvest amount
 
-#define ENERGY_CONSUMES_PER_MS 		100		//Energy consumed per in uJ
+#define ENERGY_CONSUMES_PER_MS 		85		//Energy consumed per in uJ
 /*---------------------------------------------------------------------------*/
 void energytrace_start(void);
 void energytrace_stop(void);

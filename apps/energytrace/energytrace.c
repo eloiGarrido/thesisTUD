@@ -53,6 +53,7 @@
 //#include "rimeaddr.h"
 //#include "net/rime/rime.h"
 
+
 struct energytrace_sniff_stats {
 	struct energytrace_sniff_stats *next;
 	uint32_t num_input, num_output;
@@ -195,8 +196,10 @@ PROCESS_THREAD(energytrace_process, ev, data)
 
 	// random seed
 //	random_init((unsigned short)(rimeaddr_node_addr.u8[0]));
+
+
+	random_init((unsigned short) (clock_time()));
 	int r = rand();
-	random_init((unsigned short) (r));
 	if (period == NULL) {
 		PROCESS_EXIT();
 	}

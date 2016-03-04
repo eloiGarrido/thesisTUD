@@ -633,7 +633,6 @@ int staffetta_send_packet(void) {
 			#endif /*ORW_GRADIENT*/
 
 			#if DYN_DC
-            //TODO Add variable BUDGET depending on node NS_ENERGY_STATE
             #if ENERGY_HARV
             switch (node_energy_state)
             {

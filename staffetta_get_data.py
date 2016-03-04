@@ -368,7 +368,7 @@ class LogConverter(object):
                 avg_delay_node[i] = avg_delay_node[i] / counter[i]
                 acum += long(float(avg_delay_node[i] / self.number_of_nodes))
             except:
-                print ('>> ERROR: No delay data')
+                print ('>> ERROR: No delay data on node ' + str(i))
                 avg_delay_node[i] = 0.0
             plt.bar(i,avg_delay_node[i])
 
@@ -382,21 +382,22 @@ class LogConverter(object):
         drop_pkt = []
         total_pkt = []
         for i in range(0, self.number_of_nodes-1):
-            drop_pkt.append(0)
-            total_pkt.append(0)
+            drop_pkt.append(0.0)
+            total_pkt.append(0.0)
         for i in range(0, len(pkt_delay)):
             node = int(pkt_delay[i]['src'])
-            total_pkt[node-2] += 1
+            total_pkt[node-2] += 1.0
             if pkt_delay[i]['delay'] != 'lost':
                 continue
             else:
-                drop_pkt[node-2] += 1
+                drop_pkt[node-2] += 1.0
         # TODO Fix it, not getting the packets dropped
         for i in range(0, len(total_pkt)):
             try:
-                plt.bar(i, ( float(drop_pkt[i]) / float(total_pkt)) )
+                plt.bar(i, ( drop_pkt[i] / total_pkt[i]) )
             except:
                 plt.bar(i, 0)
+        plt.axhline( sum(drop_pkt) / sum(total_pkt), color='r' )
 
         self.format_figure('Node packet drop ratio', 'Node', 'Packet Dropped', 'packet_drop')
 
@@ -406,8 +407,6 @@ class LogConverter(object):
         plt.xlabel(xlab)
         plt.ylabel(ylab)
         plt.draw()
-
-        # plt.savefig(filename)
         plt.savefig(file_path+filename)
 
 
@@ -460,6 +459,7 @@ class LogConverter(object):
         plt.figure()
         for i in range (1, self.number_of_nodes):
             plt.plot(self.nodes[i]['avg_edc'])
+
 
         self.format_figure('Node Avg EDC','Time', 'Metric', 'avg_edc')
         return
@@ -514,6 +514,7 @@ class LogConverter(object):
         plt.figure()
         for i in range (0, len(avg_dc_array)):
             plt.bar(i,avg_dc_array[i],width=0.3)
+        plt.axhline( float(sum(avg_dc_array)) / float(len(avg_dc_array)) , color='r')
         self.format_figure('Node avg DC', 'Node', 'avg DC (%)', 'avg_duty_cycle')
 
     def generateGraphs(self):

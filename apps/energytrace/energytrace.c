@@ -225,10 +225,14 @@ PROCESS_THREAD(energytrace_process, ev, data)
 
 		if (node_class == NODE_SOLAR)
 		{
+		    #if FIXED_ENERGY_STEP
+		    rd = ENERGY_HARVEST_STEP_SOLAR;
+		    #else
 			rd = random_rand() % 100;
 			rd = rd * 2 * ENERGY_HARVEST_STEP_SOLAR;
 			rd = rd / 100;
 			rd = rd * 0.8;
+			#endif
 			// printf("rd %lu\n",rd );
 			// printf("remaining_energy + rd: %lu\n", remaining_energy + rd);
 			harvesting_rate_array[harvesting_array_index] = (uint32_t)rd;

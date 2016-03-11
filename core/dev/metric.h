@@ -12,7 +12,8 @@
 // #define NS_ENERGY_MID	10971	//10.971mJ * 1000 (Floating Point)
 // #define NS_ENERGY_HIGH	24610	//24.61mJ * 1000 (Floating Point)
 
-#define NS_ENERGY_LOW	410 	//4.1mJ * 1000 (Floating Point)
+//#define NS_ENERGY_LOW	410 	//4.1mJ * 1000 (Floating Point)
+#define NS_ENERGY_LOW   750
 #define NS_ENERGY_MID	1097	//10.971mJ * 1000 (Floating Point)
 #define NS_ENERGY_HIGH	2461	//24.61mJ * 1000 (Floating Point)
 
@@ -29,7 +30,7 @@
 #define DC_MID	15	// Duty Cycle 1.5% * 10
 #define DC_HIGH	35	// Duty Cycle 3.5% * 10
 
-#define PERIOD 10	//Period in seconds
+#define PERIOD_M 10	//Period in seconds
 
 typedef enum{
 	NS_ZERO,

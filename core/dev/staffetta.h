@@ -61,7 +61,7 @@
 #define WITH_CRC 		    1
 #define IS_SINK 		    (node_id == 1)
 //#define IS_SINK 		    (node_id < 4) // Mobile sink on flocklab
-#define WITH_SELECT 		1 // enable 3-way handshake (in case of multiple forwarders, initiator can choose)
+#define WITH_SELECT 		0 // enable 3-way handshake (in case of multiple forwarders, initiator can choose)
 
 #define WITH_GRADIENT 		1 // ensure that messages follows a gradient to the sink (number of wakeups)
 #define BCP_GRADIENT		0 // use the queue size as gradient (BCP)
@@ -72,7 +72,7 @@
 #define BUDGET_PRECISION 	1 //use fixed point precision to compute the number of wakeups
 #define BUDGET 			    750 // how much energy should we use (in ms * 10)
 #define AVG_SIZE 		    5 // windows size for averaging the rendezvous time
-#define AVG_EDC_SIZE		20 // averaging size for orw's edc
+#define AVG_EDC_SIZE		10 //20 averaging size for orw's edc
 #define WITH_RETX 		    0 // retransmit a beacon ack if we receive another beacon
 #define USE_BACKOFF 		1 // before sending listen to the channel for a certain period
 #define SLEEP_BACKOFF 		0 // after the backoff, if we receive a beacon instead on starting a communication we go to sleep
@@ -83,8 +83,8 @@
 #define MAX_EDC             100
 #define WITH_AGGREGATE		0
 
-#define ENERGY_HARV         1 //Enable dynamic budget depending on Energy Harvesting capabilities
-
+#define ENERGY_HARV         0 //Enable dynamic budget depending on Energy Harvesting capabilities
+#define NEW_EDC             1
 /*-------------------------- MACROS -------------------------------------------------*/
 #define MIN(a, b) ((a) < (b)? (a) : (b))
 #define MAX(a, b) ((a) > (b)? (a) : (b))

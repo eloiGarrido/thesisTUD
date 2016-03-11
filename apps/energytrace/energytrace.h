@@ -42,6 +42,8 @@
 #define ENERGY_HARVEST_STEP_MOVER	70		//Average mover harvest amount
 
 #define ENERGY_CONSUMES_PER_MS 		85		//Energy consumed per in uJ
+
+#define FIXED_ENERGY_STEP           1
 /*---------------------------------------------------------------------------*/
 void energytrace_start(void);
 void energytrace_stop(void);

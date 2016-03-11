@@ -12,12 +12,12 @@ from operator import add
 Log Converter
 convert Cooja results into statistical data and graphs
 '''
-# env = 'uni'
-env = 'home'
-# simulation = 'orig'
-simulation = 'eh'
+env = 'uni'
+# env = 'home'
+simulation = 'orig'
+# simulation = 'eh'
 
-simulation_name = str(simulation) + "_" + str(env) + "_test16_40min"
+simulation_name = str(simulation) + "_" + str(env) + "_edc_test6_5min"
 file_path = ""
 if env == 'uni':
     general_path = "/home/egarrido/contiki/tools/cooja/build/"
@@ -159,7 +159,6 @@ class LogConverter(object):
                             src = splited[idx][0][3]
                             seq = splited[idx][0][2]
                             if (split_packet[l][j] not in splited[idx]) and split_packet[l][j][3] == src and split_packet[l][j][2] == seq:
-                                # splited[idx].append([])
                                 splited[idx].append(split_packet[l][j])
 
                 main_split.append(splited[idx])
@@ -192,27 +191,56 @@ class LogConverter(object):
                 result = True
         return result
 
+    def find_packet_index(self, seq, src, sink_packet):
+        index = -1
+        for pkt_idx in range(0, len(sink_packet)):
+            if sink_packet[pkt_idx] == []:
+                continue
+            else:
+                sink_t = sink_packet[pkt_idx].split(',')
+                if sink_t[3] == src and sink_t[2] == seq:
+                    index = pkt_idx
+                    break
+        return index
+
     def create_pkt_delay(self,orig_packet, sink_packet):
         pkt_delay = []
         print ('>> Create packet delay...')
-        for idx in range(0, len(orig_packet)):
-            if orig_packet[idx] != []:
-                orig_t = orig_packet[idx].split(',')
-                if self.repeated(orig_t,pkt_delay) == True:
-                    continue
+
+        for nodes in range(1, self.number_of_nodes):
+            for pkt_seq in range(0, len(self.nodes[nodes]['seq'])):
+                seq = (self.nodes[nodes]['seq'][pkt_seq]).split(',')
+                seq = seq[0]
+                node = nodes+1
+                index = self.find_packet_index(seq, str(node), self.nodes[0]['pkt'])
+                if index == -1:
+                    pkt_delay.append({'src': node, 'seq':seq, 'delay': 'lost' })
                 else:
-                    if sink_packet[idx] == []:
-
-                        pkt_delay.append({'src':orig_t[3], 'seq':orig_t[2], 'delay': 'lost' })
+                    sink_t = self.nodes[0]['pkt'][index].split(',')
+                    delay_t = long(sink_t[4]) - long( self.nodes[nodes]['time4'][pkt_seq] )
+                    if delay_t < 0:
+                        continue
                     else:
-                        # orig_t = orig_packet[idx].split(',')
-                        sink_t = sink_packet[idx].split(',')
-                        if (long(sink_t[4]) - long(orig_t[4]) < 0):
-                            continue
-                        else:
-                            pkt_delay.append({'src':int(orig_t[3]), 'seq':int(orig_t[2]), 'delay': (long(sink_t[4]) - long(orig_t[4]))})
+                        pkt_delay.append({'src': node, 'seq':seq, 'delay': str(delay_t) })
 
-        sorted_pkt_list = sorted(pkt_delay, key=lambda k: (k['src'], k['seq']))
+        # for idx in range(0, len(orig_packet)):
+        #     if orig_packet[idx] != []:
+        #         orig_t = orig_packet[idx].split(',')
+        #         if self.repeated(orig_t,pkt_delay) == True:
+        #             continue
+        #         else:
+        #             index = self.find_packet_index(orig_t[2], orig_t[3], sink_packet)
+        #             if index == -1:
+        #                 pkt_delay.append({'src':orig_t[3], 'seq':orig_t[2], 'delay': 'lost' })
+        #             else:
+        #                 sink_t = sink_packet[index].split(',')
+        #                 delay_t = long(sink_t[4]) - long(orig_t[4])
+        #                 if delay_t < 0:
+        #                     continue
+        #                 else:
+        #                     pkt_delay.append({'src':int(orig_t[3]), 'seq':int(orig_t[2]), 'delay': (long(sink_t[4]) - long(orig_t[4]))})
+
+        sorted_pkt_list = sorted(pkt_delay, key=lambda k: (k['src'], int(k['seq'])))
         return sorted_pkt_list
 
     def create_pkt_delay_raw(self,orig_packet, sink_packet):
@@ -251,6 +279,7 @@ class LogConverter(object):
                     packet_sink_t = self.nodes[0]['pkt'][sink].split(',')
                     if packet_sink_t[2] == packet_orig_t[2] and packet_sink_t[3] == packet_orig_t[3]: # Same origin and sequence code
                         sink_packet[len_orig_pkt] = self.nodes[0]['pkt'][sink]
+                        break
 
         pkt_delay = self.create_pkt_delay(orig_packet, sink_packet)
         pkt_delay_raw = self.create_pkt_delay_raw(orig_packet, sink_packet)
@@ -281,7 +310,7 @@ class LogConverter(object):
             self.nodes[id-1]['harvesting_rate'].append(msg[5])
             self.nodes[id-1]['time6'].append(time)
         elif msg_type == 7: #Packet path (Sink)
-            self.nodes[id-1]['pkt'].append(msg[3] + ',' +  msg[4] + ',' + msg[5] + ',' + msg[6] + ',' + str(time)) #FIXME There is no file from SINK
+            self.nodes[id-1]['pkt'].append(msg[3] + ',' +  msg[4] + ',' + msg[5] + ',' + msg[6] + ',' + str(time))
         elif msg_type == 8: #Packet path (Node)
             self.nodes[id-1]['pkt'].append(msg[3] + ',' + msg[4] + ',' + msg[5] + ',' + msg[6] + ',' + str(time))
         elif msg_type == 9: #Node goes ON
@@ -360,19 +389,21 @@ class LogConverter(object):
             if pkt_delay[i]['delay'] == 'lost':
                 continue
             else:
-                avg_delay_node[node-2] += pkt_delay[i]['delay']
+                avg_delay_node[node-2] += float(pkt_delay[i]['delay'])
                 counter[node-2] += 1.0
 
         for i in range (0, self.number_of_nodes-1):
             try:
                 avg_delay_node[i] = avg_delay_node[i] / counter[i]
-                acum += long(float(avg_delay_node[i] / self.number_of_nodes))
+                acum += long(float(avg_delay_node[i] / (self.number_of_nodes - 1) ))
             except:
                 print ('>> ERROR: No delay data on node ' + str(i))
                 avg_delay_node[i] = 0.0
-            plt.bar(i,avg_delay_node[i])
+            plt.bar(i+1,avg_delay_node[i],align='center')
 
         plt.axhline(int(acum), color='r')
+        plt.annotate(acum, xy=(self.number_of_nodes-2,int(acum) + 0.5))
+
 
         self.format_figure('Node average delay','Node', 'Delay', 'node_delay')
 
@@ -381,23 +412,31 @@ class LogConverter(object):
         plt.figure()
         drop_pkt = []
         total_pkt = []
-        for i in range(0, self.number_of_nodes-1):
+        total_created = []
+        print ('>> Total packets created')
+        for i in range(0, self.number_of_nodes):
             drop_pkt.append(0.0)
             total_pkt.append(0.0)
+            total_created.append( len(self.nodes[i]['seq']) )
+            print ('Node: ' + str(i) + ' pkts: ' + str(total_created[i]))
         for i in range(0, len(pkt_delay)):
             node = int(pkt_delay[i]['src'])
-            total_pkt[node-2] += 1.0
-            if pkt_delay[i]['delay'] != 'lost':
-                continue
-            else:
-                drop_pkt[node-2] += 1.0
-        # TODO Fix it, not getting the packets dropped
+            total_pkt[node-1] += 1.0
+            if pkt_delay[i]['delay'] == 'lost':
+                # continue
+            # else:
+                drop_pkt[node-1] += 1.0
+
+
+
         for i in range(0, len(total_pkt)):
             try:
-                plt.bar(i, ( drop_pkt[i] / total_pkt[i]) )
+                plt.bar(i+1, ( drop_pkt[i] / total_pkt[i]),align='center' )
             except:
-                plt.bar(i, 0)
+                plt.bar(i+1, 0 ,align='center')
+            print ('Node: ' + str(i) + ' pkts: ' + str(total_pkt[i]))
         plt.axhline( sum(drop_pkt) / sum(total_pkt), color='r' )
+        plt.annotate(str(sum(drop_pkt) / sum(total_pkt)), xy=(self.number_of_nodes-2 , (sum(drop_pkt) / sum(total_pkt)) + 0.05))
 
         self.format_figure('Node packet drop ratio', 'Node', 'Packet Dropped', 'packet_drop')
 
@@ -418,11 +457,12 @@ class LogConverter(object):
             avg.append(0.0)
 
         for i in range (1, self.number_of_nodes):
-            for j in range (0, len(avg)):
-                avg[j] += float(self.nodes[i]['remaining_energy'][j]) / float(self.number_of_nodes)
-
+            for j in range (0, len(self.nodes[i]['remaining_energy'])):
+                try:
+                    avg[j] += float(self.nodes[i]['remaining_energy'][j]) / float(self.number_of_nodes - 1)
+                except:
+                    avg.append(float(self.nodes[i]['remaining_energy'][j]) / float(self.number_of_nodes - 1))
         plt.plot(avg)
-        # plt.plot(self.nodes[i]['remaining_energy'])
         self.format_figure('Node Energy Levels','Time', 'Energy', 'node_energy')
         return
 
@@ -432,16 +472,20 @@ class LogConverter(object):
         avg_state = []
 
         for i in range (1, self.number_of_nodes):
-            sum  = 0.0
+            sum_t  = 0.0
             counter = 0.0
             for j in range (0, len(self.nodes[i]['node_energy_state'])):
-                sum += float(self.nodes[i]['node_energy_state'][j])
+                sum_t += float(self.nodes[i]['node_energy_state'][j])
                 counter += 1.0
-            avg_state.append(sum/counter)
+            avg_state.append(sum_t/counter)
 
             # plt.plot(self.nodes[i]['node_energy_state'])
         for i in range(0,self.number_of_nodes-1):
-            plt.bar(i, avg_state[i])
+            plt.bar(i+1, avg_state[i] ,align='center')
+
+        avg = float(sum(avg_state)) / float(self.number_of_nodes - 1)
+        plt.axhline(avg, color='r')
+        plt.annotate(str(avg), xy=(self.number_of_nodes-2, 0 ))
         self.format_figure('Node State','Time', 'State', 'node_state')
         return
 
@@ -458,8 +502,10 @@ class LogConverter(object):
         print ('>> Printing average EDC...')
         plt.figure()
         for i in range (1, self.number_of_nodes):
-            plt.plot(self.nodes[i]['avg_edc'])
+            plt.plot(self.nodes[i]['avg_edc'], label='node: '+str(i))
 
+        plt.legend(loc=4)
+        plt.ylim(0,100)
 
         self.format_figure('Node Avg EDC','Time', 'Metric', 'avg_edc')
         return
@@ -478,8 +524,11 @@ class LogConverter(object):
                 avg_count[i-1] += 1.0
         for i in range (0, self.number_of_nodes-1):
             avg_wup[i] = float(avg_wup[i]) / avg_count[i]
-            plt.bar(i, avg_wup[i])
+            plt.bar(i+1, avg_wup[i] ,align='center')
 
+        avg = float(sum(avg_wup)) / float(self.number_of_nodes -1)
+        plt.axhline(avg, color='r')
+        plt.annotate(str(avg), xy=(self.number_of_nodes-2, avg+0.5))
         self.format_figure('Node Number of Wake-ups','Time', 'Wake-ups', 'wakeups')
         return
 
@@ -488,12 +537,14 @@ class LogConverter(object):
         plt.figure()
         avg = []
         for i in range (0, len(self.nodes[1]['on_time'])):
-            avg.append(float(self.nodes[1]['on_time'][i]) / float(self.number_of_nodes))
+            avg.append(float(self.nodes[1]['on_time'][i]) / float(self.number_of_nodes - 1))
 
         for j in range (2, self.number_of_nodes):
             for i in range (0, len(avg)):
-                avg[i] += float(self.nodes[j]['on_time'][i]) / float(self.number_of_nodes)
-
+                try:
+                    avg[i] += float(self.nodes[j]['on_time'][i]) / float(self.number_of_nodes - 1)
+                except:
+                    print ('>> ERROR print on time: '+ str(i) + ' ' +str(j))
         for i in range (1, self.number_of_nodes):
             plt.plot(self.nodes[i]['on_time'])
         plt.plot(avg,'dr', linewidth=5)
@@ -513,8 +564,9 @@ class LogConverter(object):
 
         plt.figure()
         for i in range (0, len(avg_dc_array)):
-            plt.bar(i,avg_dc_array[i],width=0.3)
+            plt.bar(i+1,avg_dc_array[i],width=0.3 ,align='center')
         plt.axhline( float(sum(avg_dc_array)) / float(len(avg_dc_array)) , color='r')
+        plt.annotate(str(float(sum(avg_dc_array)) / float(len(avg_dc_array)) ), xy=(self.number_of_nodes - 2,(float(sum(avg_dc_array)) / float(len(avg_dc_array)) + 0.5)))
         self.format_figure('Node avg DC', 'Node', 'avg DC (%)', 'avg_duty_cycle')
 
     def generateGraphs(self):

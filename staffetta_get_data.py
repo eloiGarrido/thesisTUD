@@ -14,8 +14,8 @@ convert Cooja results into statistical data and graphs
 '''
 env = 'uni'
 # env = 'home'
-simulation = 'orig'
-# simulation = 'eh'
+# simulation = 'orig'
+simulation = 'eh'
 
 simulation_name = str(simulation) + "_" + str(env) + "_edc_test6_5min"
 file_path = ""
@@ -572,9 +572,9 @@ class LogConverter(object):
     def generateGraphs(self):
         print ('>> Generating graphics...')
         self.printAvgEdc()
-        self.printEnergyLevels()
-        self.printHarvestingRate()
-        self.printNodeState()
+        # self.printEnergyLevels()
+        # self.printHarvestingRate()
+        # self.printNodeState()
         self.printOnTime()
         self.printWakeups()
         plt.show()

@@ -75,12 +75,14 @@ PROCESS_THREAD(staffetta_test, ev, data){
         if (node_energy_state != NS_ZERO){
             printf("9\n"); //Flag when the node turns on
             staffetta_result = staffetta_send_packet();
+            printf("11|%u\n", staffetta_result);
             printf("10\n"); //Notify when a node goes to sleep
         }
         #else
         if (node_energy_state != NS_ZERO){
             printf("9\n"); //Flag when the node turns on
             staffetta_result = staffetta_send_packet();
+            printf("11|%u\n", staffetta_result);
             printf("10\n"); //Notify when a node goes to sleep
         }
         #endif /*ENERGY_HARV*/

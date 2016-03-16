@@ -324,7 +324,7 @@ int staffetta_send_packet(void) {
 				#if ORW_GRADIENT
 				if(strobe[PKT_GRADIENT] <= avg_edc){
 				//#else
-//				if(strobe[PKT_GRADIENT] > num_wakeups){
+				//if(strobe[PKT_GRADIENT] > num_wakeups){
 				#endif
 					leds_off(LEDS_GREEN);
 					radio_flush_rx();
@@ -367,7 +367,6 @@ int staffetta_send_packet(void) {
 			FASTSPI_STROBE(CC2420_STXON);
 			//We wait until transmission has ended
 			BUSYWAIT_UNTIL(!(radio_status() & BV(CC2420_TX_ACTIVE)), RTIMER_SECOND / 10);
-            printf(" >>>>>>>>>> strobe_ack|%u|%u|%u|%u|%u\n", strobe_ack[PKT_SRC], strobe_ack[PKT_DST], strobe_ack[PKT_SEQ], strobe_ack[PKT_DATA], strobe_ack[PKT_GRADIENT]);
 			//wait for the select packet
 			current_state = wait_select;
 			radio_flush_rx();
@@ -424,13 +423,12 @@ int staffetta_send_packet(void) {
 				//printf("select not for us\n");
 			}else{
 				//otherwise save the packet
-				printf("select|%u|%u|%u|%u|%u\n",select[PKT_SRC],select[PKT_DST],select[PKT_SEQ],select[PKT_DATA],select[PKT_GRADIENT]);
-				printf("8|%u|%u|%u|%u|%u\n",strobe[PKT_SRC],strobe[PKT_DST],strobe[PKT_SEQ],strobe[PKT_DATA],strobe[PKT_GRADIENT]);
 				add_data(strobe[PKT_DATA], strobe[PKT_TTL]+1, strobe[PKT_SEQ]);
 
 			}
 			//Give time to the radio to finish sending the data
 			t2 = RTIMER_NOW (); while(RTIMER_CLOCK_LT (RTIMER_NOW (), t2 + RTIMER_ARCH_SECOND/1000));
+            printf("8|%u|%u|%u|%u|%u\n",strobe[PKT_SRC],strobe[PKT_DST],strobe[PKT_SEQ],strobe[PKT_DATA],strobe[PKT_GRADIENT]);
 			leds_off(LEDS_GREEN);
 			//Fast-forward
 			radio_flush_rx();
@@ -457,8 +455,8 @@ int staffetta_send_packet(void) {
 	    strobe[PKT_DATA] = read_data();
 	    strobe[PKT_TTL] = read_ttl();
 	    strobe[PKT_SEQ] = read_seq();
-//		#if BCP_GRADIENT
-//	    strobe[PKT_GRADIENT] = (uint8_t)(MIN(q_size,255)); // we limit the queue size to 255
+		//#if BCP_GRADIENT
+	    //strobe[PKT_GRADIENT] = (uint8_t)(MIN(q_size,255)); // we limit the queue size to 255
 		#if ORW_GRADIENT
 	    strobe[PKT_GRADIENT] = (uint8_t)(MIN(avg_edc,MAX_EDC)); // limit to 255
 		#else
@@ -541,12 +539,10 @@ int staffetta_send_packet(void) {
 
 						radio_flush_rx();
 						goto_idle();
-						PRINTF("Wrong CRC\n");
+						//PRINTF("Wrong CRC\n");
 						return RET_WRONG_CRC;
 						#endif /*WITH_CRC*/
 					}
-					printf(">>>>2>>>>strobe_ack|%u|%u|%u|%u|%u\n", strobe_ack[PKT_SRC], strobe_ack[PKT_DST], strobe_ack[PKT_SEQ], strobe_ack[PKT_DATA], strobe_ack[PKT_GRADIENT]);
-					//PRINTF("ack: %u %u %u %u %u %u %u %u\n",strobe_ack[0],strobe_ack[1],strobe_ack[2],strobe_ack[3],strobe_ack[4],strobe_ack[5],strobe_ack[6],strobe_ack[7]);
 					//packet received, process it
 					if (strobe_ack[PKT_TYPE] == TYPE_BEACON_ACK){
 						if ((strobe_ack[PKT_DST] == node_id)&&(strobe_ack[PKT_DATA] == strobe[PKT_DATA] )) {
@@ -564,7 +560,6 @@ int staffetta_send_packet(void) {
 				}
 			}
 	    }
-	    printf("After for loop\n");
 	    //Message sent. Send a select packet and go to sleep
 	    if(current_state == beacon_sent && collisions == 0){
 			#if WITH_SELECT
@@ -612,13 +607,7 @@ int staffetta_send_packet(void) {
 			#if ORW_GRADIENT
 			// if the neighbor has a better EDC, add it to the average
 			#if NEW_EDC
-			printf("sel|%u|%u|%u|%u|%u\n", select[PKT_SRC], select[PKT_DST], select[PKT_SEQ], select[PKT_DATA], select[PKT_GRADIENT]);
-			printf("strobe_ack|%u|%u|%u|%u|%u\n", strobe_ack[PKT_SRC], strobe_ack[PKT_DST], strobe_ack[PKT_SEQ], strobe_ack[PKT_DATA], strobe_ack[PKT_GRADIENT]);
-			printf("strobe|%u|%u|%u|%u|%u\n", strobe[PKT_SRC], strobe[PKT_DST], strobe[PKT_SEQ], strobe[PKT_DATA], strobe[PKT_GRADIENT]);
-			printf("node_id:%u|strobe_ack:%u|condition:%u\n",node_id,strobe_ack[PKT_SRC],(node_id != strobe_ack[PKT_SRC])  );
             if( (avg_edc > strobe_ack[PKT_GRADIENT]) && (node_id != strobe_ack[PKT_SRC])){
-//            if( (avg_edc > (uint32_t)strobe_ack[PKT_GRADIENT]) && (rendezvous_time<10000) ){
-
                 edc[edc_idx] = (uint32_t)strobe_ack[PKT_GRADIENT];
                 edc_id[edc_idx] = strobe_ack[PKT_SRC];
                 edc_idx = (edc_idx+1)%AVG_EDC_SIZE;
@@ -627,12 +616,10 @@ int staffetta_send_packet(void) {
                     edc_sum += edc[i];
                 }
             }
-            printf("before|avg_edc:%ld|edc_sum:%ld|node_state:%d|AVG_EDC_SIZE:%ld\n",avg_edc,edc_sum,node_energy_state, (uint32_t)20);
-            printf("operation|FIRST:%ld|SECOND:%ld\n",(uint32_t)(6 / node_energy_state),(edc_sum / AVG_EDC_SIZE));
-            avg_edc = MIN( ((uint32_t)(6 / node_energy_state) + (edc_sum / (uint32_t)20) ), MAX_EDC);
-            printf("edc|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld\n",edc[0],edc[1],edc[2],edc[3],edc[4],edc[5],edc[6],edc[7],edc[8],edc[9],edc[10],edc[11],edc[12],edc[13],edc[14],edc[15],edc[16],edc[17],edc[18],edc[19]);
-            printf("id|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld\n",edc_id[0],edc_id[1],edc_id[2],edc_id[3],edc_id[4],edc_id[5],edc_id[6],edc_id[7],edc_id[8],edc_id[9],edc_id[10],edc_id[11],edc_id[12],edc_id[13],edc_id[14],edc_id[15],edc_id[16],edc_id[17],edc_id[18],edc_id[19]);
-            printf("PKT_SRC:%d|PKT_GRADIENT:%d|avg_edc:%ld\n",strobe_ack[PKT_SRC], strobe_ack[PKT_GRADIENT], avg_edc);
+            avg_edc = MIN( (6 / node_energy_state) + (edc_sum / AVG_EDC_SIZE ), MAX_EDC);
+//            printf("edc|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld\n",edc[0],edc[1],edc[2],edc[3],edc[4],edc[5],edc[6],edc[7],edc[8],edc[9],edc[10],edc[11],edc[12],edc[13],edc[14],edc[15],edc[16],edc[17],edc[18],edc[19]);
+//            printf("id|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld\n",edc_id[0],edc_id[1],edc_id[2],edc_id[3],edc_id[4],edc_id[5],edc_id[6],edc_id[7],edc_id[8],edc_id[9],edc_id[10],edc_id[11],edc_id[12],edc_id[13],edc_id[14],edc_id[15],edc_id[16],edc_id[17],edc_id[18],edc_id[19]);
+//            printf("PKT_SRC:%d|PKT_GRADIENT:%d|avg_edc:%ld|node_state:%d\n",strobe_ack[PKT_SRC], strobe_ack[PKT_GRADIENT], avg_edc, node_energy_state);
            // avg_edc = MIN( ((rendezvous_time/100)+(edc_sum/AVG_EDC_SIZE)), MAX_EDC); //limit to 255
             #else
 			if((rendezvous_time<10000) && (avg_edc > (uint32_t)strobe_ack[PKT_GRADIENT])){
@@ -643,10 +630,9 @@ int staffetta_send_packet(void) {
 				    edc_sum += edc[i];
 				}
 			}
-			printf("before|avg_edc:%ld|edc_sum:%ld\n",avg_edc,edc_sum);
 			avg_edc = MIN( ((rendezvous_time/10000)+(edc_sum/AVG_EDC_SIZE)),MAX_EDC); //limit to 255
-            printf("edc|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld\n",edc[0],edc[1],edc[2],edc[3],edc[4],edc[5],edc[6],edc[7],edc[8],edc[9],edc[10],edc[11],edc[12],edc[13],edc[14],edc[15],edc[16],edc[17],edc[18],edc[19]);
-            printf("PKT_SRC:%d|PKT_GRADIENT:%d|avg_edc:%ld\n",strobe_ack[PKT_SRC], strobe_ack[PKT_GRADIENT], avg_edc);
+//            printf("edc|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld\n",edc[0],edc[1],edc[2],edc[3],edc[4],edc[5],edc[6],edc[7],edc[8],edc[9],edc[10],edc[11],edc[12],edc[13],edc[14],edc[15],edc[16],edc[17],edc[18],edc[19]);
+//            printf("PKT_SRC:%d|PKT_GRADIENT:%d|avg_edc:%ld\n",strobe_ack[PKT_SRC], strobe_ack[PKT_GRADIENT], avg_edc);
 			#endif /*NEW_EDC*/
 			#endif /*ORW_GRADIENT*/
 
@@ -782,7 +768,6 @@ int staffetta_send_packet(void) {
 
 				if (strobe[PKT_TYPE] == TYPE_BEACON){
 					current_state = sending_ack;
-					printf("7|%u|%u|%u|%u|%u\n", strobe[PKT_SRC], strobe[PKT_DST], strobe[PKT_SEQ], strobe[PKT_DATA],strobe[PKT_GRADIENT]);
 				}
 				else {
 					leds_off(LEDS_GREEN);
@@ -815,6 +800,7 @@ int staffetta_send_packet(void) {
                 BUSYWAIT_UNTIL(!(radio_status() & BV(CC2420_TX_ACTIVE)), RTIMER_SECOND / 10);
                 //t2 = RTIMER_NOW (); while(RTIMER_CLOCK_LT (RTIMER_NOW (), t2 + RTIMER_ARCH_SECOND/500)); //give time to the radio to send a message (1ms) TODO: add this time to .h file
 
+                printf("7|%u|%u|%u|%u|%u\n", strobe[PKT_SRC], strobe[PKT_DST], strobe[PKT_SEQ], strobe[PKT_DATA],strobe[PKT_GRADIENT]);
                 leds_off(LEDS_BLUE);
                 radio_flush_rx();
                 current_state=idle;

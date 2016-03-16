@@ -73,7 +73,7 @@ class LogConverter(object):
 
         self.print_dc()
         self.print_drop_ratio(pkt_delay)
-        self.generateGraphs()
+        self.generate_graphs()
         try:
             shutil.copy( general_path + "COOJA.testlog", file_path )
         except:
@@ -84,7 +84,7 @@ class LogConverter(object):
         Create data structure,  array of dictionaries containing all node information
         '''
         for i in range (0, self.number_of_nodes):
-            self.nodes.append({'id':i, 'time2':[], 'time3':[], 'time4':[], 'time6':[], 'time_on': [], 'time_off': [], 'pkt':[], 'num_wakeups':[], 'on_time': [], 'avg_edc':[], 'seq':[], 'node_energy_state':[], 'remaining_energy':[], 'harvesting_rate':[]})
+            self.nodes.append({'id':i, 'time2':[], 'time3':[], 'time4':[], 'time6':[], 'time_on': [], 'time_off': [], 'abs_time_off': [], 'pkt':[], 'num_wakeups':[], 'on_time': [], 'avg_edc':[], 'seq':[], 'node_energy_state':[], 'remaining_energy':[], 'harvesting_rate':[]})
 
 #--------------------------- Output Functions ---------------------------#
 #TODO Create a function to output each type of file data
@@ -313,10 +313,11 @@ class LogConverter(object):
             self.nodes[id-1]['pkt'].append(msg[3] + ',' +  msg[4] + ',' + msg[5] + ',' + msg[6] + ',' + str(time))
         elif msg_type == 8: #Packet path (Node)
             self.nodes[id-1]['pkt'].append(msg[3] + ',' + msg[4] + ',' + msg[5] + ',' + msg[6] + ',' + str(time))
-        elif msg_type == 9: #Node goes ON
-            self.nodes[id-1]['time_off'].append(time)
-        elif msg_type == 10:#Node goes OFF
-            self.nodes[id-1]['time_on'].append(time)
+        elif msg_type == 9: #Node goes OFF
+            self.nodes[id-1]['time_off'].append(float(msg[3]))
+            self.nodes[id-1]['abs_time_off'].append(time)
+        elif msg_type == 10:#Node goes ON
+            self.nodes[id-1]['time_on'].append(float(msg[3]))
 
     def parse(self, line):
         '''
@@ -359,19 +360,23 @@ class LogConverter(object):
 
         for i in range (0, len(self.nodes[node_id]['time_on'])-1):
 
-            period = self.nodes[node_id]['time_off'][i+1] - self.nodes[node_id]['time_off'][i]
-            on = abs( self.nodes[node_id]['time_on'][i] - self.nodes[node_id]['time_off'][i+1] )
+            # period = self.nodes[node_id]['time_off'][i+1] - self.nodes[node_id]['time_off'][i]
+            period = self.nodes[node_id]['abs_time_off'][i+1] - self.nodes[node_id]['abs_time_off'][i]
+            on = abs( self.nodes[node_id]['time_on'][i] - self.nodes[node_id]['time_off'][i] )
             node_dc.append( float(on) / float(period) )
-
-            total_on += abs( self.nodes[node_id]['time_on'][i] - self.nodes[node_id]['time_off'][i+1] )
+            total_on = sum(self.nodes[node_id]['time_on'])
+            # total_on += abs( self.nodes[node_id]['time_on'][i] - self.nodes[node_id]['time_off'][i+1] )
             counter += 1.0
         try:
-            avg_dc =   float(self.nodes[node_id]['time_off'][len(self.nodes[node_id]['time_off'])-1]) / float(total_on)
+            avg_dc_t = float(600000000) / float(total_on)
+            avg_dc =   float(total_on) / float(self.nodes[node_id]['time_off'][len(self.nodes[node_id]['time_off'])-1])
+            print ('avg_dc_t: '+str(avg_dc_t) + ' avg_dc:'+str(avg_dc))
         except:
             avg_dc = 0
+            avg_dc_t = 0
             print ('>> ERROR: No DC data')
         # avg_dc = avg_dc / counter
-        return node_dc, avg_dc
+        return node_dc, avg_dc_t
 
 
 #--------------------------- Printing Functions ---------------------------#
@@ -449,7 +454,7 @@ class LogConverter(object):
         plt.savefig(file_path+filename)
 
 
-    def printEnergyLevels(self):
+    def print_energy_levels(self):
         print ('>> Printing energy levels...')
         plt.figure()
         avg = []
@@ -466,7 +471,7 @@ class LogConverter(object):
         self.format_figure('Node Energy Levels','Time', 'Energy', 'node_energy')
         return
 
-    def printNodeState(self):
+    def print_node_State(self):
         print ('>> Printing node state...')
         plt.figure()
         avg_state = []
@@ -489,7 +494,7 @@ class LogConverter(object):
         self.format_figure('Node State','Time', 'State', 'node_state')
         return
 
-    def printHarvestingRate(self):
+    def print_harvesting_rate(self):
         print ('>> Printing harvesting rate...')
         plt.figure()
         for i in range (1, self.number_of_nodes):
@@ -498,7 +503,7 @@ class LogConverter(object):
         self.format_figure('Harvesting Rate','Time', 'HR', 'node_harv')
         return
 
-    def printAvgEdc(self):
+    def print_avg_edc(self):
         print ('>> Printing average EDC...')
         plt.figure()
         for i in range (1, self.number_of_nodes):
@@ -510,7 +515,7 @@ class LogConverter(object):
         self.format_figure('Node Avg EDC','Time', 'Metric', 'avg_edc')
         return
 
-    def printWakeups(self):
+    def print_wakeups(self):
         print ('>> Printing number of wake-ups...')
         plt.figure()
         avg_wup = []
@@ -532,7 +537,7 @@ class LogConverter(object):
         self.format_figure('Node Number of Wake-ups','Time', 'Wake-ups', 'wakeups')
         return
 
-    def printOnTime(self):
+    def print_on_time(self):
         print ('>> Printing ON time...')
         plt.figure()
         avg = []
@@ -569,14 +574,14 @@ class LogConverter(object):
         plt.annotate(str(float(sum(avg_dc_array)) / float(len(avg_dc_array)) ), xy=(self.number_of_nodes - 2,(float(sum(avg_dc_array)) / float(len(avg_dc_array)) + 0.5)))
         self.format_figure('Node avg DC', 'Node', 'avg DC (%)', 'avg_duty_cycle')
 
-    def generateGraphs(self):
+    def generate_graphs(self):
         print ('>> Generating graphics...')
-        self.printAvgEdc()
+        self.print_avg_edc()
         # self.printEnergyLevels()
         # self.printHarvestingRate()
         # self.printNodeState()
-        self.printOnTime()
-        self.printWakeups()
+        self.print_on_time()
+        self.print_wakeups()
         plt.show()
         return
 

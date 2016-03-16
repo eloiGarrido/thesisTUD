@@ -53,7 +53,7 @@ PROCESS_THREAD(staffetta_test, ev, data){
     random_init(node_id);
     watchdog_stop();
     leds_off(LEDS_GREEN);
-
+    uint32_t timer_on, timer_off;
 //    #if ENERGY_HARV
     PROCESS_EXITHANDLER(energytrace_stop();)
     energytrace_start();
@@ -73,17 +73,21 @@ PROCESS_THREAD(staffetta_test, ev, data){
         #if ENERGY_HARV
 //        printf("6,%d,%ld,%d\n", node_energy_state, remaining_energy, harvesting_rate);
         if (node_energy_state != NS_ZERO){
-            printf("9\n"); //Flag when the node turns on
+            timer_on = RTIMER_NOW();
             staffetta_result = staffetta_send_packet();
-            printf("11|%u\n", staffetta_result);
-            printf("10\n"); //Notify when a node goes to sleep
+            timer_off = RTIMER_NOW();
+            printf("9|%lu\n",timer_on); //Flag when the node turns on
+            printf("10|%lu\n",timer_off); //Notify when a node goes to sleep
+//            printf("11|%u\n", staffetta_result);
         }
         #else
         if (node_energy_state != NS_ZERO){
-            printf("9\n"); //Flag when the node turns on
+            timer_on = RTIMER_NOW();
             staffetta_result = staffetta_send_packet();
-            printf("11|%u\n", staffetta_result);
-            printf("10\n"); //Notify when a node goes to sleep
+            timer_off = RTIMER_NOW();
+            printf("9|%lu\n",timer_on); //Flag when the node turns on
+            printf("10|%lu\n",timer_off); //Notify when a node goes to sleep
+//            printf("11|%u\n", staffetta_result);y when a node goes to sleep
         }
         #endif /*ENERGY_HARV*/
 

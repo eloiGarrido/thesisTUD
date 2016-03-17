@@ -1,12 +1,16 @@
-.map
-.sky
-.cproject
-.idea/*
-.project
+*.png
+*.d
+*.sky
+*.map
+*.cproject
+*.idea/*
+*.project
 CMakeLists.txt
+results
+results (copy)
 doc/*
 doxygen/*
-
+/apps/glossy-test/obj_sky/*
 # Object files
 *.o
 *.ko

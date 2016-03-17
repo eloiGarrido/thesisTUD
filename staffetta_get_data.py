@@ -17,7 +17,7 @@ env = 'uni'
 # simulation = 'orig'
 simulation = 'eh'
 
-simulation_name = str(simulation) + "_" + str(env) + "_edc_test6_5min"
+simulation_name = str(simulation) + "_" + str(env) + "_11_60min"
 file_path = ""
 if env == 'uni':
     general_path = "/home/egarrido/contiki/tools/cooja/build/"
@@ -370,7 +370,7 @@ class LogConverter(object):
         try:
             avg_dc_t = float(600000000) / float(total_on)
             avg_dc =   float(total_on) / float(self.nodes[node_id]['time_off'][len(self.nodes[node_id]['time_off'])-1])
-            print ('avg_dc_t: '+str(avg_dc_t) + ' avg_dc:'+str(avg_dc))
+            # print ('avg_dc_t: '+str(avg_dc_t) + ' avg_dc:'+str(avg_dc))
         except:
             avg_dc = 0
             avg_dc_t = 0
@@ -423,7 +423,7 @@ class LogConverter(object):
             drop_pkt.append(0.0)
             total_pkt.append(0.0)
             total_created.append( len(self.nodes[i]['seq']) )
-            print ('Node: ' + str(i) + ' pkts: ' + str(total_created[i]))
+            # print ('Node: ' + str(i) + ' pkts: ' + str(total_created[i]))
         for i in range(0, len(pkt_delay)):
             node = int(pkt_delay[i]['src'])
             total_pkt[node-1] += 1.0
@@ -439,7 +439,7 @@ class LogConverter(object):
                 plt.bar(i+1, ( drop_pkt[i] / total_pkt[i]),align='center' )
             except:
                 plt.bar(i+1, 0 ,align='center')
-            print ('Node: ' + str(i) + ' pkts: ' + str(total_pkt[i]))
+            # print ('Node: ' + str(i) + ' pkts: ' + str(total_pkt[i]))
         plt.axhline( sum(drop_pkt) / sum(total_pkt), color='r' )
         plt.annotate(str(sum(drop_pkt) / sum(total_pkt)), xy=(self.number_of_nodes-2 , (sum(drop_pkt) / sum(total_pkt)) + 0.05))
 

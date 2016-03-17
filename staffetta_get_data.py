@@ -471,7 +471,7 @@ class LogConverter(object):
         self.format_figure('Node Energy Levels','Time', 'Energy', 'node_energy')
         return
 
-    def print_node_State(self):
+    def print_node_state(self):
         print ('>> Printing node state...')
         plt.figure()
         avg_state = []
@@ -577,9 +577,9 @@ class LogConverter(object):
     def generate_graphs(self):
         print ('>> Generating graphics...')
         self.print_avg_edc()
-        # self.printEnergyLevels()
-        # self.printHarvestingRate()
-        # self.printNodeState()
+        self.print_energy_levels()
+        self.print_harvesting_rate()
+        self.print_node_state()
         self.print_on_time()
         self.print_wakeups()
         plt.show()

@@ -231,7 +231,7 @@ PROCESS_THREAD(energytrace_process, ev, data)
 			rd = random_rand() % 100;
 			rd = rd * 2 * ENERGY_HARVEST_STEP_SOLAR;
 			rd = rd / 100;
-			rd = rd * 0.8;
+			rd = rd * 0.85;
 			#endif
 			// printf("rd %lu\n",rd );
 			// printf("remaining_energy + rd: %lu\n", remaining_energy + rd);

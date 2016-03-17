@@ -43,7 +43,7 @@
 
 #define ENERGY_CONSUMES_PER_MS 		85		//Energy consumed per in uJ
 
-#define FIXED_ENERGY_STEP           1
+#define FIXED_ENERGY_STEP           0
 /*---------------------------------------------------------------------------*/
 void energytrace_start(void);
 void energytrace_stop(void);

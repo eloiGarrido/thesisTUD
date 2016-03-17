@@ -52,6 +52,7 @@
 #include <legacymsp430.h>
 #include <stdlib.h>
 
+
 /*------------------------- OPTIONS --------------------------------------------------*/
 
 //TODO implement all the options
@@ -71,7 +72,7 @@
 #define BUDGET_PRECISION 	1 //use fixed point precision to compute the number of wakeups
 #define BUDGET 			    750 // how much energy should we use (in ms * 10)
 #define AVG_SIZE 		    5 // windows size for averaging the rendezvous time
-#define AVG_EDC_SIZE		20 // averaging size for orw's edc
+#define AVG_EDC_SIZE		20 //20 averaging size for orw's edc
 #define WITH_RETX 		    0 // retransmit a beacon ack if we receive another beacon
 #define USE_BACKOFF 		1 // before sending listen to the channel for a certain period
 #define SLEEP_BACKOFF 		0 // after the backoff, if we receive a beacon instead on starting a communication we go to sleep
@@ -79,9 +80,11 @@
 #define RSSI_THRESHOLD 		-90
 #define WITH_SINK_DELAY 	1 // add a delay to the beacon ack of nodes that are not a sink (sink is always the first to answer to beacons)
 #define DATA_SIZE 		    100 // size of the packet queue
-
+#define MAX_EDC             100
 #define WITH_AGGREGATE		0
 
+#define ENERGY_HARV         1 //Enable dynamic budget depending on Energy Harvesting capabilities
+#define NEW_EDC             1
 /*-------------------------- MACROS -------------------------------------------------*/
 #define MIN(a, b) ((a) < (b)? (a) : (b))
 #define MAX(a, b) ((a) > (b)? (a) : (b))
@@ -145,7 +148,7 @@ struct staffetta_hdr {
 #define PKT_SEQ			4
 #define PKT_TTL			5
 #define PKT_DATA		6
-#define PKT_GRADIENT		7
+#define PKT_GRADIENT	7
 #define PKT_RSSI		8
 #define PKT_CRC			9 //last field + 2
 

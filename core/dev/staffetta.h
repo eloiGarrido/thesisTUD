@@ -80,11 +80,12 @@
 #define RSSI_THRESHOLD 		-90
 #define WITH_SINK_DELAY 	1 // add a delay to the beacon ack of nodes that are not a sink (sink is always the first to answer to beacons)
 #define DATA_SIZE 		    100 // size of the packet queue
-#define MAX_EDC             100
+#define MAX_EDC             255
 #define WITH_AGGREGATE		0
 
 #define ENERGY_HARV         1 //Enable dynamic budget depending on Energy Harvesting capabilities
 #define NEW_EDC             1
+#define AGEING              1 //EDC vector ages depending on rendezvous value
 /*-------------------------- MACROS -------------------------------------------------*/
 #define MIN(a, b) ((a) < (b)? (a) : (b))
 #define MAX(a, b) ((a) > (b)? (a) : (b))

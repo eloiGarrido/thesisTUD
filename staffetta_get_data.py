@@ -17,7 +17,7 @@ env = 'uni'
 # simulation = 'orig'
 simulation = 'eh'
 
-simulation_name = str(simulation) + "_" + str(env) + "_11_60min"
+simulation_name = str(simulation) + "_" + str(env) + "_rendez_255edc_11_10min"
 file_path = ""
 if env == 'uni':
     general_path = "/home/egarrido/contiki/tools/cooja/build/"
@@ -73,6 +73,9 @@ class LogConverter(object):
 
         self.print_dc()
         self.print_drop_ratio(pkt_delay)
+        for i in range (1, number_of_nodes):
+            self.print_rendezvous(i)
+        # plt.show()
         self.generate_graphs()
         try:
             shutil.copy( general_path + "COOJA.testlog", file_path )
@@ -84,7 +87,7 @@ class LogConverter(object):
         Create data structure,  array of dictionaries containing all node information
         '''
         for i in range (0, self.number_of_nodes):
-            self.nodes.append({'id':i, 'time2':[], 'time3':[], 'time4':[], 'time6':[], 'time_on': [], 'time_off': [], 'abs_time_off': [], 'pkt':[], 'num_wakeups':[], 'on_time': [], 'avg_edc':[], 'seq':[], 'node_energy_state':[], 'remaining_energy':[], 'harvesting_rate':[]})
+            self.nodes.append({'id':i,'rv_time':[], 'time2':[], 'time3':[], 'time4':[], 'time6':[], 'time_on': [], 'time_off': [], 'abs_time_off': [], 'pkt':[], 'num_wakeups':[], 'on_time': [], 'avg_edc':[], 'seq':[], 'node_energy_state':[], 'remaining_energy':[], 'harvesting_rate':[]})
 
 #--------------------------- Output Functions ---------------------------#
 #TODO Create a function to output each type of file data
@@ -318,6 +321,8 @@ class LogConverter(object):
             self.nodes[id-1]['abs_time_off'].append(time)
         elif msg_type == 10:#Node goes ON
             self.nodes[id-1]['time_on'].append(float(msg[3]))
+        elif msg_type == 12: #Rendezvous time
+            self.nodes[id-1]['rv_time'].append(msg[3])
 
     def parse(self, line):
         '''
@@ -445,6 +450,13 @@ class LogConverter(object):
 
         self.format_figure('Node packet drop ratio', 'Node', 'Packet Dropped', 'packet_drop')
 
+    def print_rendezvous(self, node):
+        print ('>> Printing rendezvous time, node ' + str(node) + '...')
+        plt.figure()
+        plt.plot(self.nodes[node]['rv_time'])
+        plt.axhline(10000, color='r')
+
+        self.format_figure('Rendezvous', 'Node:'+str(node), 'Rendezvous time', 'rendezvous_time_'+str(node))
 
     def format_figure(self,title, xlab, ylab, filename):
         plt.title(title)

@@ -73,6 +73,11 @@ static uint8_t edc_idx;
 static uint32_t avg_edc;
 #endif /*ORW_GRADIENT*/
 
+#if AGEING
+static uint32_t edc_age[AVG_EDC_SIZE];
+static uint32_t edc_age_counter[AVG_EDC_SIZE];
+#endif /*AGEING*/
+
 //EGB support variables
 #if NEW_EDC
 int index;
@@ -235,6 +240,35 @@ static uint8_t pop_data(){
     return _data;
 }
 
+#if AGEING
+static inline uint32_t ageing_ratio(uint32_t rv_time) {
+
+	if ( rv_time == 0 ){
+		return 10;
+	}else if ( rv_time > 0 && rv_time <= 2 ) {
+		return 8;
+	}else if ( rv_time > 2 && rv_time <= 4 ) {
+		return 6;
+	}else if ( rv_time > 4 && rv_time <= 6 ) {
+		return 4;
+	}else {
+		return 2;
+	}
+}
+
+static void age_edc(){
+	int age_idx;
+	for ( age_idx = 0; age_idx < AVG_EDC_SIZE; age_idx++ ) {
+		if ( edc_age_counter[age_idx] == 0 ){
+			edc_age_counter[age_idx] = ageing_ratio( edc_age[age_idx] );
+			edc[age_idx]++;
+		}else{
+			edc_age_counter[age_idx]--;
+		} 
+	}
+}
+#endif /*AGEING*/
+
 /*--------------------------- STAFFETTA FUNCTIONS ------------------------------------------------*/
 
 int staffetta_send_packet(void) {
@@ -322,7 +356,7 @@ int staffetta_send_packet(void) {
 				//#if BCP_GRADIENT
 				//		if(strobe[PKT_GRADIENT] < q_size){
 				#if ORW_GRADIENT
-				if(strobe[PKT_GRADIENT] <= avg_edc){
+				if(strobe[PKT_GRADIENT] < avg_edc){
 				//#else
 				//if(strobe[PKT_GRADIENT] > num_wakeups){
 				#endif
@@ -428,7 +462,7 @@ int staffetta_send_packet(void) {
 			}
 			//Give time to the radio to finish sending the data
 			t2 = RTIMER_NOW (); while(RTIMER_CLOCK_LT (RTIMER_NOW (), t2 + RTIMER_ARCH_SECOND/1000));
-            printf("8|%u|%u|%u|%u|%u\n",strobe[PKT_SRC],strobe[PKT_DST],strobe[PKT_SEQ],strobe[PKT_DATA],strobe[PKT_GRADIENT]);
+            
 			leds_off(LEDS_GREEN);
 			//Fast-forward
 			radio_flush_rx();
@@ -440,6 +474,7 @@ int staffetta_send_packet(void) {
 			}
 			#if !FAST_FORWARD
 			goto_idle();
+			printf("8|%u|%u|%u|%u|%u\n",strobe[PKT_SRC],strobe[PKT_DST],strobe[PKT_SEQ],strobe[PKT_DATA],strobe[PKT_GRADIENT]);
 			return RET_NO_RX;
 			#endif /*!FAST_FORWARD*/
 	    }
@@ -593,7 +628,8 @@ int staffetta_send_packet(void) {
 			//leds_off(LEDS_BLUE);
 
 			rendezvous_time = ((RTIMER_NOW() - rendezvous_starting_time) * 10000) / RTIMER_ARCH_SECOND ;
-			if(rendezvous_time<10000) {
+			// if(rendezvous_time<10000) {
+            if(rendezvous_time<20000) {
 				rendezvous[rendezvous_idx] = rendezvous_time;
 				rendezvous_idx = (rendezvous_idx+1)%AVG_SIZE;
 			}
@@ -607,39 +643,56 @@ int staffetta_send_packet(void) {
 			#if ORW_GRADIENT
 			// if the neighbor has a better EDC, add it to the average
 			#if NEW_EDC
-            if( (avg_edc > strobe_ack[PKT_GRADIENT]) && (node_id != strobe_ack[PKT_SRC])){
-                edc[edc_idx] = (uint32_t)strobe_ack[PKT_GRADIENT];
+            if( (rendezvous_time<10000) && (avg_edc > strobe_ack[PKT_GRADIENT]) && (node_id != strobe_ack[PKT_SRC])){
+                edc[edc_idx] = strobe_ack[PKT_GRADIENT];
                 edc_id[edc_idx] = strobe_ack[PKT_SRC];
+
+		   	 	#if AGEING
+		    	edc_age[edc_idx] = rendezvous_time / 2000;
+
+		    	if ( edc_age[edc_idx] == 0 ){
+	    			edc_age_counter[edc_idx] = 10;
+		    	}else if ( edc_age[edc_idx] > 0 && edc_age[edc_idx] <= 2 ) {
+	    			edc_age_counter[edc_idx] = 8;
+		    	}else if ( edc_age[edc_idx] > 2 && edc_age[edc_idx] <= 4 ) {
+		    		edc_age_counter[edc_idx] = 6;
+		    	}else if ( edc_age[edc_idx] > 4 && edc_age[edc_idx] <= 6 ) {
+	    			edc_age_counter[edc_idx] = 4;
+		    	}else {
+	    			edc_age_counter[edc_idx] = 2;
+		    	}
+
+		    	
+			    #endif /*AGEING*/
+
+
                 edc_idx = (edc_idx+1)%AVG_EDC_SIZE;
                 edc_sum = 0;
                 for (i=0;i<AVG_EDC_SIZE;i++){
                     edc_sum += edc[i];
                 }
             }
-            avg_edc = MIN( (6 / node_energy_state) + (edc_sum / AVG_EDC_SIZE ), MAX_EDC);
-//            printf("edc|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld\n",edc[0],edc[1],edc[2],edc[3],edc[4],edc[5],edc[6],edc[7],edc[8],edc[9],edc[10],edc[11],edc[12],edc[13],edc[14],edc[15],edc[16],edc[17],edc[18],edc[19]);
-//            printf("id|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld\n",edc_id[0],edc_id[1],edc_id[2],edc_id[3],edc_id[4],edc_id[5],edc_id[6],edc_id[7],edc_id[8],edc_id[9],edc_id[10],edc_id[11],edc_id[12],edc_id[13],edc_id[14],edc_id[15],edc_id[16],edc_id[17],edc_id[18],edc_id[19]);
-//            printf("PKT_SRC:%d|PKT_GRADIENT:%d|avg_edc:%ld|node_state:%d\n",strobe_ack[PKT_SRC], strobe_ack[PKT_GRADIENT], avg_edc, node_energy_state);
-           // avg_edc = MIN( ((rendezvous_time/100)+(edc_sum/AVG_EDC_SIZE)), MAX_EDC); //limit to 255
+           // avg_edc = MIN( (6 / node_energy_state) + (edc_sum / AVG_EDC_SIZE ), MAX_EDC);
+            avg_edc = MIN( ( (6 / node_energy_state) + (rendezvous_time/100) + (edc_sum/AVG_EDC_SIZE)), MAX_EDC); //limit to 255
             #else
-			if((rendezvous_time<10000) && (avg_edc > (uint32_t)strobe_ack[PKT_GRADIENT])){
-				edc[edc_idx] =  (uint32_t)strobe_ack[PKT_GRADIENT];
+			// if((rendezvous_time<10000) && (avg_edc > strobe_ack[PKT_GRADIENT])){
+            if((rendezvous_time<20000) && (avg_edc > strobe_ack[PKT_GRADIENT])){
+
+				edc[edc_idx] = strobe_ack[PKT_GRADIENT];
 				edc_idx = (edc_idx+1)%AVG_EDC_SIZE;
 				edc_sum = 0;
 				for (i=0;i<AVG_EDC_SIZE;i++){
 				    edc_sum += edc[i];
 				}
-			}
-			avg_edc = MIN( ((rendezvous_time/10000)+(edc_sum/AVG_EDC_SIZE)),MAX_EDC); //limit to 255
-//            printf("edc|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld|%ld\n",edc[0],edc[1],edc[2],edc[3],edc[4],edc[5],edc[6],edc[7],edc[8],edc[9],edc[10],edc[11],edc[12],edc[13],edc[14],edc[15],edc[16],edc[17],edc[18],edc[19]);
-//            printf("PKT_SRC:%d|PKT_GRADIENT:%d|avg_edc:%ld\n",strobe_ack[PKT_SRC], strobe_ack[PKT_GRADIENT], avg_edc);
+			}//TODO rerun simulations due to change in avg_edc calculations
+			avg_edc = MIN( ((rendezvous_time/100)+(edc_sum/AVG_EDC_SIZE)),MAX_EDC); //limit to 255
 			#endif /*NEW_EDC*/
 			#endif /*ORW_GRADIENT*/
 
 			#if DYN_DC
             #if ENERGY_HARV
             switch (node_energy_state)
-            {
+            { //TODO Check rendezvous on num_wakeups and how is affected by EH
                 case NS_LOW:
                     num_wakeups = MAX(1,(NS_ENERGY_LOW*10)/avg_rendezvous);
                     break;
@@ -660,10 +713,18 @@ int staffetta_send_packet(void) {
 			if (!IS_SINK) {
 				// printf("2,%d,%ld\n",strobe_ack[PKT_SRC],num_wakeups);
 			}
+			
+			#if AGEING
+			age_edc();
+			#endif /*AGEING*/
 	    }
 
 	    radio_flush_rx();
 	    goto_idle();
+	    printf("12|%lu\n", rendezvous_time);
+	    
+
+	    
 	    return RET_FAST_FORWARD;
 	}
 
@@ -681,7 +742,7 @@ int staffetta_send_packet(void) {
 	    int i,collisions,strobes,bytes_read;
 	    //prepare strobe_ack packet
 	    strobe_ack[PKT_LEN] = STAFFETTA_PKT_LEN+FOOTER_LEN;
-//	    strobe_ack[PKT_SRC] = node_id;
+        //strobe_ack[PKT_SRC] = node_id;
 	    strobe_ack[PKT_SRC] = 1;
 	    strobe_ack[PKT_TYPE] = TYPE_BEACON_ACK;
 	    strobe_ack[PKT_GRADIENT] = 0; // we limit the # of wakeups to 25
@@ -793,18 +854,17 @@ int staffetta_send_packet(void) {
                 aggregateValue = MAX(aggregateValue,strobe[PKT_GRADIENT]);
                 strobe_ack[PKT_GRADIENT] = aggregateValue;
                 #endif /*WITH_AGGREGATE*/
-//                printf("sink_listen|%u|%u|%u|%u|%u\n", strobe_ack[PKT_SRC], strobe_ack[PKT_DST], strobe_ack[PKT_SEQ], strobe_ack[PKT_DATA], strobe_ack[PKT_GRADIENT]);
                 FASTSPI_WRITE_FIFO(strobe_ack, STAFFETTA_PKT_LEN+1);
                 FASTSPI_STROBE(CC2420_STXON);
                 //We wait until transmission has ended
                 BUSYWAIT_UNTIL(!(radio_status() & BV(CC2420_TX_ACTIVE)), RTIMER_SECOND / 10);
                 //t2 = RTIMER_NOW (); while(RTIMER_CLOCK_LT (RTIMER_NOW (), t2 + RTIMER_ARCH_SECOND/500)); //give time to the radio to send a message (1ms) TODO: add this time to .h file
 
-                printf("7|%u|%u|%u|%u|%u\n", strobe[PKT_SRC], strobe[PKT_DST], strobe[PKT_SEQ], strobe[PKT_DATA],strobe[PKT_GRADIENT]);
                 leds_off(LEDS_BLUE);
                 radio_flush_rx();
                 current_state=idle;
                 //SINK output
+                printf("7|%u|%u|%u|%u|%u\n", strobe[PKT_SRC], strobe[PKT_DST], strobe[PKT_SEQ], strobe[PKT_DATA],strobe[PKT_GRADIENT]);
 
                 #if WITH_AGGREGATE
                 //printf("A %u\n",aggregateValue);
@@ -821,8 +881,6 @@ int staffetta_send_packet(void) {
 			#if ORW_GRADIENT
 			printf("3|%ld|%ld\n",(on_time*1000)/elapsed_time,avg_edc);
 			printf("2|%ld\n",num_wakeups);
-			
-			//printf("6,%d,%ld,%d\n", node_energy_state, remaining_energy, harvesting_rate);
 			#else
 			printf("3|%ld|%d\n",(on_time*1000)/elapsed_time,q_size);
 			#endif /*ORW_GRADIENT*/

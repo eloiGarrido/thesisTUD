@@ -17,7 +17,7 @@ env = 'uni'
 # simulation = 'orig'
 simulation = 'eh'
 
-simulation_name = str(simulation) + "_" + str(env) + "_rendez_255edc_11_10min"
+simulation_name = str(simulation) + "_" + str(env) + "_ageing_11_10min"
 file_path = ""
 if env == 'uni':
     general_path = "/home/egarrido/contiki/tools/cooja/build/"
@@ -73,8 +73,8 @@ class LogConverter(object):
 
         self.print_dc()
         self.print_drop_ratio(pkt_delay)
-        for i in range (1, number_of_nodes):
-            self.print_rendezvous(i)
+        # for i in range (1, number_of_nodes):
+        #     self.print_rendezvous(i)
         # plt.show()
         self.generate_graphs()
         try:

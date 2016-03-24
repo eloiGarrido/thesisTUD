@@ -261,7 +261,8 @@ static void age_edc(){
 	for ( age_idx = 0; age_idx < AVG_EDC_SIZE; age_idx++ ) {
 		if ( edc_age_counter[age_idx] == 0 ){
 			edc_age_counter[age_idx] = ageing_ratio( edc_age[age_idx] );
-			edc[age_idx]++;
+			// edc[age_idx]++;
+			edc[age_idx] = MAX(edc[age_idx]++, MAX_EDC);
 		}else{
 			edc_age_counter[age_idx]--;
 		} 
@@ -284,8 +285,8 @@ int staffetta_send_packet(void) {
     strobe_ack[PKT_LEN] = STAFFETTA_PKT_LEN+FOOTER_LEN;
     strobe_ack[PKT_SRC] = node_id;
     strobe_ack[PKT_TYPE] = TYPE_BEACON_ACK;
-    strobe_ack[PKT_GRADIENT] = (uint8_t)100;
-//    strobe_ack[PKT_GRADIENT] = MAX_EDC;
+    // strobe_ack[PKT_GRADIENT] = (uint8_t)100;
+   	strobe_ack[PKT_GRADIENT] = MAX_EDC;
     //turn radio on
     radio_on();
     radio_flush_rx();
@@ -629,7 +630,7 @@ int staffetta_send_packet(void) {
 
 			rendezvous_time = ((RTIMER_NOW() - rendezvous_starting_time) * 10000) / RTIMER_ARCH_SECOND ;
 			// if(rendezvous_time<10000) {
-            if(rendezvous_time<20000) {
+            if(rendezvous_time<RENDEZ_TIME) {
 				rendezvous[rendezvous_idx] = rendezvous_time;
 				rendezvous_idx = (rendezvous_idx+1)%AVG_SIZE;
 			}
@@ -643,7 +644,7 @@ int staffetta_send_packet(void) {
 			#if ORW_GRADIENT
 			// if the neighbor has a better EDC, add it to the average
 			#if NEW_EDC
-            if( (rendezvous_time<10000) && (avg_edc > strobe_ack[PKT_GRADIENT]) && (node_id != strobe_ack[PKT_SRC])){
+            if( (rendezvous_time<RENDEZ_TIME) && (avg_edc > strobe_ack[PKT_GRADIENT]) && (node_id != strobe_ack[PKT_SRC])){
                 edc[edc_idx] = strobe_ack[PKT_GRADIENT];
                 edc_id[edc_idx] = strobe_ack[PKT_SRC];
 
@@ -676,7 +677,7 @@ int staffetta_send_packet(void) {
             avg_edc = MIN( ( (6 / node_energy_state) + (rendezvous_time/100) + (edc_sum/AVG_EDC_SIZE)), MAX_EDC); //limit to 255
             #else
 			// if((rendezvous_time<10000) && (avg_edc > strobe_ack[PKT_GRADIENT])){
-            if((rendezvous_time<20000) && (avg_edc > strobe_ack[PKT_GRADIENT])){
+            if((rendezvous_time<RENDEZ_TIME) && (avg_edc > strobe_ack[PKT_GRADIENT])){
 
 				edc[edc_idx] = strobe_ack[PKT_GRADIENT];
 				edc_idx = (edc_idx+1)%AVG_EDC_SIZE;
@@ -721,7 +722,7 @@ int staffetta_send_packet(void) {
 
 	    radio_flush_rx();
 	    goto_idle();
-	    printf("12|%lu\n", rendezvous_time);
+	    // printf("12|%lu\n", rendezvous_time);
 	    
 
 	    

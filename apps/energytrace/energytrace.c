@@ -52,7 +52,9 @@
 #include "../../core/lib/random.h"
 //#include "rimeaddr.h"
 //#include "net/rime/rime.h"
-
+#ifdef MODEL_SOLAR
+#include <math.h>
+#endif /*MODEL_SOLAR*/
 
 struct energytrace_sniff_stats {
 	struct energytrace_sniff_stats *next;
@@ -141,6 +143,51 @@ uint8_t harvesting_array_index = 0;
 // static uint8_t tx_levels[TX_LEVELS] =  {31, 27, 23, 19, 15, 11, 7, 3};
 // static uint8_t tx_current_consumption[TX_LEVELS] = {174, 165, 152, 139, 125, 112, 99, 85};
 
+#ifdef MODEL_SOLAR
+// double randn (double mu, double sigma)
+uint32_t randn (uint32_t mu, uint32_t sigma)
+{
+	uint32_t U1, U2, W, mult; //double
+	static uint32_t X1, X2; //double
+	static uint8_t call = 0; //int
+ 
+	if (call == 1)
+	{
+		call = !call;
+		return (mu + sigma * (uint32_t) X2);
+    }
+ 
+	do
+	{
+		U1 = -1 + ((uint32_t) rand () / RAND_MAX) * 2;
+		U2 = -1 + ((uint32_t) rand () / RAND_MAX) * 2;
+		W = pow (U1, 2) + pow (U2, 2);
+	}
+	while (W >= 1 || W == 0);
+ 
+	mult = sqrt ((-2 * log (W)) / W);
+	X1 = U1 * mult;
+	X2 = U2 * mult;
+
+	call = !call;
+ 
+	return (mu + sigma * (uint32_t) X1);
+}
+
+uint32_t solar_energy_input (uint32_t time_solar, uint8_t scalling_factor)
+{
+	uint32_t result;
+	uint32_t normal_var;
+
+	normal_var = randn(SOLAR_MU, SOLAR_SIGMA);
+	result = scalling_factor * normal_var * cos(time_solar / (70 * PI)) * cos(time_solar / (100 * PI));
+	return result;
+}
+
+#endif /*MODEL_SOLAR*/
+
+
+
 /**
  * TX current consumption (mA)
  * values are multiplied by 10 (e.g. 174 should be 17.4mA)
@@ -225,6 +272,11 @@ PROCESS_THREAD(energytrace_process, ev, data)
 
 		if (node_class == NODE_SOLAR)
 		{
+			#ifdef MODEL_SOLAR
+			rtimer_clock_t t0;
+			t0 = RTIMER_NOW ();
+			rd = solar_energy_input(t0 ,1); //TODO Add system time
+			#else
 		    #if FIXED_ENERGY_STEP
 		    rd = ENERGY_HARVEST_STEP_SOLAR;
 		    #else
@@ -232,7 +284,8 @@ PROCESS_THREAD(energytrace_process, ev, data)
 			rd = rd * 2 * ENERGY_HARVEST_STEP_SOLAR;
 			rd = rd / 100;
 			rd = rd * 0.85;
-			#endif
+			#endif /*FIXED_ENERGY_STEP*/
+			#endif /*MODEL_SOLAR*/
 			// printf("rd %lu\n",rd );
 			// printf("remaining_energy + rd: %lu\n", remaining_energy + rd);
 			harvesting_rate_array[harvesting_array_index] = (uint32_t)rd;

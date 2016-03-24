@@ -262,7 +262,7 @@ static void age_edc(){
 		if ( edc_age_counter[age_idx] == 0 ){
 			edc_age_counter[age_idx] = ageing_ratio( edc_age[age_idx] );
 			// edc[age_idx]++;
-			edc[age_idx] = MAX(edc[age_idx]++, MAX_EDC);
+			edc[age_idx] = MIN(edc[age_idx]++, MAX_EDC);
 		}else{
 			edc_age_counter[age_idx]--;
 		} 
@@ -649,7 +649,7 @@ int staffetta_send_packet(void) {
                 edc_id[edc_idx] = strobe_ack[PKT_SRC];
 
 		   	 	#if AGEING
-		    	edc_age[edc_idx] = rendezvous_time / 2000;
+		    	edc_age[edc_idx] = rendezvous_time / (RENDEZ_TIME/10);
 
 		    	if ( edc_age[edc_idx] == 0 ){
 	    			edc_age_counter[edc_idx] = 10;
@@ -732,7 +732,7 @@ int staffetta_send_packet(void) {
 	void sink_busy_wait(void) {
 	   // printf("Sink busy loop\n");
 	    while (1);
-	    printf("Sink end busy loop\n");
+	    // printf("Sink end busy loop\n");
 	}
 
 	void sink_listen(void) {

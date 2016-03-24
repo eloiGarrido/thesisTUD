@@ -16,7 +16,11 @@
 /* choose energy harvesting model */
 #define MODEL_BERNOULLI
 // #define MODEL_MARKOV
-
+// #define MODEL_SOLAR
+// #define MODEL_SHAKER
+#define SOLAR_MU 10
+#define SOLAR_SIGMA 2
+ 
 #define ENERGY_UPPER_THRESHOLD 1500
 #define ENERGY_LOWER_THRESHOLD 600
 // #define ENERGY_UPPER_THRESHOLD 1838

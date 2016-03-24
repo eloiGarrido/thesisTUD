@@ -17,7 +17,7 @@ env = 'uni'
 # simulation = 'orig'
 simulation = 'eh'
 
-simulation_name = str(simulation) + "_" + str(env) + "_ageing_11_10min"
+simulation_name = str(simulation) + "_" + str(env) + "_noageing_11_10min"
 file_path = ""
 if env == 'uni':
     general_path = "/home/egarrido/contiki/tools/cooja/build/"
@@ -71,7 +71,7 @@ class LogConverter(object):
 
         self.print_delay(pkt_delay)
 
-        self.print_dc()
+        # self.print_dc()
         self.print_drop_ratio(pkt_delay)
         # for i in range (1, number_of_nodes):
         #     self.print_rendezvous(i)
@@ -522,7 +522,7 @@ class LogConverter(object):
             plt.plot(self.nodes[i]['avg_edc'], label='node: '+str(i))
 
         plt.legend(loc=4)
-        plt.ylim(0,100)
+        plt.ylim(0,256)
 
         self.format_figure('Node Avg EDC','Time', 'Metric', 'avg_edc')
         return
@@ -589,8 +589,8 @@ class LogConverter(object):
     def generate_graphs(self):
         print ('>> Generating graphics...')
         self.print_avg_edc()
-        self.print_energy_levels()
-        self.print_harvesting_rate()
+        # self.print_energy_levels()
+        # self.print_harvesting_rate()
         self.print_node_state()
         self.print_on_time()
         self.print_wakeups()

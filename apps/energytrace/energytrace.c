@@ -55,6 +55,7 @@
 // #ifdef MODEL_SOLAR
 #include "math.h"
 // #endif /*MODEL_SOLAR*/
+#include "../../platform/sky/node-id.h"
 
 struct energytrace_sniff_stats {
 	struct energytrace_sniff_stats *next;
@@ -191,7 +192,7 @@ double randn (uint32_t mu, uint32_t sigma)
 	double U1, U2, W, mult; //double
 	static double X1, X2; //double
 	static uint8_t call = 0; //int
-	double temp_w;
+
 	if (call == 1)
 	{
 		call = !call;
@@ -270,7 +271,12 @@ PROCESS_THREAD(energytrace_process, ev, data)
 
 	uint32_t rd = 0;
 
-	node_class = NODE_SOLAR;
+	// node_class = NODE_SOLAR;
+	if ( node_id % MOVER_PERCENTAGE == 0) {
+		node_class = NODE_MOVER;
+	} else {
+		node_class = NODE_SOLAR;
+	}
 	// remaining_energy = ENERGY_MAX_CAPACITY_SOLAR / 4;
 	// remaining_energy 
 	node_activation_ev = process_alloc_event();
@@ -301,14 +307,13 @@ PROCESS_THREAD(energytrace_process, ev, data)
 
 /*EGB---------------------------------------------------------------------------*/
 
-		if (node_state == NODE_ACTIVE && remaining_energy < (uint32_t)ENERGY_LOWER_THRESHOLD) {
+		if (node_state == NODE_ACTIVE && remaining_energy < (uint32_t)ENERGY_LOWER_THRESHOLD) 
+		{
 			node_state = NODE_INACTIVE;
-			//Notify main process with node state change
-//			process_post(PROCESS_BROADCAST,PROCESS_EVENT_MSG, "INACTIVE");
-		} else if (node_state == NODE_INACTIVE && remaining_energy > (uint32_t)ENERGY_UPPER_THRESHOLD) {
+		} 
+		else if (node_state == NODE_INACTIVE && remaining_energy > (uint32_t)ENERGY_UPPER_THRESHOLD) 
+		{
 			node_state = NODE_ACTIVE;
-			//Notify main process with node state change
-//			process_post(PROCESS_BROADCAST,PROCESS_EVENT_MSG, "ACTIVE");
 		}
 
 
@@ -328,8 +333,7 @@ PROCESS_THREAD(energytrace_process, ev, data)
 			rd = rd * 0.85;
 			#endif /*FIXED_ENERGY_STEP*/
 			#endif /*MODEL_SOLAR*/
-			// printf("rd %lu\n",rd );
-			// printf("remaining_energy + rd: %lu\n", remaining_energy + rd);
+
 			harvesting_rate_array[harvesting_array_index] = (uint32_t)rd;
 			harvesting_array_index++;
 			if (harvesting_array_index > 4){ harvesting_array_index = 0;}
@@ -344,15 +348,32 @@ PROCESS_THREAD(energytrace_process, ev, data)
 			}
 
 		}
-		else if (node_class == NODE_MOVER) // TODO Add adapted code from SOLAR into MOVER
+		else if (node_class == NODE_MOVER) // TODO Add stored mover values and test
 		{
+			#ifdef MODEL_MOVER
+
+			#else
 			rd = random_rand() % 100;
 			rd = rd * 2 * ENERGY_HARVEST_STEP_MOVER;
 			rd = rd / 100;
+			#endif /*MODEL_MOVER*/
+
+			harvesting_rate_array[harvesting_array_index] = (uint32_t)rd;
+			harvesting_array_index++;
+			if (harvesting_array_index > 4){ harvesting_array_index = 0;}
+			
+			if ((uint32_t)ENERGY_MAX_CAPACITY_MOVER - remaining_energy < (uint32_t)rd )
+			{
+				remaining_energy = (uint32_t)ENERGY_MAX_CAPACITY_MOVER;
+			}
+			else
+			{
+				remaining_energy = remaining_energy + (uint32_t)rd;
+			}
 		}
 		else
 		{
-//			printf("ERROR! Node Class not defined\n");
+
 		}
 
 		#ifdef MODEL_BERNOULLI

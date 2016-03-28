@@ -99,7 +99,7 @@ endif
 ### Forward comma-separated list of arbitrary defines to the compiler
 
 COMMA := ,
-CFLAGS += ${addprefix -D,${subst $(COMMA), ,$(DEFINES)}} -lm
+CFLAGS += ${addprefix -D,${subst $(COMMA), ,$(DEFINES)}}
 
 ### Setup directory search path for source and header files
 
@@ -114,7 +114,7 @@ SOURCEDIRS = . $(PROJECTDIRS) $(CONTIKI_TARGET_DIRS_CONCAT) \
 vpath %.c $(SOURCEDIRS)
 vpath %.S $(SOURCEDIRS)
 
-CFLAGS += ${addprefix -I,$(SOURCEDIRS)} -lm
+CFLAGS += ${addprefix -I,$(SOURCEDIRS)}
 
 ### Automatic dependency generation
 
@@ -141,13 +141,13 @@ clean:
 
 ifndef CUSTOM_RULE_C_TO_CE
 %.ce: %.c
-	$(CC) $(CFLAGS) -DAUTOSTART_ENABLE -c $< -o $@ -lm
+	$(CC) $(CFLAGS) -DAUTOSTART_ENABLE -c $< -o $@
 	$(STRIP) --strip-unneeded -g -x $@
 endif
 
 ifndef CUSTOM_RULE_C_TO_OBJECTDIR_O
 $(OBJECTDIR)/%.o: %.c
-	$(CC) $(CFLAGS) -MMD -c $< -o $@ -lm
+	$(CC) $(CFLAGS) -MMD -c $< -o $@
 	@$(FINALIZE_DEPENDENCY)
 endif
 
@@ -158,12 +158,12 @@ endif
 
 ifndef CUSTOM_RULE_C_TO_O
 %.o: %.c
-	$(CC) $(CFLAGS) -c $< -o $@ -lm
+	$(CC) $(CFLAGS) -c $< -o $@
 endif
 
 ifndef CUSTOM_RULE_C_TO_CO
 %.co: %.c
-	$(CC) $(CFLAGS) -DAUTOSTART_ENABLE -c $< -o $@ -lm
+	$(CC) $(CFLAGS) -DAUTOSTART_ENABLE -c $< -o $@
 endif
 
 ifndef AROPTS

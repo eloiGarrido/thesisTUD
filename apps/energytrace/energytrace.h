@@ -17,13 +17,14 @@
 #define MODEL_BERNOULLI
 // #define MODEL_MARKOV
 #define MODEL_SOLAR
-// #define MODEL_SHAKER
+// #define MODEL_MOVER
 #define RAND_MAX 2147483647
 #define PI 3.14159265
 
 #define SOLAR_MU 10
 #define SOLAR_SIGMA 2
- 
+#define MOVER_PERCENTAGE 3 // 1/3 Nodes are Movers
+/*---------------------------------------------------------------------------*/
 #define ENERGY_UPPER_THRESHOLD 1500
 #define ENERGY_LOWER_THRESHOLD 600
 // #define ENERGY_UPPER_THRESHOLD 1838
@@ -43,7 +44,7 @@
 // #define ENERGY_MAX_CAPACITY_SOLAR  54450 	//0.5 * 100mF * 3.3v^2 	-> in uJ
 
 #define ENERGY_MAX_CAPACITY_SOLAR  5445
-#define ENERGY_MAX_CAPACITY_MOVER  5450		//0.5 * 1mF * 3.3v^2	-> in uJ
+#define ENERGY_MAX_CAPACITY_MOVER  850		//0.5 * 1mF * 3.3v^2	-> in uJ
 
 #define ENERGY_HARVEST_STEP_SOLAR 	100		//Average solar harvest amount 
 #define ENERGY_HARVEST_STEP_MOVER	70		//Average mover harvest amount

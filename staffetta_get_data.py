@@ -12,12 +12,12 @@ from operator import add
 Log Converter
 convert Cooja results into statistical data and graphs
 '''
-env = 'uni'
-# env = 'home'
+# env = 'uni'
+env = 'home'
 # simulation = 'orig'
 simulation = 'eh'
 
-simulation_name = str(simulation) + "_" + str(env) + "_noageing_11_10min"
+simulation_name = str(simulation) + "_" + str(env) + "_10k_noageing_11_10min"
 file_path = ""
 if env == 'uni':
     general_path = "/home/egarrido/contiki/tools/cooja/build/"

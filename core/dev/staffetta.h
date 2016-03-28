@@ -82,7 +82,7 @@
 #define DATA_SIZE 		    100 // size of the packet queue
 #define MAX_EDC             255
 #define WITH_AGGREGATE		0
-#define RENDEZ_TIME       20000
+#define RENDEZ_TIME       10000
 
 #define ENERGY_HARV         1 //Enable dynamic budget depending on Energy Harvesting capabilities
 #define NEW_EDC             1

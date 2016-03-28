@@ -52,9 +52,9 @@
 #include "../../core/lib/random.h"
 //#include "rimeaddr.h"
 //#include "net/rime/rime.h"
-#ifdef MODEL_SOLAR
-#include <math.h>
-#endif /*MODEL_SOLAR*/
+// #ifdef MODEL_SOLAR
+#include "math.h"
+// #endif /*MODEL_SOLAR*/
 
 struct energytrace_sniff_stats {
 	struct energytrace_sniff_stats *next;
@@ -145,12 +145,53 @@ uint8_t harvesting_array_index = 0;
 
 #ifdef MODEL_SOLAR
 // double randn (double mu, double sigma)
-uint32_t randn (uint32_t mu, uint32_t sigma)
-{
-	uint32_t U1, U2, W, mult; //double
-	static uint32_t X1, X2; //double
-	static uint8_t call = 0; //int
+// uint32_t randn (uint32_t mu, uint32_t sigma)
+// {
+// 	uint32_t U1, U2, W, mult; //double
+// 	static uint32_t X1, X2; //double
+// 	static uint8_t call = 0; //int
  
+// 	if (call == 1)
+// 	{
+// 		call = !call;
+// 		return (mu + sigma * (uint32_t) X2);
+//     }
+ 
+// 	do
+// 	{
+// 		// U1 = -1 + ((uint32_t) rand () / RAND_MAX) * 2;
+// 		// U2 = -1 + ((uint32_t) rand () / RAND_MAX) * 2;
+// 		U1 = -1 + ((uint32_t) random_rand () / RAND_MAX) * 2;
+// 		U2 = -1 + ((uint32_t) random_rand () / RAND_MAX) * 2;
+		
+// 		W = pow (U1, 2) + pow (U2, 2);
+// 	}
+// 	while (W >= 1 || W == 0);
+ 
+// 	mult = sqrt ((-2 * log (W)) / W);
+// 	X1 = U1 * mult;
+// 	X2 = U2 * mult;
+
+// 	call = !call;
+ 
+// 	return (mu + sigma * (uint32_t) X1);
+// }
+
+// uint32_t solar_energy_input (uint32_t time_solar, uint8_t scalling_factor)
+// {
+// 	uint32_t result;
+// 	uint32_t normal_var;
+
+// 	normal_var = randn(SOLAR_MU, SOLAR_SIGMA);
+// 	result = scalling_factor * normal_var * cos( time_solar / (70 * PI) ) * cos( time_solar / (100 * PI) );
+// 	return result;
+// }
+double randn (uint32_t mu, uint32_t sigma)
+{
+	double U1, U2, W, mult; //double
+	static double X1, X2; //double
+	static uint8_t call = 0; //int
+	double temp_w;
 	if (call == 1)
 	{
 		call = !call;
@@ -159,31 +200,34 @@ uint32_t randn (uint32_t mu, uint32_t sigma)
  
 	do
 	{
-		U1 = -1 + ((uint32_t) rand () / RAND_MAX) * 2;
-		U2 = -1 + ((uint32_t) rand () / RAND_MAX) * 2;
+		
+		U1 = -1 + ((double) random_rand () / RAND_MAX) * 2;
+		U2 = -1 + ((double) random_rand () / RAND_MAX) * 2;
 		W = pow (U1, 2) + pow (U2, 2);
 	}
 	while (W >= 1 || W == 0);
- 
 	mult = sqrt ((-2 * log (W)) / W);
+	// temp_w = log(W);
+	// mult = sqrt ((-2 * temp_w) / W);
 	X1 = U1 * mult;
 	X2 = U2 * mult;
 
 	call = !call;
  
-	return (mu + sigma * (uint32_t) X1);
+	return (uint32_t)(mu + sigma * (double) X1);
 }
 
 uint32_t solar_energy_input (uint32_t time_solar, uint8_t scalling_factor)
 {
 	uint32_t result;
 	uint32_t normal_var;
+	int solar_mu = 200;
+	int solar_sigma = 40;
 
-	normal_var = randn(SOLAR_MU, SOLAR_SIGMA);
-	result = scalling_factor * normal_var * cos(time_solar / (70 * PI)) * cos(time_solar / (100 * PI));
+	normal_var = randn(solar_mu, solar_sigma);
+	result = scalling_factor * normal_var * cos( time_solar / (70 * M_PI) ) * cos( time_solar / (100 * M_PI) );
 	return result;
 }
-
 #endif /*MODEL_SOLAR*/
 
 
@@ -246,7 +290,7 @@ PROCESS_THREAD(energytrace_process, ev, data)
 
 
 	random_init((unsigned short) (clock_time()));
-	int r = rand();
+	int r = random_rand();
 	if (period == NULL) {
 		PROCESS_EXIT();
 	}

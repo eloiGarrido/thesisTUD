@@ -65,7 +65,7 @@ CONTIKI_SOURCEFILES += $(CONTIKIFILES)
 CONTIKIDIRS += ${addprefix $(CONTIKI)/core/,dev lib net net/mac net/rime \
                 net/routing sys cfs ctk lib/ctk loader . }
 
-oname = ${patsubst %.c,%.o,${patsubst %.S,%.o,$(1)}}
+oname = ${patsubst %.c,%.o,${patsubst %.S,%.o,$(1)}} 
 
 CONTIKI_OBJECTFILES = ${addprefix $(OBJECTDIR)/,${call oname, $(CONTIKI_SOURCEFILES)}}
 
@@ -78,11 +78,11 @@ ifdef APPS
                 ${addprefix $(CONTIKI)/platform/$(TARGET)/apps/, $(APPS)}}
   APPINCLUDES = ${foreach APP, $(APPS), ${wildcard \
                  $(CONTIKI)/apps/$(APP)/Makefile.$(APP) \
-                 $(CONTIKI)/platform/$(TARGET)/apps/$(APP)/Makefile.$(APP)}}
+                 $(CONTIKI)/platform/$(TARGET)/apps/$(APP)/Makefile.$(APP)}} 
   -include $(APPINCLUDES)
   APP_SOURCES = ${foreach APP, $(APPS), $($(APP)_src)}
-  DSC_SOURCES = ${foreach APP, $(APPS), $($(APP)_dsc)}
-  CONTIKI_SOURCEFILES += $(APP_SOURCES) $(DSC_SOURCES)
+  DSC_SOURCES = ${foreach APP, $(APPS), $($(APP)_dsc)} 
+  CONTIKI_SOURCEFILES += $(APP_SOURCES) $(DSC_SOURCES) 
 endif
 
 ### Include target makefile (TODO Unsafe?)
@@ -99,7 +99,7 @@ endif
 ### Forward comma-separated list of arbitrary defines to the compiler
 
 COMMA := ,
-CFLAGS += ${addprefix -D,${subst $(COMMA), ,$(DEFINES)}}
+CFLAGS += ${addprefix -D,${subst $(COMMA), ,$(DEFINES)}} -lm
 
 ### Setup directory search path for source and header files
 
@@ -114,7 +114,7 @@ SOURCEDIRS = . $(PROJECTDIRS) $(CONTIKI_TARGET_DIRS_CONCAT) \
 vpath %.c $(SOURCEDIRS)
 vpath %.S $(SOURCEDIRS)
 
-CFLAGS += ${addprefix -I,$(SOURCEDIRS)}
+CFLAGS += ${addprefix -I,$(SOURCEDIRS)} -lm
 
 ### Automatic dependency generation
 
@@ -129,7 +129,7 @@ define FINALIZE_DEPENDENCY
 cp $(@:.o=.d) $(@:.o=.$$$$); \
 sed -e 's/#.*//' -e 's/^[^:]*: *//' -e 's/ *\\$$//' \
     -e '/^$$/ d' -e 's/$$/ :/' < $(@:.o=.$$$$) >> $(@:.o=.d); \
-rm -f $(@:.o=.$$$$)
+rm -f $(@:.o=.$$$$) 
 endef
 
 clean:
@@ -141,13 +141,13 @@ clean:
 
 ifndef CUSTOM_RULE_C_TO_CE
 %.ce: %.c
-	$(CC) $(CFLAGS) -DAUTOSTART_ENABLE -c $< -o $@
+	$(CC) $(CFLAGS) -DAUTOSTART_ENABLE -c $< -o $@ -lm
 	$(STRIP) --strip-unneeded -g -x $@
 endif
 
 ifndef CUSTOM_RULE_C_TO_OBJECTDIR_O
 $(OBJECTDIR)/%.o: %.c
-	$(CC) $(CFLAGS) -MMD -c $< -o $@
+	$(CC) $(CFLAGS) -MMD -c $< -o $@ -lm
 	@$(FINALIZE_DEPENDENCY)
 endif
 
@@ -158,12 +158,12 @@ endif
 
 ifndef CUSTOM_RULE_C_TO_O
 %.o: %.c
-	$(CC) $(CFLAGS) -c $< -o $@
+	$(CC) $(CFLAGS) -c $< -o $@ -lm
 endif
 
 ifndef CUSTOM_RULE_C_TO_CO
 %.co: %.c
-	$(CC) $(CFLAGS) -DAUTOSTART_ENABLE -c $< -o $@
+	$(CC) $(CFLAGS) -DAUTOSTART_ENABLE -c $< -o $@ -lm
 endif
 
 ifndef AROPTS
@@ -181,7 +181,7 @@ endif
 
 ifndef CUSTOM_RULE_LINK
 %.$(TARGET): %.co $(PROJECT_OBJECTFILES) $(PROJECT_LIBRARIES) contiki-$(TARGET).a
-	$(LD) $(LDFLAGS) $(TARGET_STARTFILES) ${filter-out %.a,$^} ${filter %.a,$^} $(TARGET_LIBFILES) -o $@
+	$(LD) $(LDFLAGS) $(TARGET_STARTFILES) ${filter-out %.a,$^} ${filter %.a,$^} $(TARGET_LIBFILES) -o $@ -lm
 endif
 
 # Don't treat %.$(TARGET) as an intermediate file because it is

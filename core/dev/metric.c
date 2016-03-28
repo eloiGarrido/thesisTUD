@@ -99,3 +99,4 @@ void compute_harvesting_rate(void){
 uint16_t get_harvesting_rate(void){
 	return harvesting_rate;
 }
+

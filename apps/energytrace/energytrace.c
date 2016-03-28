@@ -206,9 +206,7 @@ double randn (uint32_t mu, uint32_t sigma)
 		W = pow (U1, 2) + pow (U2, 2);
 	}
 	while (W >= 1 || W == 0);
-	mult = sqrt ((-2 * log (W)) / W);
-	// temp_w = log(W);
-	// mult = sqrt ((-2 * temp_w) / W);
+	mult = sqrt ((-2 * logf(W)) / W);
 	X1 = U1 * mult;
 	X2 = U2 * mult;
 

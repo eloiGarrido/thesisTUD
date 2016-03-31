@@ -272,11 +272,16 @@ PROCESS_THREAD(energytrace_process, ev, data)
 	uint32_t rd = 0;
 
 	// node_class = NODE_SOLAR;
+	#ifdef MODEL_MOVER
 	if ( node_id % MOVER_PERCENTAGE == 0) {
 		node_class = NODE_MOVER;
 	} else {
 		node_class = NODE_SOLAR;
 	}
+	#else
+	node_class = NODE_SOLAR;
+	#endif /*MODEL_MOVER*/
+
 	// remaining_energy = ENERGY_MAX_CAPACITY_SOLAR / 4;
 	// remaining_energy 
 	node_activation_ev = process_alloc_event();

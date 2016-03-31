@@ -142,10 +142,6 @@ class LogConverter(object):
         for line in f:
             self.parse(line)
         f.close()
-
-        # except Exception as e:
-        #     print ('>> Error, No file with that name: ',e)
-
         print ('>> Reading done')
 
     def format_pkt_path(self, split_packet):
@@ -225,24 +221,6 @@ class LogConverter(object):
                         continue
                     else:
                         pkt_delay.append({'src': node, 'seq':seq, 'delay': str(delay_t) })
-
-        # for idx in range(0, len(orig_packet)):
-        #     if orig_packet[idx] != []:
-        #         orig_t = orig_packet[idx].split(',')
-        #         if self.repeated(orig_t,pkt_delay) == True:
-        #             continue
-        #         else:
-        #             index = self.find_packet_index(orig_t[2], orig_t[3], sink_packet)
-        #             if index == -1:
-        #                 pkt_delay.append({'src':orig_t[3], 'seq':orig_t[2], 'delay': 'lost' })
-        #             else:
-        #                 sink_t = sink_packet[index].split(',')
-        #                 delay_t = long(sink_t[4]) - long(orig_t[4])
-        #                 if delay_t < 0:
-        #                     continue
-        #                 else:
-        #                     pkt_delay.append({'src':int(orig_t[3]), 'seq':int(orig_t[2]), 'delay': (long(sink_t[4]) - long(orig_t[4]))})
-
         sorted_pkt_list = sorted(pkt_delay, key=lambda k: (k['src'], int(k['seq'])))
         return sorted_pkt_list
 

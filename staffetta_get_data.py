@@ -17,7 +17,7 @@ env = 'home'
 # simulation = 'orig'
 simulation = 'eh'
 
-simulation_name = str(simulation) + "_" + str(env) + "_10k_noageing_11_10min"
+simulation_name = str(simulation) + "_" + str(env) + "_A_LowState_10k_21_10min"
 file_path = ""
 if env == 'uni':
     general_path = "/home/egarrido/contiki/tools/cooja/build/"
@@ -87,7 +87,7 @@ class LogConverter(object):
         Create data structure,  array of dictionaries containing all node information
         '''
         for i in range (0, self.number_of_nodes):
-            self.nodes.append({'id':i,'rv_time':[], 'time2':[], 'time3':[], 'time4':[], 'time6':[], 'time_on': [], 'time_off': [], 'abs_time_off': [], 'pkt':[], 'num_wakeups':[], 'on_time': [], 'avg_edc':[], 'seq':[], 'node_energy_state':[], 'remaining_energy':[], 'harvesting_rate':[]})
+            self.nodes.append({'id':i, 'node_state': [],'rv_time':[], 'time2':[], 'time3':[], 'time4':[], 'time6':[], 'time_on': [], 'time_off': [], 'abs_time_off': [], 'pkt':[], 'num_wakeups':[], 'on_time': [], 'avg_edc':[], 'seq':[], 'node_energy_state':[], 'remaining_energy':[], 'harvesting_rate':[]})
 
 #--------------------------- Output Functions ---------------------------#
 #TODO Create a function to output each type of file data
@@ -225,24 +225,6 @@ class LogConverter(object):
                         continue
                     else:
                         pkt_delay.append({'src': node, 'seq':seq, 'delay': str(delay_t) })
-
-        # for idx in range(0, len(orig_packet)):
-        #     if orig_packet[idx] != []:
-        #         orig_t = orig_packet[idx].split(',')
-        #         if self.repeated(orig_t,pkt_delay) == True:
-        #             continue
-        #         else:
-        #             index = self.find_packet_index(orig_t[2], orig_t[3], sink_packet)
-        #             if index == -1:
-        #                 pkt_delay.append({'src':orig_t[3], 'seq':orig_t[2], 'delay': 'lost' })
-        #             else:
-        #                 sink_t = sink_packet[index].split(',')
-        #                 delay_t = long(sink_t[4]) - long(orig_t[4])
-        #                 if delay_t < 0:
-        #                     continue
-        #                 else:
-        #                     pkt_delay.append({'src':int(orig_t[3]), 'seq':int(orig_t[2]), 'delay': (long(sink_t[4]) - long(orig_t[4]))})
-
         sorted_pkt_list = sorted(pkt_delay, key=lambda k: (k['src'], int(k['seq'])))
         return sorted_pkt_list
 
@@ -323,6 +305,8 @@ class LogConverter(object):
             self.nodes[id-1]['time_on'].append(float(msg[3]))
         elif msg_type == 12: #Rendezvous time
             self.nodes[id-1]['rv_time'].append(msg[3])
+        elif msg_type == 13: #Node energy state
+            self.nodes[id-1]['node_state'].append(msg[3])
 
     def parse(self, line):
         '''
@@ -417,6 +401,13 @@ class LogConverter(object):
 
         self.format_figure('Node average delay','Node', 'Delay', 'node_delay')
 
+    def printf_node_state(self):
+        print ('>> Printing node state...')
+        plt.figure()
+        for i in range(1, self.number_of_nodes):
+            plt.plot(self.nodes[i]['node_state'])
+        self.format_figure('Node State', 'Node', 'State', 'node_state')
+
     def print_drop_ratio(self, pkt_delay):
         print ('>> Printing packet drop ratio...')
         plt.figure()
@@ -474,12 +465,13 @@ class LogConverter(object):
             avg.append(0.0)
 
         for i in range (1, self.number_of_nodes):
-            for j in range (0, len(self.nodes[i]['remaining_energy'])):
-                try:
-                    avg[j] += float(self.nodes[i]['remaining_energy'][j]) / float(self.number_of_nodes - 1)
-                except:
-                    avg.append(float(self.nodes[i]['remaining_energy'][j]) / float(self.number_of_nodes - 1))
-        plt.plot(avg)
+            # for j in range (0, len(self.nodes[i]['remaining_energy'])):
+            #     try:
+            #         avg[j] += float(self.nodes[i]['remaining_energy'][j]) / float(self.number_of_nodes - 1)
+            #     except:
+            #         avg.append(float(self.nodes[i]['remaining_energy'][j]) / float(self.number_of_nodes - 1))
+        # plt.plot(avg)
+            plt.plot((self.nodes[i]['remaining_energy']) )
         self.format_figure('Node Energy Levels','Time', 'Energy', 'node_energy')
         return
 
@@ -589,8 +581,8 @@ class LogConverter(object):
     def generate_graphs(self):
         print ('>> Generating graphics...')
         self.print_avg_edc()
-        # self.print_energy_levels()
-        # self.print_harvesting_rate()
+        self.print_energy_levels()
+        self.print_harvesting_rate()
         self.print_node_state()
         self.print_on_time()
         self.print_wakeups()

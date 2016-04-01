@@ -723,7 +723,7 @@ int staffetta_send_packet(void) {
 	    radio_flush_rx();
 	    goto_idle();
 	    // printf("12|%lu\n", rendezvous_time);
-	    
+	    printf("13|%u\n", node_energy_state);
 
 	    
 	    return RET_FAST_FORWARD;

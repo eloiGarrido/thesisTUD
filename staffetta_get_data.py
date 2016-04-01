@@ -12,12 +12,12 @@ from operator import add
 Log Converter
 convert Cooja results into statistical data and graphs
 '''
-# env = 'uni'
-env = 'home'
+env = 'uni'
+# env = 'home'
 # simulation = 'orig'
 simulation = 'eh'
 
-simulation_name = str(simulation) + "_" + str(env) + "_A_LowState_10k_21_10min"
+simulation_name = str(simulation) + "_" + str(env) + "10k_21_10min"
 file_path = ""
 if env == 'uni':
     general_path = "/home/egarrido/contiki/tools/cooja/build/"
@@ -586,6 +586,7 @@ class LogConverter(object):
         self.print_node_state()
         self.print_on_time()
         self.print_wakeups()
+        self.printf_node_state()
         plt.show()
         return
 

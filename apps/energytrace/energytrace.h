@@ -12,7 +12,7 @@
 
 
 #define SHOW_ENERGY_INFO 1
-
+#define STAFFETTA_ENERGEST 1
 /* choose energy harvesting model */
 #define MODEL_BERNOULLI
 // #define MODEL_MARKOV
@@ -24,6 +24,13 @@
 #define SOLAR_MU 10
 #define SOLAR_SIGMA 2
 #define MOVER_PERCENTAGE 3 // 1/3 Nodes are Movers
+/*---------------------------------------------------------------------------*/
+#define CPU_CURRENT 1800
+#define LPM_CURRENT 54
+#define RX_CURRENT 20000
+#define TX_CURRENT 17700
+#define TMOTE_VOLTAGE 3
+#define SCALE_FACTOR 1000
 /*---------------------------------------------------------------------------*/
 #define ENERGY_UPPER_THRESHOLD 1500
 #define ENERGY_LOWER_THRESHOLD 600

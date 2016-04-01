@@ -56,6 +56,7 @@
 #include "math.h"
 // #endif /*MODEL_SOLAR*/
 #include "../../platform/sky/node-id.h"
+#include "../../core/dev/staffetta.h"
 
 struct energytrace_sniff_stats {
 	struct energytrace_sniff_stats *next;
@@ -268,16 +269,11 @@ PROCESS_THREAD(energytrace_process, ev, data)
 	static struct etimer periodic;
 	clock_time_t *period;
 	static node_class_t node_class; //EGB
-
+	uint32_t rxtx_time; 
+	uint32_t energy_rxtx;
 	uint32_t rd = 0;
 
-<<<<<<< HEAD
-	
 	#ifdef NODE_MOVER
-=======
-	// node_class = NODE_SOLAR;
-	#ifdef MODEL_MOVER
->>>>>>> 2da0fee4c09f18cec8c8f99dbf90ec15d10308a8
 	if ( node_id % MOVER_PERCENTAGE == 0) {
 		node_class = NODE_MOVER;
 	} else {
@@ -285,12 +281,8 @@ PROCESS_THREAD(energytrace_process, ev, data)
 	}
 	#else
 	node_class = NODE_SOLAR;
-<<<<<<< HEAD
 	#endif /*NODE_MOVER*/
-=======
-	#endif /*MODEL_MOVER*/
 
->>>>>>> 2da0fee4c09f18cec8c8f99dbf90ec15d10308a8
 	// remaining_energy = ENERGY_MAX_CAPACITY_SOLAR / 4;
 	// remaining_energy 
 	node_activation_ev = process_alloc_event();
@@ -400,6 +392,21 @@ PROCESS_THREAD(energytrace_process, ev, data)
 		// int prob2 = random_rand() % PROB_SCALE_FACTOR;
 
 		// if (prob2 <= energy_consumes_prob) {
+			#if STAFFETTA_ENERGEST
+			rxtx_time = 0;
+			energy_rxtx = 0;
+			staffetta_get_energy_consumption(rxtx_time);
+			energy_rxtx = rxtx_time * TMOTE_VOLTAGE;
+			if (remaining_energy > energy_rxtx)
+			{
+				remaining_energy = remaining_energy - energy_rxtx;
+			}
+			else
+			{
+				remaining_energy = 0;
+			}
+			#else
+
 			if (remaining_energy > (uint32_t)ENERGY_CONSUMES_PER_MS)
 			{
 				remaining_energy = remaining_energy - (uint32_t)ENERGY_CONSUMES_PER_MS;
@@ -408,6 +415,10 @@ PROCESS_THREAD(energytrace_process, ev, data)
 			{
 				remaining_energy = 0;
 			}
+			
+			#endif /*STAFFETTA_ENERGEST*/
+			
+
 
             compute_node_state();
             compute_node_duty_cycle();
@@ -462,8 +473,6 @@ energytrace_print(char *str)
 	long rx_time_us = 1000 * ((1000 * listen) / TMOTE_ARCH_SECOND);
 	// long tx_time_us = 1000 * transmit / TMOTE_ARCH_SECOND;
 	// long rx_time_us = 1000 * listen / TMOTE_ARCH_SECOND;
-	// tx_energy = voltage * tx_current_consumption(tx_level) * tx_time_us / 1000 / 10;
-	// rx_energy = voltage * rx_current_consumption * rx_time_us / 1000 / 10;
 	tx_energy = voltage * tx_current_consumption(tx_level) * tx_time_us / 1000 / 10;
 	rx_energy = voltage * rx_current_consumption * rx_time_us / 1000 / 10;
 	

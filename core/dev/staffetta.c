@@ -520,7 +520,6 @@ int staffetta_send_packet(void) {
 			t1 = RTIMER_NOW ();
 			while (current_state == wait_beacon_ack && RTIMER_CLOCK_LT (RTIMER_NOW(),t1 + STROBE_WAIT_TIME)) {
 				if(FIFO_IS_1){
-					//TODO check why we need this delay
 					t2 = RTIMER_NOW (); while(RTIMER_CLOCK_LT (RTIMER_NOW (), t2 + 3));
 					FASTSPI_READ_FIFO_BYTE(strobe_ack[PKT_LEN]);
 					bytes_read = 1;
@@ -562,8 +561,7 @@ int staffetta_send_packet(void) {
 						select[PKT_DATA] = 0;
 						select[PKT_TTL] = 0;
 						select[PKT_SEQ] = 0;
-						//select[PKT_GRADIENT] = 0;
-                        select[PKT_GRADIENT] = 100;
+						select[PKT_GRADIENT] = 0;
 						select[PKT_DST] = 255;
 						radio_flush_tx();
 						FASTSPI_WRITE_FIFO(select, STAFFETTA_PKT_LEN+1);
@@ -626,10 +624,7 @@ int staffetta_send_packet(void) {
 	    leds_off(LEDS_RED);
 	    // add the rendezvous measure to our average window
 	    if (collisions==0) {
-			//leds_off(LEDS_BLUE);
-
 			rendezvous_time = ((RTIMER_NOW() - rendezvous_starting_time) * 10000) / RTIMER_ARCH_SECOND ;
-			// if(rendezvous_time<10000) {
             if(rendezvous_time<RENDEZ_TIME) {
 				rendezvous[rendezvous_idx] = rendezvous_time;
 				rendezvous_idx = (rendezvous_idx+1)%AVG_SIZE;
@@ -648,9 +643,8 @@ int staffetta_send_packet(void) {
                 edc[edc_idx] = strobe_ack[PKT_GRADIENT];
                 edc_id[edc_idx] = strobe_ack[PKT_SRC];
 
-		   	 	#if AGEING
+		   	 	#if AGEING //TODO Check that ageing works
 		    	edc_age[edc_idx] = rendezvous_time / (RENDEZ_TIME/10);
-
 		    	if ( edc_age[edc_idx] == 0 ){
 	    			edc_age_counter[edc_idx] = 10;
 		    	}else if ( edc_age[edc_idx] > 0 && edc_age[edc_idx] <= 2 ) {
@@ -662,10 +656,7 @@ int staffetta_send_packet(void) {
 		    	}else {
 	    			edc_age_counter[edc_idx] = 2;
 		    	}
-
-		    	
 			    #endif /*AGEING*/
-
 
                 edc_idx = (edc_idx+1)%AVG_EDC_SIZE;
                 edc_sum = 0;
@@ -676,7 +667,6 @@ int staffetta_send_packet(void) {
            // avg_edc = MIN( (6 / node_energy_state) + (edc_sum / AVG_EDC_SIZE ), MAX_EDC);
             avg_edc = MIN( ( (6 / node_energy_state) + (rendezvous_time/100) + (edc_sum/AVG_EDC_SIZE)), MAX_EDC); //limit to 255
             #else
-			// if((rendezvous_time<10000) && (avg_edc > strobe_ack[PKT_GRADIENT])){
             if((rendezvous_time<RENDEZ_TIME) && (avg_edc > strobe_ack[PKT_GRADIENT])){
 
 				edc[edc_idx] = strobe_ack[PKT_GRADIENT];
@@ -685,7 +675,7 @@ int staffetta_send_packet(void) {
 				for (i=0;i<AVG_EDC_SIZE;i++){
 				    edc_sum += edc[i];
 				}
-			}//TODO rerun simulations due to change in avg_edc calculations
+			}
 			avg_edc = MIN( ((rendezvous_time/100)+(edc_sum/AVG_EDC_SIZE)),MAX_EDC); //limit to 255
 			#endif /*NEW_EDC*/
 			#endif /*ORW_GRADIENT*/
@@ -693,7 +683,7 @@ int staffetta_send_packet(void) {
 			#if DYN_DC
             #if ENERGY_HARV
             switch (node_energy_state)
-            { //TODO Check rendezvous on num_wakeups and how is affected by EH
+            {
                 case NS_LOW:
                     num_wakeups = MAX(1,(NS_ENERGY_LOW*10)/avg_rendezvous);
                     break;
@@ -743,11 +733,9 @@ int staffetta_send_packet(void) {
 	    int i,collisions,strobes,bytes_read;
 	    //prepare strobe_ack packet
 	    strobe_ack[PKT_LEN] = STAFFETTA_PKT_LEN+FOOTER_LEN;
-        //strobe_ack[PKT_SRC] = node_id;
-	    strobe_ack[PKT_SRC] = 1;
+        strobe_ack[PKT_SRC] = node_id;
 	    strobe_ack[PKT_TYPE] = TYPE_BEACON_ACK;
 	    strobe_ack[PKT_GRADIENT] = 0; // we limit the # of wakeups to 25
-
 	    //turn radio on
 	    radio_on();
 	    radio_flush_rx();
@@ -827,7 +815,6 @@ int staffetta_send_packet(void) {
 				}
 				//PRINTF("sink beacon: %u %u %u %u %u %u %u %u\n",strobe[0],strobe[1],strobe[2],strobe[3],strobe[4],strobe[5],strobe[6],strobe[7]);
 				//strobe received, process it
-
 				if (strobe[PKT_TYPE] == TYPE_BEACON){
 					current_state = sending_ack;
 				}
@@ -889,6 +876,20 @@ int staffetta_send_packet(void) {
 	    //printf("id: %d\n",node_id);
 	}
 
+    void staffetta_get_energy_consumption(uint32_t *rxtx_time)
+    {
+	 	uint32_t on_time,elapsed_time;
+	    on_time = ((energest_type_time(ENERGEST_TYPE_TRANSMIT)+energest_type_time(ENERGEST_TYPE_LISTEN)) * 1000) / RTIMER_ARCH_SECOND;
+	    elapsed_time = clock_time() * 1000 / CLOCK_SECOND;
+	    *rxtx_time = (on_time*1000) / elapsed_time;
+	    if (!(IS_SINK)){
+			#if ORW_GRADIENT
+			printf("3|%ld|%ld\n",(on_time*1000)/elapsed_time,avg_edc);
+			printf("2|%ld\n",num_wakeups);
+			#endif
+		}
+    }
+
 	void staffetta_add_data(uint8_t _seq){
 
 	    if (add_data(node_id,0,_seq) == 1 ){
@@ -922,8 +923,7 @@ int staffetta_send_packet(void) {
 	    #if NEW_EDC
 	    for (i=0;i<AVG_EDC_SIZE;i++) edc_id[i]=MAX_EDC;
 	    #endif
-	    //num_neighbors = 0;
-	    //index = 0;
+
 	    edc_min = MAX_EDC;
 	    edc_idx = 0;
 	    avg_edc = MAX_EDC;
@@ -945,17 +945,9 @@ int staffetta_send_packet(void) {
         #if WITH_AGGREGATE
         aggregateValue = node_id;
         #endif /*WITH_AGGREGATE*/
-//	    If the node is a sink, start listening indefinitely
-
+	    //If the node is a sink, start listening indefinitely
 	    if (IS_SINK){
 			sink_listen();
 		}
-//	    }else{
-//            for(i=0;i<PAKETS_PER_NODE;i++) staffetta_add_data(i);//add_data(node_id,0,i);
-//
-//            #if WITH_AGGREGATE
-//            aggregateValue = node_id;
-//            #endif /*WITH_AGGREGATE*/
-//	    }
 	}
 

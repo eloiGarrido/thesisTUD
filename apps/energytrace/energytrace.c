@@ -52,7 +52,11 @@
 #include "../../core/lib/random.h"
 //#include "rimeaddr.h"
 //#include "net/rime/rime.h"
-
+// #ifdef MODEL_SOLAR
+#include "math.h"
+// #endif /*MODEL_SOLAR*/
+#include "../../platform/sky/node-id.h"
+#include "../../core/dev/staffetta.h"
 
 struct energytrace_sniff_stats {
 	struct energytrace_sniff_stats *next;
@@ -141,6 +145,93 @@ uint8_t harvesting_array_index = 0;
 // static uint8_t tx_levels[TX_LEVELS] =  {31, 27, 23, 19, 15, 11, 7, 3};
 // static uint8_t tx_current_consumption[TX_LEVELS] = {174, 165, 152, 139, 125, 112, 99, 85};
 
+#ifdef MODEL_SOLAR
+// double randn (double mu, double sigma)
+// uint32_t randn (uint32_t mu, uint32_t sigma)
+// {
+// 	uint32_t U1, U2, W, mult; //double
+// 	static uint32_t X1, X2; //double
+// 	static uint8_t call = 0; //int
+ 
+// 	if (call == 1)
+// 	{
+// 		call = !call;
+// 		return (mu + sigma * (uint32_t) X2);
+//     }
+ 
+// 	do
+// 	{
+// 		// U1 = -1 + ((uint32_t) rand () / RAND_MAX) * 2;
+// 		// U2 = -1 + ((uint32_t) rand () / RAND_MAX) * 2;
+// 		U1 = -1 + ((uint32_t) random_rand () / RAND_MAX) * 2;
+// 		U2 = -1 + ((uint32_t) random_rand () / RAND_MAX) * 2;
+		
+// 		W = pow (U1, 2) + pow (U2, 2);
+// 	}
+// 	while (W >= 1 || W == 0);
+ 
+// 	mult = sqrt ((-2 * log (W)) / W);
+// 	X1 = U1 * mult;
+// 	X2 = U2 * mult;
+
+// 	call = !call;
+ 
+// 	return (mu + sigma * (uint32_t) X1);
+// }
+
+// uint32_t solar_energy_input (uint32_t time_solar, uint8_t scalling_factor)
+// {
+// 	uint32_t result;
+// 	uint32_t normal_var;
+
+// 	normal_var = randn(SOLAR_MU, SOLAR_SIGMA);
+// 	result = scalling_factor * normal_var * cos( time_solar / (70 * PI) ) * cos( time_solar / (100 * PI) );
+// 	return result;
+// }
+double randn (uint32_t mu, uint32_t sigma)
+{
+	double U1, U2, W, mult; //double
+	static double X1, X2; //double
+	static uint8_t call = 0; //int
+
+	if (call == 1)
+	{
+		call = !call;
+		return (mu + sigma * (uint32_t) X2);
+    }
+ 
+	do
+	{
+		
+		U1 = -1 + ((double) random_rand () / RAND_MAX) * 2;
+		U2 = -1 + ((double) random_rand () / RAND_MAX) * 2;
+		W = pow (U1, 2) + pow (U2, 2);
+	}
+	while (W >= 1 || W == 0);
+	mult = sqrt ((-2 * logf(W)) / W);
+	X1 = U1 * mult;
+	X2 = U2 * mult;
+
+	call = !call;
+ 
+	return (uint32_t)(mu + sigma * (double) X1);
+}
+
+uint32_t solar_energy_input (uint32_t time_solar, uint8_t scalling_factor)
+{
+	uint32_t result;
+	uint32_t normal_var;
+	int solar_mu = 200;
+	int solar_sigma = 40;
+
+	normal_var = randn(solar_mu, solar_sigma);
+	result = scalling_factor * normal_var * cos( time_solar / (70 * M_PI) ) * cos( time_solar / (100 * M_PI) );
+	return result;
+}
+#endif /*MODEL_SOLAR*/
+
+
+
 /**
  * TX current consumption (mA)
  * values are multiplied by 10 (e.g. 174 should be 17.4mA)
@@ -178,10 +269,20 @@ PROCESS_THREAD(energytrace_process, ev, data)
 	static struct etimer periodic;
 	clock_time_t *period;
 	static node_class_t node_class; //EGB
-
+	uint32_t rxtx_time; 
+	uint32_t energy_rxtx;
 	uint32_t rd = 0;
 
+	#ifdef NODE_MOVER
+	if ( node_id % MOVER_PERCENTAGE == 0) {
+		node_class = NODE_MOVER;
+	} else {
+		node_class = NODE_SOLAR;
+	}
+	#else
 	node_class = NODE_SOLAR;
+	#endif /*NODE_MOVER*/
+
 	// remaining_energy = ENERGY_MAX_CAPACITY_SOLAR / 4;
 	// remaining_energy 
 	node_activation_ev = process_alloc_event();
@@ -199,7 +300,7 @@ PROCESS_THREAD(energytrace_process, ev, data)
 
 
 	random_init((unsigned short) (clock_time()));
-	int r = rand();
+	int r = random_rand();
 	if (period == NULL) {
 		PROCESS_EXIT();
 	}
@@ -212,19 +313,23 @@ PROCESS_THREAD(energytrace_process, ev, data)
 
 /*EGB---------------------------------------------------------------------------*/
 
-		if (node_state == NODE_ACTIVE && remaining_energy < (uint32_t)ENERGY_LOWER_THRESHOLD) {
+		if (node_state == NODE_ACTIVE && remaining_energy < (uint32_t)ENERGY_LOWER_THRESHOLD) 
+		{
 			node_state = NODE_INACTIVE;
-			//Notify main process with node state change
-//			process_post(PROCESS_BROADCAST,PROCESS_EVENT_MSG, "INACTIVE");
-		} else if (node_state == NODE_INACTIVE && remaining_energy > (uint32_t)ENERGY_UPPER_THRESHOLD) {
+		} 
+		else if (node_state == NODE_INACTIVE && remaining_energy > (uint32_t)ENERGY_UPPER_THRESHOLD) 
+		{
 			node_state = NODE_ACTIVE;
-			//Notify main process with node state change
-//			process_post(PROCESS_BROADCAST,PROCESS_EVENT_MSG, "ACTIVE");
 		}
 
 
 		if (node_class == NODE_SOLAR)
 		{
+			#ifdef MODEL_SOLAR
+			rtimer_clock_t t0;
+			t0 = RTIMER_NOW ();
+			rd = solar_energy_input(t0 ,1); //TODO Add system time
+			#else
 		    #if FIXED_ENERGY_STEP
 		    rd = ENERGY_HARVEST_STEP_SOLAR;
 		    #else
@@ -232,9 +337,9 @@ PROCESS_THREAD(energytrace_process, ev, data)
 			rd = rd * 2 * ENERGY_HARVEST_STEP_SOLAR;
 			rd = rd / 100;
 			rd = rd * 0.85;
-			#endif
-			// printf("rd %lu\n",rd );
-			// printf("remaining_energy + rd: %lu\n", remaining_energy + rd);
+			#endif /*FIXED_ENERGY_STEP*/
+			#endif /*MODEL_SOLAR*/
+
 			harvesting_rate_array[harvesting_array_index] = (uint32_t)rd;
 			harvesting_array_index++;
 			if (harvesting_array_index > 4){ harvesting_array_index = 0;}
@@ -249,15 +354,32 @@ PROCESS_THREAD(energytrace_process, ev, data)
 			}
 
 		}
-		else if (node_class == NODE_MOVER) // TODO Add adapted code from SOLAR into MOVER
+		else if (node_class == NODE_MOVER) // TODO Add stored mover values and test
 		{
+			#ifdef MODEL_MOVER
+
+			#else
 			rd = random_rand() % 100;
 			rd = rd * 2 * ENERGY_HARVEST_STEP_MOVER;
 			rd = rd / 100;
+			#endif /*MODEL_MOVER*/
+
+			harvesting_rate_array[harvesting_array_index] = (uint32_t)rd;
+			harvesting_array_index++;
+			if (harvesting_array_index > 4){ harvesting_array_index = 0;}
+			
+			if ((uint32_t)ENERGY_MAX_CAPACITY_MOVER - remaining_energy < (uint32_t)rd )
+			{
+				remaining_energy = (uint32_t)ENERGY_MAX_CAPACITY_MOVER;
+			}
+			else
+			{
+				remaining_energy = remaining_energy + (uint32_t)rd;
+			}
 		}
 		else
 		{
-//			printf("ERROR! Node Class not defined\n");
+
 		}
 
 		#ifdef MODEL_BERNOULLI
@@ -270,6 +392,21 @@ PROCESS_THREAD(energytrace_process, ev, data)
 		// int prob2 = random_rand() % PROB_SCALE_FACTOR;
 
 		// if (prob2 <= energy_consumes_prob) {
+			#if STAFFETTA_ENERGEST
+			rxtx_time = 0;
+			energy_rxtx = 0;
+			staffetta_get_energy_consumption(rxtx_time);
+			energy_rxtx = rxtx_time * TMOTE_VOLTAGE;
+			if (remaining_energy > energy_rxtx)
+			{
+				remaining_energy = remaining_energy - energy_rxtx;
+			}
+			else
+			{
+				remaining_energy = 0;
+			}
+			#else
+
 			if (remaining_energy > (uint32_t)ENERGY_CONSUMES_PER_MS)
 			{
 				remaining_energy = remaining_energy - (uint32_t)ENERGY_CONSUMES_PER_MS;
@@ -278,6 +415,10 @@ PROCESS_THREAD(energytrace_process, ev, data)
 			{
 				remaining_energy = 0;
 			}
+			
+			#endif /*STAFFETTA_ENERGEST*/
+			
+
 
             compute_node_state();
             compute_node_duty_cycle();
@@ -332,8 +473,6 @@ energytrace_print(char *str)
 	long rx_time_us = 1000 * ((1000 * listen) / TMOTE_ARCH_SECOND);
 	// long tx_time_us = 1000 * transmit / TMOTE_ARCH_SECOND;
 	// long rx_time_us = 1000 * listen / TMOTE_ARCH_SECOND;
-	// tx_energy = voltage * tx_current_consumption(tx_level) * tx_time_us / 1000 / 10;
-	// rx_energy = voltage * rx_current_consumption * rx_time_us / 1000 / 10;
 	tx_energy = voltage * tx_current_consumption(tx_level) * tx_time_us / 1000 / 10;
 	rx_energy = voltage * rx_current_consumption * rx_time_us / 1000 / 10;
 	

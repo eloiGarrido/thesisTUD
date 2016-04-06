@@ -17,7 +17,7 @@ env = 'uni'
 # simulation = 'orig'
 simulation = 'eh'
 
-simulation_name = str(simulation) + "_" + str(env) + "10k_21_10min"
+simulation_name = str(simulation) + "_" + str(env) + "_energy_10k_21_10min"
 file_path = ""
 if env == 'uni':
     general_path = "/home/egarrido/contiki/tools/cooja/build/"
@@ -69,13 +69,15 @@ class LogConverter(object):
 
         self.output_pkt_seq("origSeq")
 
-        self.print_delay(pkt_delay)
+        # self.print_delay(pkt_delay)
 
         # self.print_dc()
-        self.print_drop_ratio(pkt_delay)
+        # self.print_drop_ratio(pkt_delay)
+
         # for i in range (1, number_of_nodes):
         #     self.print_rendezvous(i)
         # plt.show()
+
         self.generate_graphs()
         try:
             shutil.copy( general_path + "COOJA.testlog", file_path )
@@ -402,7 +404,7 @@ class LogConverter(object):
         self.format_figure('Node average delay','Node', 'Delay', 'node_delay')
 
     def printf_node_state(self):
-        print ('>> Printing node state...')
+        print ('>> Printf node state...')
         plt.figure()
         for i in range(1, self.number_of_nodes):
             plt.plot(self.nodes[i]['node_state'])
@@ -583,10 +585,10 @@ class LogConverter(object):
         self.print_avg_edc()
         self.print_energy_levels()
         self.print_harvesting_rate()
-        self.print_node_state()
+        # self.print_node_state()
         self.print_on_time()
         self.print_wakeups()
-        self.printf_node_state()
+        # self.printf_node_state()
         plt.show()
         return
 

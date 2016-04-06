@@ -664,8 +664,8 @@ int staffetta_send_packet(void) {
                     edc_sum += edc[i];
                 }
             }
-           // avg_edc = MIN( (6 / node_energy_state) + (edc_sum / AVG_EDC_SIZE ), MAX_EDC);
-            avg_edc = MIN( ( (6 / node_energy_state) + (rendezvous_time/100) + (edc_sum/AVG_EDC_SIZE)), MAX_EDC); //limit to 255
+           avg_edc = MIN( (6 / node_energy_state) + (edc_sum / AVG_EDC_SIZE ), MAX_EDC);
+            // avg_edc = MIN( ( (6 / node_energy_state) + (rendezvous_time/100) + (edc_sum/AVG_EDC_SIZE)), MAX_EDC); //limit to 255
             #else
             if((rendezvous_time<RENDEZ_TIME) && (avg_edc > strobe_ack[PKT_GRADIENT])){
 
@@ -884,7 +884,8 @@ int staffetta_send_packet(void) {
 	    *rxtx_time = (on_time*1000) / elapsed_time;
 	    if (!(IS_SINK)){
 			#if ORW_GRADIENT
-			printf("3|%ld|%ld\n",(on_time*1000)/elapsed_time,avg_edc);
+			// printf("3|%ld|%ld\n",(on_time*1000)/elapsed_time,avg_edc);
+			printf("3|%ld|%ld\n", on_time, avg_edc);
 			printf("2|%ld\n",num_wakeups);
 			#endif
 		}

@@ -57,6 +57,13 @@
 // #endif /*MODEL_SOLAR*/
 #include "../../platform/sky/node-id.h"
 #include "../../core/dev/staffetta.h"
+/* ------------- coffee file system--------------------- */
+#ifdef COFFEE
+#include "../../core/cfs/cfs.h"
+#include "../../core/cfs/cfs-coffee.c"
+
+// #include "/home/egarrido/staffetta_sensys2015/eh_staffetta/core/cfs/cfs.h"
+#endif /*COFFEE*/
 
 struct energytrace_sniff_stats {
 	struct energytrace_sniff_stats *next;
@@ -132,6 +139,7 @@ static long voltage = 3;
 uint32_t remaining_energy = ENERGY_INITIAL;
 uint32_t harvesting_rate_array[5] = {0,0,0,0,0};
 uint8_t harvesting_array_index = 0;
+uint32_t acum_consumption = 0;
 // static uint32_t high_th = 1838;
 // static uint32_t low_th = 1738;
 /*---------------------------------------------------------------------------*/
@@ -146,48 +154,6 @@ uint8_t harvesting_array_index = 0;
 // static uint8_t tx_current_consumption[TX_LEVELS] = {174, 165, 152, 139, 125, 112, 99, 85};
 
 #ifdef MODEL_SOLAR
-// double randn (double mu, double sigma)
-// uint32_t randn (uint32_t mu, uint32_t sigma)
-// {
-// 	uint32_t U1, U2, W, mult; //double
-// 	static uint32_t X1, X2; //double
-// 	static uint8_t call = 0; //int
- 
-// 	if (call == 1)
-// 	{
-// 		call = !call;
-// 		return (mu + sigma * (uint32_t) X2);
-//     }
- 
-// 	do
-// 	{
-// 		// U1 = -1 + ((uint32_t) rand () / RAND_MAX) * 2;
-// 		// U2 = -1 + ((uint32_t) rand () / RAND_MAX) * 2;
-// 		U1 = -1 + ((uint32_t) random_rand () / RAND_MAX) * 2;
-// 		U2 = -1 + ((uint32_t) random_rand () / RAND_MAX) * 2;
-		
-// 		W = pow (U1, 2) + pow (U2, 2);
-// 	}
-// 	while (W >= 1 || W == 0);
- 
-// 	mult = sqrt ((-2 * log (W)) / W);
-// 	X1 = U1 * mult;
-// 	X2 = U2 * mult;
-
-// 	call = !call;
- 
-// 	return (mu + sigma * (uint32_t) X1);
-// }
-
-// uint32_t solar_energy_input (uint32_t time_solar, uint8_t scalling_factor)
-// {
-// 	uint32_t result;
-// 	uint32_t normal_var;
-
-// 	normal_var = randn(SOLAR_MU, SOLAR_SIGMA);
-// 	result = scalling_factor * normal_var * cos( time_solar / (70 * PI) ) * cos( time_solar / (100 * PI) );
-// 	return result;
-// }
 double randn (uint32_t mu, uint32_t sigma)
 {
 	double U1, U2, W, mult; //double
@@ -202,7 +168,6 @@ double randn (uint32_t mu, uint32_t sigma)
  
 	do
 	{
-		
 		U1 = -1 + ((double) random_rand () / RAND_MAX) * 2;
 		U2 = -1 + ((double) random_rand () / RAND_MAX) * 2;
 		W = pow (U1, 2) + pow (U2, 2);
@@ -230,8 +195,29 @@ uint32_t solar_energy_input (uint32_t time_solar, uint8_t scalling_factor)
 }
 #endif /*MODEL_SOLAR*/
 
+#ifdef COFFEE
+uint8_t read_from_cfs(char * buffer)
+{
+	int fd_read;
+	char message[32];
+	// cfs_coffee_format();
+	fd_read = cfs_open("mover_data", CFS_READ);
+	if ( fd_read != -1 ) 
+	{
+		// cfs_read(fd_read, buffer, sizeof(char*10)); //To read from the begining
 
-
+		cfs_seek( fd_read, sizeof(message), CFS_SEEK_SET ); //To skip "message" amount of space and start reading
+		cfs_read( fd_read, buffer, sizeof(message) );
+		cfs_close(fd_read);
+		return 0;
+	}
+	else
+	{
+		printf(">>Error while opening the MOVER file\n");
+		return -1;
+	}
+}
+#endif /*COFFEE*/
 /**
  * TX current consumption (mA)
  * values are multiplied by 10 (e.g. 174 should be 17.4mA)
@@ -330,21 +316,22 @@ PROCESS_THREAD(energytrace_process, ev, data)
 			t0 = RTIMER_NOW ();
 			rd = solar_energy_input(t0 ,1); //TODO Add system time
 			#else
-		    #if FIXED_ENERGY_STEP
-		    rd = ENERGY_HARVEST_STEP_SOLAR;
-		    #else
-			rd = random_rand() % 100;
-			rd = rd * 2 * ENERGY_HARVEST_STEP_SOLAR;
-			rd = rd / 100;
-			rd = rd * 0.85;
-			#endif /*FIXED_ENERGY_STEP*/
+			    #if FIXED_ENERGY_STEP
+			    rd = ENERGY_HARVEST_STEP_SOLAR;
+			    #else
+				rd = random_rand() % 100;
+				rd = rd * 2 * ENERGY_HARVEST_STEP_SOLAR;
+				rd = rd / 100;
+				rd = rd * 0.85;
+				#endif /*FIXED_ENERGY_STEP*/
 			#endif /*MODEL_SOLAR*/
 
 			harvesting_rate_array[harvesting_array_index] = (uint32_t)rd;
 			harvesting_array_index++;
 			if (harvesting_array_index > 4){ harvesting_array_index = 0;}
 			
-			if ((uint32_t)ENERGY_MAX_CAPACITY_SOLAR - remaining_energy < (uint32_t)rd )
+			// if ((uint32_t)ENERGY_MAX_CAPACITY_SOLAR - remaining_energy < (uint32_t)rd )
+			if ( (remaining_energy + (uint32_t)rd) > (uint32_t)ENERGY_MAX_CAPACITY_SOLAR )
 			{
 				remaining_energy = (uint32_t)ENERGY_MAX_CAPACITY_SOLAR;
 			}
@@ -368,7 +355,8 @@ PROCESS_THREAD(energytrace_process, ev, data)
 			harvesting_array_index++;
 			if (harvesting_array_index > 4){ harvesting_array_index = 0;}
 			
-			if ((uint32_t)ENERGY_MAX_CAPACITY_MOVER - remaining_energy < (uint32_t)rd )
+			// if ((uint32_t)ENERGY_MAX_CAPACITY_MOVER - remaining_energy < (uint32_t)rd )
+			if ( (remaining_energy = (uint32_t)rd) > (uint32_t)ENERGY_MAX_CAPACITY_MOVER )
 			{
 				remaining_energy = (uint32_t)ENERGY_MAX_CAPACITY_MOVER;
 			}
@@ -382,41 +370,40 @@ PROCESS_THREAD(energytrace_process, ev, data)
 
 		}
 
-		#ifdef MODEL_BERNOULLI
+#ifdef MODEL_BERNOULLI
 
 		harvest_state = HARVEST_ACTIVE;
 
 /*EGB---------------------------------------------------------------------------*/
-		#endif /* MODEL_BERNOULLI */
+#endif /* MODEL_BERNOULLI */
 
 		// int prob2 = random_rand() % PROB_SCALE_FACTOR;
 
 		// if (prob2 <= energy_consumes_prob) {
-			#if STAFFETTA_ENERGEST
-			rxtx_time = 0;
-			energy_rxtx = 0;
-			staffetta_get_energy_consumption(rxtx_time);
-			energy_rxtx = rxtx_time * TMOTE_VOLTAGE;
-			if (remaining_energy > energy_rxtx)
-			{
-				remaining_energy = remaining_energy - energy_rxtx;
-			}
-			else
-			{
-				remaining_energy = 0;
-			}
-			#else
-
-			if (remaining_energy > (uint32_t)ENERGY_CONSUMES_PER_MS)
-			{
-				remaining_energy = remaining_energy - (uint32_t)ENERGY_CONSUMES_PER_MS;
-			}
-			else
-			{
-				remaining_energy = 0;
-			}
-			
-			#endif /*STAFFETTA_ENERGEST*/
+#if STAFFETTA_ENERGEST
+		rxtx_time = 0;
+		energy_rxtx = 0;
+		staffetta_get_energy_consumption(&rxtx_time);
+		energy_rxtx = rxtx_time * TMOTE_VOLTAGE;
+		acum_consumption += energy_rxtx;
+		if (remaining_energy > energy_rxtx)
+		{
+			remaining_energy -= energy_rxtx;
+		}
+		else
+		{
+			remaining_energy = 0;
+		}
+#else
+		if (remaining_energy > (uint32_t)ENERGY_CONSUMES_PER_MS)
+		{
+			remaining_energy = remaining_energy - (uint32_t)ENERGY_CONSUMES_PER_MS;
+		}
+		else
+		{
+			remaining_energy = 0;
+		}
+#endif /*STAFFETTA_ENERGEST*/
 			
 
 
@@ -550,7 +537,7 @@ PROCESS_THREAD(energytrace_process_print, ev, data)
 void
 energytrace_start(void)
 {
-	clock_time_t period = CLOCK_SECOND / 1000; //Addapt period to a smaller scale (1us) &EGB
+	clock_time_t period = CLOCK_SECOND / 100; //Addapt period to a smaller scale (1us) &EGB
 	clock_time_t long_period = CLOCK_SECOND * 5;
 	process_start(&energytrace_process, (void *)&period);
 //	process_start(&energytrace_process_print, (void *)&long_period);

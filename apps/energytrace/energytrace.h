@@ -10,9 +10,11 @@
 
 #include "../../core/sys/clock.h"
 
+#define SHOW_ENERGY_INFO 	1
 
-#define SHOW_ENERGY_INFO 1
-#define STAFFETTA_ENERGEST 1
+#define STAFFETTA_ENERGEST 	1
+#define COFFEE
+// #define FIXED_ENERGY_STEP  	1
 /* choose energy harvesting model */
 #define MODEL_BERNOULLI
 // #define MODEL_MARKOV
@@ -58,7 +60,7 @@
 
 #define ENERGY_CONSUMES_PER_MS 		85		//Energy consumed per in uJ
 
-#define FIXED_ENERGY_STEP           0
+
 /*---------------------------------------------------------------------------*/
 void energytrace_start(void);
 void energytrace_stop(void);
@@ -92,6 +94,7 @@ typedef enum {
 
 void energytrace_print(char *str);
 
+extern uint32_t acum_consumption;
 extern uint32_t remaining_energy;
 extern uint32_t harvesting_rate_array[5];
 /* node state */

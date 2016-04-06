@@ -664,8 +664,11 @@ int staffetta_send_packet(void) {
                     edc_sum += edc[i];
                 }
             }
+#if EDC_WITH_RV
+            avg_edc = MIN( ( (6 / node_energy_state) + (rendezvous_time/100) + (edc_sum/AVG_EDC_SIZE)), MAX_EDC); //limit to 255
+#else
            avg_edc = MIN( (6 / node_energy_state) + (edc_sum / AVG_EDC_SIZE ), MAX_EDC);
-            // avg_edc = MIN( ( (6 / node_energy_state) + (rendezvous_time/100) + (edc_sum/AVG_EDC_SIZE)), MAX_EDC); //limit to 255
+#endif /*EDC_WITH_RV*/            
             #else
             if((rendezvous_time<RENDEZ_TIME) && (avg_edc > strobe_ack[PKT_GRADIENT])){
 
@@ -878,8 +881,11 @@ int staffetta_send_packet(void) {
 
     void staffetta_get_energy_consumption(uint32_t *rxtx_time)
     {
-	 	uint32_t on_time,elapsed_time;
-	    on_time = ((energest_type_time(ENERGEST_TYPE_TRANSMIT)+energest_type_time(ENERGEST_TYPE_LISTEN)) * 1000) / RTIMER_ARCH_SECOND;
+ 	    uint32_t on_time,elapsed_time;
+	    uint32_t on_time_t;
+
+	    on_time_t = ((energest_type_time(ENERGEST_TYPE_TRANSMIT)+energest_type_time(ENERGEST_TYPE_LISTEN)) * 1000);
+	    on_time = on_time_t / RTIMER_ARCH_SECOND;
 	    elapsed_time = clock_time() * 1000 / CLOCK_SECOND;
 	    *rxtx_time = (on_time*1000) / elapsed_time;
 	    if (!(IS_SINK)){

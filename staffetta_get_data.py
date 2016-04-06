@@ -69,10 +69,10 @@ class LogConverter(object):
 
         self.output_pkt_seq("origSeq")
 
-        # self.print_delay(pkt_delay)
+        self.print_delay(pkt_delay)
 
         # self.print_dc()
-        # self.print_drop_ratio(pkt_delay)
+        self.print_drop_ratio(pkt_delay)
 
         # for i in range (1, number_of_nodes):
         #     self.print_rendezvous(i)
@@ -89,7 +89,7 @@ class LogConverter(object):
         Create data structure,  array of dictionaries containing all node information
         '''
         for i in range (0, self.number_of_nodes):
-            self.nodes.append({'id':i, 'node_state': [],'rv_time':[], 'time2':[], 'time3':[], 'time4':[], 'time6':[], 'time_on': [], 'time_off': [], 'abs_time_off': [], 'pkt':[], 'num_wakeups':[], 'on_time': [], 'avg_edc':[], 'seq':[], 'node_energy_state':[], 'remaining_energy':[], 'harvesting_rate':[]})
+            self.nodes.append({'id':i, 'node_state': [], 'acum_consumption' :[],'rv_time':[], 'time2':[], 'time3':[], 'time4':[], 'time6':[], 'time_on': [], 'time_off': [], 'abs_time_off': [], 'pkt':[], 'num_wakeups':[], 'on_time': [], 'avg_edc':[], 'seq':[], 'node_energy_state':[], 'remaining_energy':[], 'harvesting_rate':[]})
 
 #--------------------------- Output Functions ---------------------------#
 #TODO Create a function to output each type of file data
@@ -295,6 +295,7 @@ class LogConverter(object):
             self.nodes[id-1]['node_energy_state'].append(msg[3])
             self.nodes[id-1]['remaining_energy'].append(msg[4])
             self.nodes[id-1]['harvesting_rate'].append(msg[5])
+            self.nodes[id-1]['acum_consumption'].append(msg[6])
             self.nodes[id-1]['time6'].append(time)
         elif msg_type == 7: #Packet path (Sink)
             self.nodes[id-1]['pkt'].append(msg[3] + ',' +  msg[4] + ',' + msg[5] + ',' + msg[6] + ',' + str(time))
@@ -585,10 +586,10 @@ class LogConverter(object):
         self.print_avg_edc()
         self.print_energy_levels()
         self.print_harvesting_rate()
-        # self.print_node_state()
+        self.print_node_state() #Average node state 
         self.print_on_time()
         self.print_wakeups()
-        # self.printf_node_state()
+        self.printf_node_state() #graph with node state changes
         plt.show()
         return
 

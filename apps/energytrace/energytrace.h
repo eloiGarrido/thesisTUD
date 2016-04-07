@@ -13,7 +13,7 @@
 #define SHOW_ENERGY_INFO 	1
 
 #define STAFFETTA_ENERGEST 	1
-#define COFFEE
+#define COFFEE_FILE_SYSTEM
 // #define FIXED_ENERGY_STEP  	1
 /* choose energy harvesting model */
 #define MODEL_BERNOULLI

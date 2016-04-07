@@ -25,7 +25,7 @@ PROCESS_THREAD(staffetta_print_stats_process, ev, data){
 
     PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
     while(1) {
-        // staffetta_print_stats();
+        staffetta_print_stats();
 
         staffetta_add_data(round_stats++);
         //#if ENERGY_HARV

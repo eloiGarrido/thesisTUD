@@ -126,14 +126,14 @@ static inline void radio_on(void) {
 }
 
 static inline void radio_off(void) {
-	#if ENERGEST_CONF_ON
+#if ENERGEST_CONF_ON
     if (energest_current_mode[ENERGEST_TYPE_TRANSMIT]) {
 		ENERGEST_OFF(ENERGEST_TYPE_TRANSMIT);
     }
     if (energest_current_mode[ENERGEST_TYPE_LISTEN]) {
 		ENERGEST_OFF(ENERGEST_TYPE_LISTEN);
     }
-	#endif /* ENERGEST_CONF_ON */
+#endif /* ENERGEST_CONF_ON */
     FASTSPI_STROBE(CC2420_SRFOFF);
 }
 
@@ -333,7 +333,7 @@ int staffetta_send_packet(void) {
 			//Check CRC
 			if (strobe[PKT_CRC] & FOOTER1_CRC_OK) {}
 			else {
-				#if WITH_CRC
+#if WITH_CRC
 				// packet is corrupted. we send a beacon ack to a non-existing node as a NACK
 				strobe_ack[PKT_DST] = 255;
 				strobe_ack[PKT_DATA] = 0;
@@ -348,15 +348,15 @@ int staffetta_send_packet(void) {
 				goto_idle();
 				//PRINTF("Wrong CRC\n");
 				return RET_WRONG_CRC;
-				#endif /*WITH_CRC*/
+#endif /*WITH_CRC*/
 			}
 			//PRINTF("rx: %u %u %u %u %u %u %u %u\n",strobe[0],strobe[1],strobe[2],strobe[3],strobe[4],strobe[5],strobe[6],strobe[7]);
 			//strobe received, process it
 
-				#if WITH_GRADIENT
+#if WITH_GRADIENT
 				//#if BCP_GRADIENT
 				//		if(strobe[PKT_GRADIENT] < q_size){
-				#if ORW_GRADIENT
+#if ORW_GRADIENT
 				if(strobe[PKT_GRADIENT] < avg_edc){
 				//#else
 				//if(strobe[PKT_GRADIENT] > num_wakeups){
@@ -367,7 +367,7 @@ int staffetta_send_packet(void) {
 					//PRINTF("sender is closer to the sink than me\n");
 					return RET_WRONG_GRADIENT;
 				}
-				#endif /*WITH_GRADIENT*/
+#endif /*WITH_GRADIENT*/
 
 				if (strobe[PKT_TYPE] == TYPE_BEACON){
 					current_state = sending_ack;
@@ -389,14 +389,14 @@ int staffetta_send_packet(void) {
 			strobe_ack[PKT_SEQ] = strobe[PKT_SEQ];
 			strobe_ack[PKT_TTL] = strobe[PKT_TTL];
             strobe_ack[PKT_SRC] = node_id;
-			#if ORW_GRADIENT
+#if ORW_GRADIENT
 			strobe_ack[PKT_GRADIENT] = (uint8_t)(MIN(avg_edc,MAX_EDC)); // limit to 255
-			#endif /*ORW_GRADIENT*/
+#endif /*ORW_GRADIENT*/
 
-			#if WITH_AGGREGATE
+#if WITH_AGGREGATE
 			aggregateValue = MAX(aggregateValue,strobe[PKT_GRADIENT]);
 			strobe_ack[PKT_GRADIENT] = aggregateValue;
-			#endif /*WITH_AGGREGATE*/
+#endif /*WITH_AGGREGATE*/
 
 			FASTSPI_WRITE_FIFO(strobe_ack, STAFFETTA_PKT_LEN+1);
 			FASTSPI_STROBE(CC2420_STXON);
@@ -440,13 +440,13 @@ int staffetta_send_packet(void) {
 					//Check CRC
 					if (select[PKT_CRC] & FOOTER1_CRC_OK) {}
 					else {
-						#if WITH_CRC
+#if WITH_CRC
 						leds_off(LEDS_GREEN);
 						radio_flush_rx();
 						goto_idle();
 						//PRINTF("Wrong CRC\n");
 						return RET_WRONG_CRC;
-						#endif /*WITH_CRC*/
+#endif /*WITH_CRC*/
 					}
 					//change state to idle to signal that a message was received
 					current_state = select_received;
@@ -473,11 +473,11 @@ int staffetta_send_packet(void) {
 				goto_idle();
 				return RET_WRONG_SELECT;
 			}
-			#if !FAST_FORWARD
+#if !FAST_FORWARD
 			goto_idle();
 			printf("8|%u|%u|%u|%u|%u\n",strobe[PKT_SRC],strobe[PKT_DST],strobe[PKT_SEQ],strobe[PKT_DATA],strobe[PKT_GRADIENT]);
 			return RET_NO_RX;
-			#endif /*!FAST_FORWARD*/
+#endif /*!FAST_FORWARD*/
 	    }
 	    leds_off(LEDS_GREEN);
 	    leds_on(LEDS_RED);
@@ -493,15 +493,15 @@ int staffetta_send_packet(void) {
 	    strobe[PKT_SEQ] = read_seq();
 		//#if BCP_GRADIENT
 	    //strobe[PKT_GRADIENT] = (uint8_t)(MIN(q_size,255)); // we limit the queue size to 255
-		#if ORW_GRADIENT
+#if ORW_GRADIENT
 	    strobe[PKT_GRADIENT] = (uint8_t)(MIN(avg_edc,MAX_EDC)); // limit to 255
-		#else
+#else
 	    strobe[PKT_GRADIENT] = (uint8_t)(MIN(num_wakeups,25)); // we limit the # of wakeups to 25
-        #endif /*ORW_GRADIENT*/
+#endif /*ORW_GRADIENT*/
 
-		#if WITH_AGGREGATE
+#if WITH_AGGREGATE
 	    strobe[PKT_GRADIENT] = aggregateValue;
-		#endif /*WITH_AGGREGATE*/
+#endif /*WITH_AGGREGATE*/
 	    // If the queue is empty, exit
 	    if(read_data()==0){
 			goto_idle();
@@ -552,9 +552,9 @@ int staffetta_send_packet(void) {
 					//Check CRC
 					if (strobe_ack[PKT_CRC] & FOOTER1_CRC_OK) {}
 					else {
-						#if WITH_CRC
+#if WITH_CRC
 						//CRC wrong, send a select to a non-existing node
-						#if WITH_SELECT
+#if WITH_SELECT
 						select[PKT_LEN] = STAFFETTA_PKT_LEN+FOOTER_LEN;
 						select[PKT_SRC] = node_id;
 						select[PKT_TYPE] = TYPE_SELECT;
@@ -569,13 +569,13 @@ int staffetta_send_packet(void) {
 						//We wait until transmission has ended
 						BUSYWAIT_UNTIL(!(radio_status() & BV(CC2420_TX_ACTIVE)), RTIMER_SECOND / 10);
 						//t2 = RTIMER_NOW ();while(RTIMER_CLOCK_LT(RTIMER_NOW(),t2+32)); //give time to the radio to send a message (1ms) TODO: add this time to .h file
-						#endif /*WITH_SELECT*/
+#endif /*WITH_SELECT*/
 
 						radio_flush_rx();
 						goto_idle();
 						//PRINTF("Wrong CRC\n");
 						return RET_WRONG_CRC;
-						#endif /*WITH_CRC*/
+#endif /*WITH_CRC*/
 					}
 					//packet received, process it
 					if (strobe_ack[PKT_TYPE] == TYPE_BEACON_ACK){
@@ -596,7 +596,7 @@ int staffetta_send_packet(void) {
 	    }
 	    //Message sent. Send a select packet and go to sleep
 	    if(current_state == beacon_sent && collisions == 0){
-			#if WITH_SELECT
+#if WITH_SELECT
 			select[PKT_LEN] = STAFFETTA_PKT_LEN+FOOTER_LEN;
 			select[PKT_SRC] = node_id;
 			select[PKT_TYPE] = TYPE_SELECT;
@@ -611,11 +611,11 @@ int staffetta_send_packet(void) {
 			//We wait until transmission has ended
 			BUSYWAIT_UNTIL(!(radio_status() & BV(CC2420_TX_ACTIVE)), RTIMER_SECOND / 10);
 			//t2 = RTIMER_NOW ();while(RTIMER_CLOCK_LT(RTIMER_NOW(),t2+32)); //give time to the radio to send a message (1ms) TODO: add this time to .h file
-			#endif /*WITH_SELECT*/
+#endif /*WITH_SELECT*/
 
-			#if WITH_AGGREGATE
+#if WITH_AGGREGATE
 			aggregateValue = MAX(aggregateValue,strobe_ack[PKT_GRADIENT]);
-			#endif /*WITH_AGGREGATE*/
+#endif /*WITH_AGGREGATE*/
 			//Message delivered. Remove from our queue
 			pop_data();
 	    }
@@ -636,14 +636,14 @@ int staffetta_send_packet(void) {
 			}
 			avg_rendezvous = rendezvous_sum/AVG_SIZE;
 
-			#if ORW_GRADIENT
+#if ORW_GRADIENT
 			// if the neighbor has a better EDC, add it to the average
-			#if NEW_EDC
+#if NEW_EDC
             if( (rendezvous_time<RENDEZ_TIME) && (avg_edc > strobe_ack[PKT_GRADIENT]) && (node_id != strobe_ack[PKT_SRC])){
                 edc[edc_idx] = strobe_ack[PKT_GRADIENT];
                 edc_id[edc_idx] = strobe_ack[PKT_SRC];
 
-		   	 	#if AGEING //TODO Check that ageing works
+#if AGEING //TODO Check that ageing works
 		    	edc_age[edc_idx] = rendezvous_time / (RENDEZ_TIME/10);
 		    	if ( edc_age[edc_idx] == 0 ){
 	    			edc_age_counter[edc_idx] = 10;
@@ -656,7 +656,7 @@ int staffetta_send_packet(void) {
 		    	}else {
 	    			edc_age_counter[edc_idx] = 2;
 		    	}
-			    #endif /*AGEING*/
+#endif /*AGEING*/
 
                 edc_idx = (edc_idx+1)%AVG_EDC_SIZE;
                 edc_sum = 0;
@@ -664,12 +664,12 @@ int staffetta_send_packet(void) {
                     edc_sum += edc[i];
                 }
             }
-#if EDC_WITH_RV
-            avg_edc = MIN( ( (6 / node_energy_state) + (rendezvous_time/100) + (edc_sum/AVG_EDC_SIZE)), MAX_EDC); //limit to 255
+// #if EDC_WITH_RV
+           	avg_edc = MIN( ( (6 / node_energy_state) + (rendezvous_time/100) + (edc_sum/AVG_EDC_SIZE)), MAX_EDC); //limit to 255
+// #else
+           	// avg_edc = MIN( (6 / node_energy_state) + (edc_sum / AVG_EDC_SIZE ), MAX_EDC);
+// #endif /*EDC_WITH_RV*/            
 #else
-           avg_edc = MIN( (6 / node_energy_state) + (edc_sum / AVG_EDC_SIZE ), MAX_EDC);
-#endif /*EDC_WITH_RV*/            
-            #else
             if((rendezvous_time<RENDEZ_TIME) && (avg_edc > strobe_ack[PKT_GRADIENT])){
 
 				edc[edc_idx] = strobe_ack[PKT_GRADIENT];
@@ -680,11 +680,11 @@ int staffetta_send_packet(void) {
 				}
 			}
 			avg_edc = MIN( ((rendezvous_time/100)+(edc_sum/AVG_EDC_SIZE)),MAX_EDC); //limit to 255
-			#endif /*NEW_EDC*/
-			#endif /*ORW_GRADIENT*/
+#endif /*NEW_EDC*/
+#endif /*ORW_GRADIENT*/
 
-			#if DYN_DC
-            #if ENERGY_HARV
+#if DYN_DC
+#if ENERGY_HARV
             switch (node_energy_state)
             {
                 case NS_LOW:
@@ -697,20 +697,20 @@ int staffetta_send_packet(void) {
                     num_wakeups = MAX(1,(NS_ENERGY_HIGH*10)/avg_rendezvous);
                     break;
             }
-            #else
+#else	
 			num_wakeups = MAX(1,(BUDGET*10)/avg_rendezvous);
-            #endif /*ENERGY_HARV*/
-            #else
+#endif /*ENERGY_HARV*/
+#else
 			num_wakeups = 10;
-            #endif /*DYN_DC*/
+#endif /*DYN_DC*/
 
 			if (!IS_SINK) {
 				// printf("2,%d,%ld\n",strobe_ack[PKT_SRC],num_wakeups);
 			}
 			
-			#if AGEING
+#if AGEING
 			age_edc();
-			#endif /*AGEING*/
+#endif /*AGEING*/
 	    }
 
 	    radio_flush_rx();
@@ -780,7 +780,7 @@ int staffetta_send_packet(void) {
 					bytes_read++;
 				}
 
-				#if WITH_FLOCKLAB_SINK
+#if WITH_FLOCKLAB_SINK
 				if((!(P2IN & BV(7)))){
 					//we are not selected as sink in flocklab
 					gpio_off(GPIO_GREEN);
@@ -792,13 +792,13 @@ int staffetta_send_packet(void) {
 					gpio_on(GPIO_GREEN);
 					gpio_off(GPIO_RED);
 				}
-				#endif /*WITH_FLOCKLAB_SINK*/
+#endif /*WITH_FLOCKLAB_SINK*/
 
 
 				//Check CRC
 				if (strobe[PKT_CRC] & FOOTER1_CRC_OK) {}
 				else {
-					#if WITH_CRC
+#if WITH_CRC
 					//CRC wrong, send an ack to a non-existing node (NACK)
 					strobe_ack[PKT_DST] = 255;
 					strobe_ack[PKT_DATA] = 0;
@@ -814,7 +814,7 @@ int staffetta_send_packet(void) {
 					current_state=idle;
 					//PRINTF("Wrong CRC\n");
 					continue;
-					#endif /*WITH_CRC*/
+#endif /*WITH_CRC*/
 				}
 				//PRINTF("sink beacon: %u %u %u %u %u %u %u %u\n",strobe[0],strobe[1],strobe[2],strobe[3],strobe[4],strobe[5],strobe[6],strobe[7]);
 				//strobe received, process it
@@ -837,14 +837,14 @@ int staffetta_send_packet(void) {
                 strobe_ack[PKT_SEQ] = strobe[PKT_SEQ];
                 strobe_ack[PKT_TTL] = strobe[PKT_TTL];
                 strobe_ack[PKT_SRC] = 1;
-                #if ORW_GRADIENT
+#if ORW_GRADIENT
                 strobe_ack[PKT_GRADIENT] = 0;
-                #endif /*ORW_GRADIENT*/
+#endif /*ORW_GRADIENT*/
 
-                #if WITH_AGGREGATE
+#if WITH_AGGREGATE
                 aggregateValue = MAX(aggregateValue,strobe[PKT_GRADIENT]);
                 strobe_ack[PKT_GRADIENT] = aggregateValue;
-                #endif /*WITH_AGGREGATE*/
+#endif /*WITH_AGGREGATE*/
                 FASTSPI_WRITE_FIFO(strobe_ack, STAFFETTA_PKT_LEN+1);
                 FASTSPI_STROBE(CC2420_STXON);
                 //We wait until transmission has ended
@@ -857,28 +857,34 @@ int staffetta_send_packet(void) {
                 //SINK output
                 printf("7|%u|%u|%u|%u|%u\n", strobe[PKT_SRC], strobe[PKT_DST], strobe[PKT_SEQ], strobe[PKT_DATA],strobe[PKT_GRADIENT]);
 
-                #if WITH_AGGREGATE
+#if WITH_AGGREGATE
                 //printf("A %u\n",aggregateValue);
-                #endif /*WITH_AGGREGATE*/
+#endif /*WITH_AGGREGATE*/
             }
 		}
 	}
 
 	void staffetta_print_stats(void){
+#if STAFFETTA_ENERGEST
+		printf("14|%ld\n",avg_edc);
+#else
 	    uint32_t on_time,elapsed_time;
 	    on_time = ((energest_type_time(ENERGEST_TYPE_TRANSMIT)+energest_type_time(ENERGEST_TYPE_LISTEN)) * 1000) / RTIMER_ARCH_SECOND;
 	    elapsed_time = clock_time() * 1000 / CLOCK_SECOND;
 	    if (!(IS_SINK)){
-			#if ORW_GRADIENT
-			printf("3|%ld|%ld\n",(on_time*1000)/elapsed_time,avg_edc);
+#if ORW_GRADIENT
+			printf("3|%ld\n",(on_time*1000)/elapsed_time);
+			printf("14|%ld\n",avg_edc);
 			printf("2|%ld\n",num_wakeups);
-			#else
+#else
 			printf("3|%ld|%d\n",(on_time*1000)/elapsed_time,q_size);
-			#endif /*ORW_GRADIENT*/
+#endif /*ORW_GRADIENT*/
 	    }
+#endif /*STAFFETTA_ENERGEST*/
 	    //printf("id: %d\n",node_id);
 	}
 
+#if STAFFETTA_ENERGEST
     void staffetta_get_energy_consumption(uint32_t *rxtx_time)
     {
  	    uint32_t on_time,elapsed_time;
@@ -889,14 +895,12 @@ int staffetta_send_packet(void) {
 	    elapsed_time = clock_time() * 1000 / CLOCK_SECOND;
 	    *rxtx_time = (on_time*1000) / elapsed_time;
 	    if (!(IS_SINK)){
-			#if ORW_GRADIENT
 			// printf("3|%ld|%ld\n",(on_time*1000)/elapsed_time,avg_edc);
-			printf("3|%ld|%ld\n", on_time, avg_edc);
+			printf("3|%ld|%ld\n", on_time);
 			printf("2|%ld\n",num_wakeups);
-			#endif
 		}
     }
-
+#endif /*STAFFETTA_ENERGEST*/
 	void staffetta_add_data(uint8_t _seq){
 
 	    if (add_data(node_id,0,_seq) == 1 ){
@@ -907,35 +911,35 @@ int staffetta_send_packet(void) {
 	void staffetta_init(void) {
 	    int i;
 
-		#if WITH_FLOCKLAB_SINK
+#if WITH_FLOCKLAB_SINK
 	    gpio_init();
-		#endif /*WITH_FLOCKLAB_SINK*/
+#endif /*WITH_FLOCKLAB_SINK*/
 
 	    current_state = idle;
 	    //Clear average buffer
-        #if ENERGY_HARV
+#if ENERGY_HARV
         for (i=0;i<AVG_SIZE;i++) rendezvous[i]=NS_ENERGY_LOW;
         rendezvous_sum = NS_ENERGY_LOW*AVG_SIZE;
-        #else
+#else
 	    for (i=0;i<AVG_SIZE;i++) rendezvous[i]=BUDGET;
 	    rendezvous_sum = BUDGET*AVG_SIZE;
-        #endif /*ENERGY_HARV*/
+#endif /*ENERGY_HARV*/
 
         rendezvous_idx = 0;
 
-		#if ORW_GRADIENT
+#if ORW_GRADIENT
 	    for (i=0;i<AVG_EDC_SIZE;i++){
 	        edc[i]=MAX_EDC;
         }
-	    #if NEW_EDC
+#if NEW_EDC
 	    for (i=0;i<AVG_EDC_SIZE;i++) edc_id[i]=MAX_EDC;
-	    #endif
+#endif
 
 	    edc_min = MAX_EDC;
 	    edc_idx = 0;
 	    avg_edc = MAX_EDC;
 	    edc_sum = MAX_EDC*AVG_EDC_SIZE;
-		#endif /*ORW_GRADIENT*/
+#endif /*ORW_GRADIENT*/
 
 	    //Init message vars
 	    for (i=0;i<DATA_SIZE;i++) {
@@ -949,9 +953,9 @@ int staffetta_send_packet(void) {
 	    //Add some messages to the queue
         for(i=0;i<PAKETS_PER_NODE;i++) staffetta_add_data(i);//add_data(node_id,0,i);
 
-        #if WITH_AGGREGATE
+#if WITH_AGGREGATE
         aggregateValue = node_id;
-        #endif /*WITH_AGGREGATE*/
+#endif /*WITH_AGGREGATE*/
 	    //If the node is a sink, start listening indefinitely
 	    if (IS_SINK){
 			sink_listen();

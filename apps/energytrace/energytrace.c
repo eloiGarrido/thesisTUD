@@ -58,12 +58,12 @@
 #include "../../platform/sky/node-id.h"
 #include "../../core/dev/staffetta.h"
 /* ------------- coffee file system--------------------- */
-#ifdef COFFEE
+#ifdef COFFEE_FILE_SYSTEM
 #include "../../core/cfs/cfs.h"
 #include "../../core/cfs/cfs-coffee.c"
 
 // #include "/home/egarrido/staffetta_sensys2015/eh_staffetta/core/cfs/cfs.h"
-#endif /*COFFEE*/
+#endif /*COFFEE_FILE_SYSTEM*/
 
 struct energytrace_sniff_stats {
 	struct energytrace_sniff_stats *next;
@@ -195,8 +195,8 @@ uint32_t solar_energy_input (uint32_t time_solar, uint8_t scalling_factor)
 }
 #endif /*MODEL_SOLAR*/
 
-#ifdef COFFEE
-uint8_t read_from_cfs(char * buffer)
+#ifdef COFFEE_FILE_SYSTEM
+uint8_t read_from_cfs(char * buffer, uint16_t index)
 {
 	int fd_read;
 	char message[32];
@@ -206,7 +206,7 @@ uint8_t read_from_cfs(char * buffer)
 	{
 		// cfs_read(fd_read, buffer, sizeof(char*10)); //To read from the begining
 
-		cfs_seek( fd_read, sizeof(message), CFS_SEEK_SET ); //To skip "message" amount of space and start reading
+		cfs_seek( fd_read, sizeof(message)*index, CFS_SEEK_SET ); //To skip "message" amount of space and start reading
 		cfs_read( fd_read, buffer, sizeof(message) );
 		cfs_close(fd_read);
 		return 0;
@@ -217,7 +217,13 @@ uint8_t read_from_cfs(char * buffer)
 		return -1;
 	}
 }
-#endif /*COFFEE*/
+#endif /*COFFEE_FILE_SYSTEM*/
+#ifdef MODEL_MOVER
+uint32_t get_mover_energy(void)
+{
+
+}
+#endif
 /**
  * TX current consumption (mA)
  * values are multiplied by 10 (e.g. 174 should be 17.4mA)
@@ -259,7 +265,7 @@ PROCESS_THREAD(energytrace_process, ev, data)
 	uint32_t energy_rxtx;
 	uint32_t rd = 0;
 
-	#ifdef NODE_MOVER
+	#ifdef MODEL_MOVER
 	if ( node_id % MOVER_PERCENTAGE == 0) {
 		node_class = NODE_MOVER;
 	} else {
@@ -267,7 +273,7 @@ PROCESS_THREAD(energytrace_process, ev, data)
 	}
 	#else
 	node_class = NODE_SOLAR;
-	#endif /*NODE_MOVER*/
+	#endif /*MODEL_MOVER*/
 
 	// remaining_energy = ENERGY_MAX_CAPACITY_SOLAR / 4;
 	// remaining_energy 
@@ -311,20 +317,20 @@ PROCESS_THREAD(energytrace_process, ev, data)
 
 		if (node_class == NODE_SOLAR)
 		{
-			#ifdef MODEL_SOLAR
+#ifdef MODEL_SOLAR
 			rtimer_clock_t t0;
 			t0 = RTIMER_NOW ();
 			rd = solar_energy_input(t0 ,1); //TODO Add system time
-			#else
-			    #if FIXED_ENERGY_STEP
+#else
+#if FIXED_ENERGY_STEP
 			    rd = ENERGY_HARVEST_STEP_SOLAR;
-			    #else
+#else
 				rd = random_rand() % 100;
 				rd = rd * 2 * ENERGY_HARVEST_STEP_SOLAR;
 				rd = rd / 100;
 				rd = rd * 0.85;
-				#endif /*FIXED_ENERGY_STEP*/
-			#endif /*MODEL_SOLAR*/
+#endif /*FIXED_ENERGY_STEP*/
+#endif /*MODEL_SOLAR*/
 
 			harvesting_rate_array[harvesting_array_index] = (uint32_t)rd;
 			harvesting_array_index++;
@@ -343,13 +349,13 @@ PROCESS_THREAD(energytrace_process, ev, data)
 		}
 		else if (node_class == NODE_MOVER) // TODO Add stored mover values and test
 		{
-			#ifdef MODEL_MOVER
-
-			#else
+#ifdef MODEL_MOVER
+			rd = get_mover_energy();
+#else
 			rd = random_rand() % 100;
 			rd = rd * 2 * ENERGY_HARVEST_STEP_MOVER;
 			rd = rd / 100;
-			#endif /*MODEL_MOVER*/
+#endif /*MODEL_MOVER*/
 
 			harvesting_rate_array[harvesting_array_index] = (uint32_t)rd;
 			harvesting_array_index++;

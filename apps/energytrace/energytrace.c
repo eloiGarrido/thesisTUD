@@ -140,6 +140,10 @@ uint32_t remaining_energy = ENERGY_INITIAL;
 uint32_t harvesting_rate_array[5] = {0,0,0,0,0};
 uint8_t harvesting_array_index = 0;
 uint32_t acum_consumption = 0;
+
+#ifdef COFFEE_FILE_SYSTEM
+int fd_read;
+#endif /*COFFEE_FILE_SYSTEM*/
 // static uint32_t high_th = 1838;
 // static uint32_t low_th = 1738;
 /*---------------------------------------------------------------------------*/
@@ -196,32 +200,95 @@ uint32_t solar_energy_input (uint32_t time_solar, uint8_t scalling_factor)
 #endif /*MODEL_SOLAR*/
 
 #ifdef COFFEE_FILE_SYSTEM
-uint8_t read_from_cfs(char * buffer, uint16_t index)
+#define MESSAGE_SIZE 30
+void clean_message(char message[MESSAGE_SIZE])
 {
-	int fd_read;
-	char message[32];
-	// cfs_coffee_format();
-	fd_read = cfs_open("mover_data", CFS_READ);
-	if ( fd_read != -1 ) 
-	{
-		// cfs_read(fd_read, buffer, sizeof(char*10)); //To read from the begining
+  uint8_t idx;
+  for (idx=0; idx<MESSAGE_SIZE; idx++){message[idx] = '\0';}
+}
 
-		cfs_seek( fd_read, sizeof(message)*index, CFS_SEEK_SET ); //To skip "message" amount of space and start reading
-		cfs_read( fd_read, buffer, sizeof(message) );
-		cfs_close(fd_read);
+
+int read_lines(char message[MESSAGE_SIZE], uint16_t lines)
+{
+  
+  char char_buffer[2] = "\0\0";
+  char string_buffer[MESSAGE_SIZE];
+  uint8_t idx=0;
+  uint16_t lines_read = 0;
+  int bytes_read = 0;
+  clean_message(string_buffer);
+  clean_message(message);
+  if(fd_read != -1) 
+  {
+    do
+    {
+      bytes_read = cfs_read(fd_read, char_buffer, sizeof(char));
+      if (bytes_read > 0) 
+      {
+        string_buffer[idx] = char_buffer[0];
+        idx += 1;
+        if ( char_buffer[0] == '\n')
+        {
+          lines_read += 1;
+        }
+      }
+      else
+      {
+        return 0;
+      }
+    }while (lines_read < lines);
+    strncpy(message, string_buffer, idx);
+  } 
+  else 
+  {
+    printf("ERROR: read_lines.\n");
+  }
+  return bytes_read;
+}
+
+
+#endif /*COFFEE_FILE_SYSTEM*/
+
+#ifdef MODEL_MOVER
+uint8_t init_mover_file()
+{
+	fd_read = cfs_open("cfs_file.txt", CFS_READ);
+  	if(fd_read!=-1) 
+	{
+		return 1;
+	} 
+	else 
+	{
 		return 0;
+	}
+}
+
+uint32_t get_mover_energy(void)
+{
+  	int bytes_read = 0;
+  	char message[MESSAGE_SIZE];
+  	uint32_t result;
+	bytes_read = read_lines( message, 1 );
+	if (bytes_read > 0)
+	{
+		result = atoi(message); //TODO add mult fator to deal with floating point
+		return result;
 	}
 	else
 	{
-		printf(">>Error while opening the MOVER file\n");
-		return -1;
+		cfs_seek(fd_read, 0, CFS_SEEK_SET); //Return pointer to start of file
+		bytes_read = read_lines( message, 1 );
+		if (bytes_read > 0)
+		{
+			result = atoi(message);
+			return result;
+		}
+		else
+		{
+			return -1;
+		}
+	
 	}
-}
-#endif /*COFFEE_FILE_SYSTEM*/
-#ifdef MODEL_MOVER
-uint32_t get_mover_energy(void)
-{
-
 }
 #endif
 /**
@@ -266,8 +333,14 @@ PROCESS_THREAD(energytrace_process, ev, data)
 	uint32_t rd = 0;
 
 	#ifdef MODEL_MOVER
+
+
 	if ( node_id % MOVER_PERCENTAGE == 0) {
 		node_class = NODE_MOVER;
+		if (init_mover_file() == 0)
+		{
+			printf(">> ERROR on file opening\n");
+		}
 	} else {
 		node_class = NODE_SOLAR;
 	}
@@ -280,9 +353,8 @@ PROCESS_THREAD(energytrace_process, ev, data)
 	node_activation_ev = process_alloc_event();
 	
 
-
 	PROCESS_BEGIN();
-
+	PROCESS_EXITHANDLER(cfs_close(fd_read);)
 	harvest_state = HARVEST_INACTIVE;
 	node_state = NODE_ACTIVE;
 	period = data;

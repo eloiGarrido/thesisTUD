@@ -18,7 +18,7 @@
 /* choose energy harvesting model */
 #define MODEL_BERNOULLI
 // #define MODEL_MARKOV
-//#define MODEL_SOLAR
+// #define MODEL_SOLAR
 // #define MODEL_MOVER
 #define RAND_MAX 2147483647
 #define PI 3.14159265

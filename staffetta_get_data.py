@@ -12,8 +12,8 @@ from operator import add
 Log Converter
 convert Cooja results into statistical data and graphs
 '''
-env = 'uni'
-# env = 'home'
+# env = 'uni'
+env = 'home'
 # simulation = 'orig'
 simulation = 'eh'
 
@@ -49,7 +49,7 @@ class LogConverter(object):
 
     def __init__(self, filename, number_of_nodes):
         # self.output = []
-        self.output = []
+        # self.output = []
         self.nodes = []
         self.number_of_nodes = number_of_nodes
 
@@ -102,7 +102,6 @@ class LogConverter(object):
 
 
     def output_file(self, element, filename, num):
-        # txt_name = file_path + str(filename) + str(i) + ".txt"
         if num == 1:
             for i in range (0, len(element)):
                 txt_name = file_path + str(filename) + str(i) + ".txt"
@@ -137,17 +136,11 @@ class LogConverter(object):
 
     def read_file(self, filename):
         file_name = general_path + filename
-
-        # try:
         print ('>> Reading file: ' + file_name + '...')
         f = open(file_name,'r')
         for line in f:
             self.parse(line)
         f.close()
-
-        # except Exception as e:
-        #     print ('>> Error, No file with that name: ',e)
-
         print ('>> Reading done')
 
     def format_pkt_path(self, split_packet):
@@ -286,7 +279,7 @@ class LogConverter(object):
             self.nodes[id-1]['time2'].append(time)
         elif msg_type == 3:
             self.nodes[id-1]['on_time'].append(msg[3])
-            self.nodes[id-1]['avg_edc'].append(msg[4])
+            # self.nodes[id-1]['avg_edc'].append(msg[4])
             self.nodes[id-1]['time3'].append(time)
         elif msg_type == 4:
             self.nodes[id-1]['seq'].append(self.format_seq(msg))
@@ -310,6 +303,8 @@ class LogConverter(object):
             self.nodes[id-1]['rv_time'].append(msg[3])
         elif msg_type == 13: #Node energy state
             self.nodes[id-1]['node_state'].append(msg[3])
+        elif msg_type == 14:
+            self.nodes[id-1]['avg_edc'].append(msg[3])
 
     def parse(self, line):
         '''

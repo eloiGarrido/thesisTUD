@@ -895,8 +895,9 @@ int staffetta_send_packet(void) {
 	    elapsed_time = clock_time() * 1000 / CLOCK_SECOND;
 	    *rxtx_time = (on_time*1000) / elapsed_time;
 	    if (!(IS_SINK)){
-			// printf("3|%ld|%ld\n",(on_time*1000)/elapsed_time,avg_edc);
-			printf("3|%ld|%ld\n", on_time);
+			printf("3|%ld\n",(on_time*1000)/elapsed_time);
+			// printf("3|%ld|%ld\n", on_time);
+
 			printf("2|%ld\n",num_wakeups);
 		}
     }

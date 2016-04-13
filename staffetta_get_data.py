@@ -16,8 +16,20 @@ convert Cooja results into statistical data and graphs
 env = 'home'
 # simulation = 'orig'
 simulation = 'eh'
+model = 'solar'
+# model = 'mover'
+energy = 'energest'
+# energy = 'noEnergest'
+RV = '10k'
+nodes = '11'
+duration = '10min'
+age = 'ageing'
+simulation_name = str(simulation) + "_" + str(env) + "_" + str(model) + "_"  + str(model) + "_" + str(age) + "_" + str(energy) + "_" + str(RV) + "_" + str(nodes) + "_" + str(duration)
 
-simulation_name = str(simulation) + "_" + str(env) + "_energy_10k_21_10min"
+ 
+
+
+
 file_path = ""
 if env == 'uni':
     general_path = "/home/egarrido/contiki/tools/cooja/build/"

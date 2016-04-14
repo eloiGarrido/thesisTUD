@@ -17,14 +17,16 @@ env = 'home'
 # simulation = 'orig'
 simulation = 'eh'
 model = 'solar'
+# model = 'bernoulli'
 # model = 'mover'
 energy = 'energest'
 # energy = 'noEnergest'
 RV = '10k'
 nodes = '11'
 duration = '10min'
-age = 'ageing'
-simulation_name = str(simulation) + "_" + str(env) + "_" + str(model) + "_"  + str(model) + "_" + str(age) + "_" + str(energy) + "_" + str(RV) + "_" + str(nodes) + "_" + str(duration)
+age = 'slow4Age'
+# age = 'noAge'
+simulation_name = str(simulation) + "_" + str(env) + "_" + str(model) + "_" + str(age) + "_" + str(energy) + "_" + str(RV) + "_" + str(nodes) + "_" + str(duration)
 
  
 

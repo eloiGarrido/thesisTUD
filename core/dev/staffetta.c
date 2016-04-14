@@ -244,15 +244,15 @@ static uint8_t pop_data(){
 static inline uint32_t ageing_ratio(uint32_t rv_time) {
 
 	if ( rv_time == 0 ){
-		return 10;
+		return 10*4;
 	}else if ( rv_time > 0 && rv_time <= 2 ) {
-		return 8;
+		return 8*4;
 	}else if ( rv_time > 2 && rv_time <= 4 ) {
-		return 6;
+		return 6*4;
 	}else if ( rv_time > 4 && rv_time <= 6 ) {
-		return 4;
+		return 4*4;
 	}else {
-		return 2;
+		return 2*4;
 	}
 }
 

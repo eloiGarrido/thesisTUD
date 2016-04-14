@@ -354,7 +354,9 @@ PROCESS_THREAD(energytrace_process, ev, data)
 	
 
 	PROCESS_BEGIN();
+	#if MODEL_MOVER
 	PROCESS_EXITHANDLER(cfs_close(fd_read);)
+	#endif /*MODEL_MOVER*/
 	harvest_state = HARVEST_INACTIVE;
 	node_state = NODE_ACTIVE;
 	period = data;

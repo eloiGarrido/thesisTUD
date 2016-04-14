@@ -140,6 +140,7 @@ uint32_t remaining_energy = ENERGY_INITIAL;
 uint32_t harvesting_rate_array[5] = {0,0,0,0,0};
 uint8_t harvesting_array_index = 0;
 uint32_t acum_consumption = 0;
+uint32_t acum_harvest = 0;
 
 #ifdef COFFEE_FILE_SYSTEM
 int fd_read;
@@ -414,10 +415,13 @@ PROCESS_THREAD(energytrace_process, ev, data)
 			if ( (remaining_energy + (uint32_t)rd) > (uint32_t)ENERGY_MAX_CAPACITY_SOLAR )
 			{
 				remaining_energy = (uint32_t)ENERGY_MAX_CAPACITY_SOLAR;
+
+				acum_harvest += (uint32_t)ENERGY_MAX_CAPACITY_SOLAR - (remaining_energy + (uint32_t)rd);
 			}
 			else
 			{
 				remaining_energy = remaining_energy + (uint32_t)rd;
+				acum_harvest += (uint32_t)rd;
 			}
 
 		}
@@ -439,10 +443,12 @@ PROCESS_THREAD(energytrace_process, ev, data)
 			if ( (remaining_energy = (uint32_t)rd) > (uint32_t)ENERGY_MAX_CAPACITY_MOVER )
 			{
 				remaining_energy = (uint32_t)ENERGY_MAX_CAPACITY_MOVER;
+				acum_harvest += (uint32_t)ENERGY_MAX_CAPACITY_MOVER - (remaining_energy + (uint32_t)rd);
 			}
 			else
 			{
 				remaining_energy = remaining_energy + (uint32_t)rd;
+				acum_harvest += (uint32_t)rd;
 			}
 		}
 		else
@@ -464,7 +470,7 @@ PROCESS_THREAD(energytrace_process, ev, data)
 		rxtx_time = 0;
 		energy_rxtx = 0;
 		staffetta_get_energy_consumption(&rxtx_time);
-		energy_rxtx = rxtx_time * TMOTE_VOLTAGE;
+		energy_rxtx = ( rxtx_time * TMOTE_VOLTAGE);
 		acum_consumption += energy_rxtx;
 		if (remaining_energy > energy_rxtx)
 		{

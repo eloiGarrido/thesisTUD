@@ -18,7 +18,7 @@
 /* choose energy harvesting model */
 #define MODEL_BERNOULLI
 // #define MODEL_MARKOV
-#define MODEL_SOLAR
+// #define MODEL_SOLAR
 // #define MODEL_MOVER
 #define RAND_MAX 2147483647
 #define PI 3.14159265
@@ -95,6 +95,7 @@ typedef enum {
 void energytrace_print(char *str);
 
 extern uint32_t acum_consumption;
+extern uint32_t acum_harvest;
 extern uint32_t remaining_energy;
 extern uint32_t harvesting_rate_array[5];
 /* node state */

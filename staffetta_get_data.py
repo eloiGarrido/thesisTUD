@@ -7,6 +7,7 @@ import sys
 import matplotlib.pyplot as plt
 import os
 import shutil
+import numpy as np
 from operator import add
 '''
 Log Converter
@@ -16,14 +17,14 @@ convert Cooja results into statistical data and graphs
 env = 'home'
 # simulation = 'orig'
 simulation = 'eh'
-model = 'solar'
-# model = 'bernoulli'
+# model = 'solar'
+model = 'bernoulli'
 # model = 'mover'
 energy = 'energest'
 # energy = 'noEnergest'
 RV = '10k'
 nodes = '11'
-duration = '10min'
+duration = '5min'
 age = 'slow4Age'
 # age = 'noAge'
 simulation_name = str(simulation) + "_" + str(env) + "_" + str(model) + "_" + str(age) + "_" + str(energy) + "_" + str(RV) + "_" + str(nodes) + "_" + str(duration)
@@ -62,8 +63,6 @@ while not_created == 0:
 class LogConverter(object):
 
     def __init__(self, filename, number_of_nodes):
-        # self.output = []
-        # self.output = []
         self.nodes = []
         self.number_of_nodes = number_of_nodes
 
@@ -103,7 +102,7 @@ class LogConverter(object):
         Create data structure,  array of dictionaries containing all node information
         '''
         for i in range (0, self.number_of_nodes):
-            self.nodes.append({'id':i, 'node_state': [], 'acum_consumption' :[],'rv_time':[], 'time2':[], 'time3':[], 'time4':[], 'time6':[], 'time_on': [], 'time_off': [], 'abs_time_off': [], 'pkt':[], 'num_wakeups':[], 'on_time': [], 'avg_edc':[], 'seq':[], 'node_energy_state':[], 'remaining_energy':[], 'harvesting_rate':[]})
+            self.nodes.append({'id':i, 'node_state': [], 'acum_harvest':[], 'acum_consumption' :[],'rv_time':[], 'time2':[], 'time3':[], 'time4':[], 'time6':[], 'time_on': [], 'time_off': [], 'abs_time_off': [], 'pkt':[], 'num_wakeups':[], 'on_time': [], 'avg_edc':[], 'seq':[], 'node_energy_state':[], 'remaining_energy':[], 'harvesting_rate':[]})
 
 #--------------------------- Output Functions ---------------------------#
 #TODO Create a function to output each type of file data
@@ -300,9 +299,10 @@ class LogConverter(object):
             self.nodes[id-1]['time4'].append(time)
         elif msg_type == 6:
             self.nodes[id-1]['node_energy_state'].append(msg[3])
-            self.nodes[id-1]['remaining_energy'].append(msg[4])
+            self.nodes[id-1]['remaining_energy'].append(int(msg[4]))
             self.nodes[id-1]['harvesting_rate'].append(msg[5])
-            self.nodes[id-1]['acum_consumption'].append(msg[6])
+            self.nodes[id-1]['acum_consumption'].append(float(msg[6]))
+            self.nodes[id-1]['acum_harvest'].append(float(msg[7]))
             self.nodes[id-1]['time6'].append(time)
         elif msg_type == 7: #Packet path (Sink)
             self.nodes[id-1]['pkt'].append(msg[3] + ',' +  msg[4] + ',' + msg[5] + ',' + msg[6] + ',' + str(time))
@@ -316,9 +316,9 @@ class LogConverter(object):
         elif msg_type == 12: #Rendezvous time
             self.nodes[id-1]['rv_time'].append(msg[3])
         elif msg_type == 13: #Node energy state
-            self.nodes[id-1]['node_state'].append(msg[3])
+            self.nodes[id-1]['node_state'].append(int(msg[3]))
         elif msg_type == 14:
-            self.nodes[id-1]['avg_edc'].append(msg[3])
+            self.nodes[id-1]['avg_edc'].append(int(msg[3]))
 
     def parse(self, line):
         '''
@@ -431,13 +431,11 @@ class LogConverter(object):
             drop_pkt.append(0.0)
             total_pkt.append(0.0)
             total_created.append( len(self.nodes[i]['seq']) )
-            # print ('Node: ' + str(i) + ' pkts: ' + str(total_created[i]))
+
         for i in range(0, len(pkt_delay)):
             node = int(pkt_delay[i]['src'])
             total_pkt[node-1] += 1.0
             if pkt_delay[i]['delay'] == 'lost':
-                # continue
-            # else:
                 drop_pkt[node-1] += 1.0
 
 
@@ -447,7 +445,6 @@ class LogConverter(object):
                 plt.bar(i+1, ( drop_pkt[i] / total_pkt[i]),align='center' )
             except:
                 plt.bar(i+1, 0 ,align='center')
-            # print ('Node: ' + str(i) + ' pkts: ' + str(total_pkt[i]))
         plt.axhline( sum(drop_pkt) / sum(total_pkt), color='r' )
         plt.annotate(str(sum(drop_pkt) / sum(total_pkt)), xy=(self.number_of_nodes-2 , (sum(drop_pkt) / sum(total_pkt)) + 0.05))
 
@@ -466,9 +463,9 @@ class LogConverter(object):
         plt.xlabel(xlab)
         plt.ylabel(ylab)
         plt.draw()
-        plt.savefig(file_path+filename)
+        plt.savefig(file_path+filename+'.eps', format='eps')
 
-
+# --------------------- ENERGY GRAPHS ---------------------------------------- #
     def print_energy_levels(self):
         print ('>> Printing energy levels...')
         plt.figure()
@@ -484,9 +481,60 @@ class LogConverter(object):
             #         avg.append(float(self.nodes[i]['remaining_energy'][j]) / float(self.number_of_nodes - 1))
         # plt.plot(avg)
             plt.plot((self.nodes[i]['remaining_energy']) )
-        self.format_figure('Node Energy Levels','Time', 'Energy', 'node_energy')
+        self.format_figure('Node Energy Overview','Time', 'Energy', 'node_energy_overview')
         return
 
+    def print_energy_total(self):
+        print ('>> Printing energy statistics...')
+        # plt.figure()
+        fig, ax = plt.subplots()
+        index = np.arange(self.number_of_nodes-1)
+        bar_width = 0.35
+        opacity = 0.4
+        error_config = {'ecolor': '0.3'}
+        # Add all harvested energy
+        node_acum_harv = []
+        node_acum_cons = []
+        for i in range (1, self.number_of_nodes):
+            node_acum_harv.append(sum(self.nodes[i]['acum_harvest']) + 1838) #Initial energy add as harvested
+            node_acum_cons.append(sum(self.nodes[i]['acum_consumption']))
+
+        rects1 = plt.bar(index, node_acum_harv, bar_width,
+                 alpha=opacity,
+                 color='b',
+                 error_kw=error_config,
+                 label='Collection')
+        # Add all spend energy
+        rects2 = plt.bar(index + bar_width, node_acum_cons, bar_width,
+                 alpha=opacity,
+                 color='r',
+                 error_kw=error_config,
+                 label='Consumption')
+        #plot
+
+        plt.xlabel('Node')
+        plt.ylabel('Energy')
+        plt.title('Energy Total Statistics')
+        plt.xticks(index + bar_width, index+1)
+        plt.legend()
+
+        plt.tight_layout()
+        plt.draw()
+        plt.savefig(file_path + 'node_energy_total')
+        return
+
+    def print_energy_bar(self):
+        print ('>> Printing energy statistics...')
+        plt.figure()
+        energy_t = []
+        for i in range (1, self.number_of_nodes):
+            energy_t.append(self.nodes[i]['remaining_energy'])
+
+        plt.boxplot(energy_t,0,'')
+        self.format_figure('Node Energy Deviation','Time', 'Energy', 'node_energy_deviation')
+        return
+
+# --------------------- NODE STATE ---------------------------------------- #
     def print_node_state(self):
         print ('>> Printing node state...')
         plt.figure()
@@ -507,7 +555,7 @@ class LogConverter(object):
         avg = float(sum(avg_state)) / float(self.number_of_nodes - 1)
         plt.axhline(avg, color='r')
         plt.annotate(str(avg), xy=(self.number_of_nodes-2, 0 ))
-        self.format_figure('Node State','Time', 'State', 'node_state')
+        self.format_figure('Node State','Time', 'State', 'node_state_bar')
         return
 
     def print_harvesting_rate(self):
@@ -530,6 +578,17 @@ class LogConverter(object):
 
         self.format_figure('Node Avg EDC','Time', 'Metric', 'avg_edc')
         return
+
+    def print_boxplot_edc(self):
+        print ('>> Printing bar EDC...')
+        plt.figure()
+        edc_t = []
+        for i in range (1, self.number_of_nodes):
+            edc_t.append(self.nodes[i]['avg_edc'])
+        plt.boxplot(edc_t,0,'')
+        self.format_figure('Node EDC','Time', 'Metric', 'bar_edc')
+        return
+
 
     def print_wakeups(self):
         print ('>> Printing number of wake-ups...')
@@ -593,11 +652,16 @@ class LogConverter(object):
     def generate_graphs(self):
         print ('>> Generating graphics...')
         self.print_avg_edc()
+        self.print_boxplot_edc()
+
         self.print_energy_levels()
+        self.print_energy_bar()
+        self.print_energy_total()
+
         self.print_harvesting_rate()
-        self.print_node_state() #Average node state 
         self.print_on_time()
         self.print_wakeups()
+        self.print_node_state() #Average node state 
         self.printf_node_state() #graph with node state changes
         plt.show()
         return

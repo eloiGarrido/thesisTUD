@@ -31,8 +31,9 @@ PROCESS_THREAD(staffetta_print_stats_process, ev, data){
         //#if ENERGY_HARV
         //#endif /*ENERGY_HARV*/
         etimer_set(&et,CLOCK_SECOND*10);
-        printf("6|%d|%ld|%d|%ld\n", node_energy_state, remaining_energy, harvesting_rate, acum_consumption);
-        acum_consumption = 0;
+        printf("6|%d|%ld|%d|%ld|%ld\n", node_energy_state, remaining_energy, harvesting_rate, acum_consumption, acum_harvest);
+        acum_consumption = 0; // Reset acumulative values 
+        acum_harvest = 0;
         PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
     }
 

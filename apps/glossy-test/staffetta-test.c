@@ -73,7 +73,6 @@ PROCESS_THREAD(staffetta_test, ev, data){
         //Perform a data exchange
 
         #if ENERGY_HARV
-        //printf("6,%d,%ld,%d\n", node_energy_state, remaining_energy, harvesting_rate);
         if (node_energy_state != NS_ZERO){
             timer_on = RTIMER_NOW();
             staffetta_result = staffetta_send_packet();

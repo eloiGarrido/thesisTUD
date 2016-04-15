@@ -332,6 +332,7 @@ PROCESS_THREAD(energytrace_process, ev, data)
 	uint32_t rxtx_time; 
 	uint32_t energy_rxtx;
 	uint32_t rd = 0;
+    uint8_t tx_level;
 
 	#ifdef MODEL_MOVER
 
@@ -393,9 +394,9 @@ PROCESS_THREAD(energytrace_process, ev, data)
 		if (node_class == NODE_SOLAR)
 		{
 #ifdef MODEL_SOLAR
-			rtimer_clock_t t0;
+            rtimer_clock_t t0;
 			t0 = RTIMER_NOW ();
-			rd = solar_energy_input(t0 ,1); //TODO Add system time
+			rd = solar_energy_input(t0 ,1); //TODO Validate
 #else
 #if FIXED_ENERGY_STEP
 			    rd = ENERGY_HARVEST_STEP_SOLAR;
@@ -470,7 +471,12 @@ PROCESS_THREAD(energytrace_process, ev, data)
 		rxtx_time = 0;
 		energy_rxtx = 0;
 		staffetta_get_energy_consumption(&rxtx_time);
-		energy_rxtx = ( rxtx_time * TMOTE_VOLTAGE);
+
+		tx_level = cc2420_get_txpower();
+        energy_rxtx = voltage * tx_current_consumption(tx_level) * rxtx_time / 1000 / 10;
+
+//		energy_rxtx = ( rxtx_time * TMOTE_VOLTAGE);
+
 		acum_consumption += energy_rxtx;
 		if (remaining_energy > energy_rxtx)
 		{

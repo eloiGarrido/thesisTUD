@@ -496,8 +496,8 @@ class LogConverter(object):
         node_acum_harv = []
         node_acum_cons = []
         for i in range (1, self.number_of_nodes):
-            node_acum_harv.append(sum(self.nodes[i]['acum_harvest']) + 1838) #Initial energy add as harvested
-            node_acum_cons.append(sum(self.nodes[i]['acum_consumption']))
+            node_acum_harv.append( (sum(self.nodes[i]['acum_harvest']) + 1838) / 1000 ) #Initial energy add as harvested
+            node_acum_cons.append( (sum(self.nodes[i]['acum_consumption'])) / 1000)
 
         rects1 = plt.bar(index, node_acum_harv, bar_width,
                  alpha=opacity,
@@ -513,7 +513,7 @@ class LogConverter(object):
         #plot
 
         plt.xlabel('Node')
-        plt.ylabel('Energy')
+        plt.ylabel('Energy (x / 1000)')
         plt.title('Energy Total Statistics')
         plt.xticks(index + bar_width, index+1)
         plt.legend()

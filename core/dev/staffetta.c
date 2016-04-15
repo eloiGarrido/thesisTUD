@@ -47,7 +47,7 @@
 
 
 /*---------------------------VARIABLES------------------------------------------------*/
-
+#define TMOTE_ARCH_SECOND 8192
 static int debug;
 
 // Timeout timers
@@ -881,12 +881,12 @@ int staffetta_send_packet(void) {
 #endif /*ORW_GRADIENT*/
 	    }
 #endif /*STAFFETTA_ENERGEST*/
-	    //printf("id: %d\n",node_id);
 	}
 
 #if STAFFETTA_ENERGEST
     void staffetta_get_energy_consumption(uint32_t *rxtx_time)
     {
+#if ELAPSED_TIME
  	    uint32_t on_time,elapsed_time;
 	    uint32_t on_time_t;
 
@@ -894,12 +894,25 @@ int staffetta_send_packet(void) {
 	    on_time = on_time_t / RTIMER_ARCH_SECOND;
 	    elapsed_time = clock_time() * 1000 / CLOCK_SECOND;
 	    *rxtx_time = (on_time*1000) / elapsed_time;
-	    if (!(IS_SINK)){
+        if (!(IS_SINK)){
 			printf("3|%ld\n",(on_time*1000)/elapsed_time);
-			// printf("3|%ld|%ld\n", on_time);
-
 			printf("2|%ld\n",num_wakeups);
 		}
+#else
+        static uint32_t last_rxtx;
+        uint32_t all_rxtx, rxtx_time_t;
+
+        all_rxtx = energest_type_time(ENERGEST_TYPE_TRANSMIT) + energest_type_time(ENERGEST_TYPE_LISTEN);
+        rxtx_time_t = all_rxtx - last_rxtx;
+        *rxtx_time = 1000 * ( (rxtx_time_t * 1000) / TMOTE_ARCH_SECOND);
+        if (!(IS_SINK)){
+            printf("3|%ld\n", *rxtx_time);
+            printf("2|%ld\n",num_wakeups);
+        }
+        last_rxtx = energest_type_time(ENERGEST_TYPE_LISTEN) + energest_type_time(ENERGEST_TYPE_TRANSMIT);
+
+#endif /*ELAPSED_TIME*/
+
     }
 #endif /*STAFFETTA_ENERGEST*/
 	void staffetta_add_data(uint8_t _seq){

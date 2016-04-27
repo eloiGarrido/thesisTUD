@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import os
 import shutil
 import numpy as np
+import scipy
 from operator import add
 '''
 Log Converter
@@ -358,7 +359,7 @@ class LogConverter(object):
         node_dc = []
         counter = 0.0
         total_on = 0.0
-
+        # TODO THis calculation is wrong, uses the radio on time instead of printf 9 and 10
         for i in range (0, len(self.nodes[node_id]['time_on'])-1):
 
             # period = self.nodes[node_id]['time_off'][i+1] - self.nodes[node_id]['time_off'][i]
@@ -496,7 +497,7 @@ class LogConverter(object):
         node_acum_harv = []
         node_acum_cons = []
         for i in range (1, self.number_of_nodes):
-            node_acum_harv.append( (sum(self.nodes[i]['acum_harvest']) + 1838) / 1000 ) #Initial energy add as harvested
+            node_acum_harv.append( (sum(self.nodes[i]['acum_harvest']) ) / 1000 ) #Initial energy add as harvested
             node_acum_cons.append( (sum(self.nodes[i]['acum_consumption'])) / 1000)
 
         rects1 = plt.bar(index, node_acum_harv, bar_width,

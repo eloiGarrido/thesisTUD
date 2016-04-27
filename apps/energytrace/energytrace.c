@@ -92,6 +92,11 @@ node_state_t node_state;
 node_state_t node_state_old = NODE_INACTIVE;
 
 node_dc_state_t node_dc_state = ZERO;
+
+#if ADAPTIVE_PACKET_CREATION
+uint8_t energy_change = 0;
+#endif /*ADAPTIVE_PACKET_CREATION*/
+
 #define PROB_SCALE_FACTOR 1000
 
 /* Markov model */
@@ -143,7 +148,14 @@ uint32_t acum_consumption = 0;
 uint32_t acum_harvest = 0;
 
 #ifdef COFFEE_FILE_SYSTEM
-int fd_read;
+
+#ifdef MODEL_MOVER
+int fd_read_mover;
+#endif
+
+#ifdef MODEL_SOLAR
+int fd_read_solar;
+#endif
 #endif /*COFFEE_FILE_SYSTEM*/
 // static uint32_t high_th = 1838;
 // static uint32_t low_th = 1738;
@@ -158,46 +170,161 @@ int fd_read;
 // static uint8_t tx_levels[TX_LEVELS] =  {31, 27, 23, 19, 15, 11, 7, 3};
 // static uint8_t tx_current_consumption[TX_LEVELS] = {174, 165, 152, 139, 125, 112, 99, 85};
 
+static int
+dir_test(void)
+{
+  struct cfs_dir dir;
+  struct cfs_dirent dirent;
+
+  /* Coffee provides a root directory only. */
+  if(cfs_opendir(&dir, "/") != 0) {
+    printf("failed to open the root directory\n");
+    return 0;
+  }
+
+  /* List all files and their file sizes. */
+  printf("Available files\n");
+  while(cfs_readdir(&dir, &dirent) == 0) {
+    printf("%s (%lu bytes)\n", dirent.name, (unsigned long)dirent.size);
+  }
+
+  cfs_closedir(&dir);
+
+  return 1;
+}
+
+
 #ifdef MODEL_SOLAR
-double randn (uint32_t mu, uint32_t sigma)
-{
-	double U1, U2, W, mult; //double
-	static double X1, X2; //double
-	static uint8_t call = 0; //int
+//double randn (uint32_t mu, uint32_t sigma)
+//{
+//	double U1, U2, W, mult, U1_t, U2_t; //double
+//	static double X1, X2; //double
+//	static uint8_t call = 0; //int
+//    printf(">> 1\n");
+//	if (call == 1)
+//	{
+//		call = !call;
+//		return (mu + sigma * (uint32_t) X2);
+//    }
+//    printf(">> 2\n");
+//	do
+//	{
+////	    printf("random %ld\n", (double) random_rand());
+////	    printf("RAND_MAX %ld, %ld\n", (double) RAND_MAX, 2147483647);
+//        U1_t = (double) random_rand();
+//        U2_t = (double) random_rand();
+//        U1 = ( U1_t / 2147483647);
+//        U2 = ( U2_t/ 2147483647);
+//        printf("U1: %ld, U2: %ld\n", U1, U2);
+//        printf("U1: %ld, U2: %ld\n", U1, U2);
+//
+//		U1 = -1 + U1 * 2;
+//		U2 = -1 + U2 * 2;
+////		U1 = -1 + ((double) random_rand() / (double)RAND_MAX) * 2;
+////		U2 = -1 + ((double) random_rand() / (double)RAND_MAX) * 2;
+//		W = pow (U1, 2) + pow (U2, 2);
+//		printf("U1: %ld, U2: %ld, W: %ld\n", U1, U2, W);
+//	}
+//	while (W >= 1 || W == 0);
+//    printf(">> 3\n");
+//
+//	mult = sqrt ((-2 * logf(W)) / W);
+//	X1 = U1 * mult;
+//	X2 = U2 * mult;
+//    printf(">> 4\n");
+//
+//	call = !call;
+//	return (uint32_t)(mu + sigma * (double) X1);
+//}
 
-	if (call == 1)
-	{
-		call = !call;
-		return (mu + sigma * (uint32_t) X2);
-    }
- 
-	do
-	{
-		U1 = -1 + ((double) random_rand () / RAND_MAX) * 2;
-		U2 = -1 + ((double) random_rand () / RAND_MAX) * 2;
-		W = pow (U1, 2) + pow (U2, 2);
-	}
-	while (W >= 1 || W == 0);
-	mult = sqrt ((-2 * logf(W)) / W);
-	X1 = U1 * mult;
-	X2 = U2 * mult;
+//uint32_t randn (uint32_t mu, uint32_t sigma)
+//{
+//    uint32_t return1, return2;
+//	uint32_t U1, U2, W, mult, U1_t, U2_t; //double
+//	uint32_t pow_U1, pow_U2;
+//	static uint32_t X1, X2; //double
+//	static uint8_t call = 0; //int
+//
+//	if (call == 1)
+//	{
+//		call = !call;
+//		return2 = (uint32_t)mu + (uint32_t)sigma * X2;
+//        printf("---------> Return2: %lu\n",return2);
+//
+//		return return2;
+//    }
+////    printf(">> 2\n");
+//	do
+//	{
+//
+//        U1_t = random_rand() * RANDOM_RAND_MAX;
+//        U1_t = U1_t * 1000;
+//        U2_t = random_rand()* RANDOM_RAND_MAX;
+//        U2_t = U2_t * 1000;
+//        U1 = ( U1_t / RANDOM_RAND_MAX );
+//        U2 = ( U2_t / RANDOM_RAND_MAX );
+//
+////		printf(">> U1: %lu, U2: %lu\n", U1, U2);
+//
+//		U1 = -1000 + ( U1 * 2 );
+//		U2 = -1000 + ( U2 * 2 );
+////        printf(">>>> U1: %lu, U2: %lu\n", U1, U2);
+//
+////        pow_U1 = pow(U1,2);
+//        pow_U1 = U1;
+//        pow_U1 = pow_U1 * U1;
+//
+//        pow_U2 = U2;
+//        pow_U2 = pow_U2 * U2;
+////        pow_U2 = pow(U2,2);
+////        pow_U2 = U2 * U2;
+////        printf(">>>>>> pow_U1: %lu, pow_U2: %lu\n", pow_U1, pow_U2);
+//
+////        printf(">>>> U1: %lu, U2: %lu\n", U1, U2);
+//        W = pow_U1 + pow_U2;
+////		W = pow (U1, 2) + pow (U2, 2);
+////		printf("U1: %lu, U2: %lu, W: %lu\n", U1, U2, W);
+//	}while (W >= (uint32_t)1000 || W <= (uint32_t)0 || U1 > 1000);
+////    printf("U2_t: %lu, RAND_MAX_t: %lu, U2: %lu\n", U2_t, RANDOM_RAND_MAX, U2);
+////    printf(">> 3\n");
+////    printf(">> U1_t: %lu, U2_t: %lu, W: %lu\n", U1_t, U2_t, W);
+////    printf(">>>>>> pow_U1: %lu, pow_U2: %lu\n", pow_U1, pow_U2);
+//
+//
+//	mult = sqrt ((2 * 1000 * logf(W)) / (W));
+////    printf("U1: %lu, U2: %lu, W: %lu, mult: %lu\n", U1, U2, W, mult);
+//	X1 = U1 * mult ;
+//	X2 = U2 * mult ;
+////    printf(">> 4\n");
+//
+//	call = !call;
+////	printf("X1: %lu, X2: %lu\n",X1, X2);
+//	return1 = (uint32_t)mu + (uint32_t)sigma * X1;
+//	printf("---------> Return1: %lu\n",return1);
+//	return return1;
+//}
 
-	call = !call;
- 
-	return (uint32_t)(mu + sigma * (double) X1);
-}
 
-uint32_t solar_energy_input (uint32_t time_solar, uint8_t scalling_factor)
-{
-	uint32_t result;
-	uint32_t normal_var;
-	int solar_mu = 200;
-	int solar_sigma = 40;
-
-	normal_var = randn(solar_mu, solar_sigma);
-	result = scalling_factor * normal_var * cos( time_solar / (70 * M_PI) ) * cos( time_solar / (100 * M_PI) );
-	return result;
-}
+//
+////uint32_t solar_energy_input (uint32_t time_solar, uint8_t scalling_factor)
+//uint32_t solar_energy_input ( uint8_t scalling_factor)
+//{
+//
+//	uint32_t result;
+//	double normal_var;
+//	int solar_mu = 200;
+//	int solar_sigma = 40;
+//
+//    uint32_t time_solar = RTIMER_NOW();
+//
+////    printf(">>>> Before randn\n");
+//	normal_var = randn(solar_mu, solar_sigma);
+////    printf(">>>> After randn\n");
+//
+//	result = (uint32_t)( scalling_factor * normal_var * cos( time_solar / (70 * M_PI) ) * cos( time_solar / (100 * M_PI) ) );
+//	printf(">> solar_energy_input -> %lu\n",result);
+//	return result;
+//}
 #endif /*MODEL_SOLAR*/
 
 #ifdef COFFEE_FILE_SYSTEM
@@ -209,16 +336,26 @@ void clean_message(char message[MESSAGE_SIZE])
 }
 
 
-int read_lines(char message[MESSAGE_SIZE], uint16_t lines)
+int read_lines(char message[MESSAGE_SIZE], uint16_t lines, uint8_t solarNoMover)
 {
-  
   char char_buffer[2] = "\0\0";
   char string_buffer[MESSAGE_SIZE];
   uint8_t idx=0;
   uint16_t lines_read = 0;
   int bytes_read = 0;
+  int fd_read;
+
   clean_message(string_buffer);
   clean_message(message);
+
+#ifdef MODEL_SOLAR
+  if (solarNoMover == 1){fd_read = fd_read_solar;}
+#endif
+
+#ifdef MODEL_MOVER
+  if (solarNoMover == 0){fd_read = fd_read_mover;}
+#endif
+
   if(fd_read != -1) 
   {
     do
@@ -250,11 +387,57 @@ int read_lines(char message[MESSAGE_SIZE], uint16_t lines)
 
 #endif /*COFFEE_FILE_SYSTEM*/
 
+
+#ifdef MODEL_SOLAR
+uint8_t init_solar_file()
+{
+//    cfs_coffee_format();
+	fd_read_solar = cfs_open("cfs_file.txt", CFS_READ);
+  	if(fd_read_solar != -1)
+	{
+		return 1;
+	}
+	else
+	{
+		return 0;
+	}
+}
+
+uint32_t get_solar_energy(void)
+{
+  	int bytes_read = 0;
+  	char message[MESSAGE_SIZE];
+  	uint32_t result;
+	bytes_read = read_lines( message, 1, 1 );
+	if (bytes_read > 0)
+	{
+		result = atoi(message); //TODO add mult fator to deal with floating point
+		return result;
+	}
+	else
+	{
+		cfs_seek(fd_read_solar, 0, CFS_SEEK_SET); //Return pointer to start of file
+		bytes_read = read_lines( message, 1, 1 );
+		if (bytes_read > 0)
+		{
+			result = atoi(message);
+			return result;
+		}
+		else
+		{
+			return -1;
+		}
+
+	}
+}
+#endif
+
+
 #ifdef MODEL_MOVER
 uint8_t init_mover_file()
 {
-	fd_read = cfs_open("cfs_file.txt", CFS_READ);
-  	if(fd_read!=-1) 
+	fd_read_mover = cfs_open("energyShoeTrace.txt", CFS_READ);
+  	if(fd_read_mover != -1)
 	{
 		return 1;
 	} 
@@ -269,7 +452,7 @@ uint32_t get_mover_energy(void)
   	int bytes_read = 0;
   	char message[MESSAGE_SIZE];
   	uint32_t result;
-	bytes_read = read_lines( message, 1 );
+	bytes_read = read_lines( message, 1 ,0 );
 	if (bytes_read > 0)
 	{
 		result = atoi(message); //TODO add mult fator to deal with floating point
@@ -277,8 +460,8 @@ uint32_t get_mover_energy(void)
 	}
 	else
 	{
-		cfs_seek(fd_read, 0, CFS_SEEK_SET); //Return pointer to start of file
-		bytes_read = read_lines( message, 1 );
+		cfs_seek(fd_read_mover, 0, CFS_SEEK_SET); //Return pointer to start of file
+		bytes_read = read_lines( message, 1, 0 );
 		if (bytes_read > 0)
 		{
 			result = atoi(message);
@@ -334,21 +517,7 @@ PROCESS_THREAD(energytrace_process, ev, data)
 	uint32_t rd = 0;
     uint8_t tx_level;
 
-	#ifdef MODEL_MOVER
 
-
-	if ( node_id % MOVER_PERCENTAGE == 0) {
-		node_class = NODE_MOVER;
-		if (init_mover_file() == 0)
-		{
-			printf(">> ERROR on file opening\n");
-		}
-	} else {
-		node_class = NODE_SOLAR;
-	}
-	#else
-	node_class = NODE_SOLAR;
-	#endif /*MODEL_MOVER*/
 
 	// remaining_energy = ENERGY_MAX_CAPACITY_SOLAR / 4;
 	// remaining_energy 
@@ -356,9 +525,43 @@ PROCESS_THREAD(energytrace_process, ev, data)
 	
 
 	PROCESS_BEGIN();
-	#if MODEL_MOVER
-	PROCESS_EXITHANDLER(cfs_close(fd_read);)
-	#endif /*MODEL_MOVER*/
+#ifdef MODEL_MOVER
+	PROCESS_EXITHANDLER(cfs_close(fd_read_mover);)
+#endif /*MODEL_MOVER*/
+
+#ifdef MODEL_SOLAR
+	PROCESS_EXITHANDLER(cfs_close(fd_read_solar);)
+#endif /*MODEL_SOLAR*/
+
+#ifdef MODEL_MOVER
+
+	if ( node_id % MOVER_PERCENTAGE == 0) {
+		node_class = NODE_MOVER;
+		if (init_mover_file() == 0)
+		{
+			printf(">> ERROR on mover file opening\n");
+		}
+	} else {
+		node_class = NODE_SOLAR;
+        if (init_solar_file() == 0)
+		{
+			printf(">> ERROR on solar file opening\n");
+		}
+	}
+#else
+
+	node_class = NODE_SOLAR;
+#ifdef MODEL_SOLAR
+    if (init_solar_file() == 0)
+    {
+        printf(">> ERROR on solar file opening\n");
+    }
+#endif /*MODEL_SOLAR*/
+
+#endif /*MODEL_MOVER*/
+
+
+
 	harvest_state = HARVEST_INACTIVE;
 	node_state = NODE_ACTIVE;
 	period = data;
@@ -394,9 +597,14 @@ PROCESS_THREAD(energytrace_process, ev, data)
 		if (node_class == NODE_SOLAR)
 		{
 #ifdef MODEL_SOLAR
-            rtimer_clock_t t0;
-			t0 = RTIMER_NOW ();
-			rd = solar_energy_input(t0 ,1); //TODO Validate
+//            rtimer_clock_t t2;
+//			t2 = RTIMER_NOW ();
+//			rd = solar_energy_input(RTIMER_NOW () ,1); //TODO Validate
+
+//			rd = solar_energy_input(1); //TODO Validate
+
+            rd = get_solar_energy();
+
 #else
 #if FIXED_ENERGY_STEP
 			    rd = ENERGY_HARVEST_STEP_SOLAR;
@@ -408,21 +616,21 @@ PROCESS_THREAD(energytrace_process, ev, data)
 #endif /*FIXED_ENERGY_STEP*/
 #endif /*MODEL_SOLAR*/
 
-			harvesting_rate_array[harvesting_array_index] = (uint32_t)rd;
+			harvesting_rate_array[harvesting_array_index] = rd;
 			harvesting_array_index++;
 			if (harvesting_array_index > 4){ harvesting_array_index = 0;}
 			
 			// if ((uint32_t)ENERGY_MAX_CAPACITY_SOLAR - remaining_energy < (uint32_t)rd )
-			if ( (remaining_energy + (uint32_t)rd) > (uint32_t)ENERGY_MAX_CAPACITY_SOLAR )
+			if ( (remaining_energy + rd) > (uint32_t)ENERGY_MAX_CAPACITY_SOLAR )
 			{
+                acum_harvest += (uint32_t)ENERGY_MAX_CAPACITY_SOLAR - remaining_energy;
+//				acum_harvest +=  ( remaining_energy + (uint32_t)rd ) - (uint32_t)ENERGY_MAX_CAPACITY_SOLAR;
 				remaining_energy = (uint32_t)ENERGY_MAX_CAPACITY_SOLAR;
-
-				acum_harvest += (uint32_t)ENERGY_MAX_CAPACITY_SOLAR - (remaining_energy + (uint32_t)rd);
 			}
 			else
 			{
-				remaining_energy = remaining_energy + (uint32_t)rd;
-				acum_harvest += (uint32_t)rd;
+				remaining_energy = remaining_energy + rd;
+				acum_harvest += rd;
 			}
 
 		}
@@ -436,20 +644,22 @@ PROCESS_THREAD(energytrace_process, ev, data)
 			rd = rd / 100;
 #endif /*MODEL_MOVER*/
 
-			harvesting_rate_array[harvesting_array_index] = (uint32_t)rd;
+			harvesting_rate_array[harvesting_array_index] = rd;
 			harvesting_array_index++;
 			if (harvesting_array_index > 4){ harvesting_array_index = 0;}
 			
 			// if ((uint32_t)ENERGY_MAX_CAPACITY_MOVER - remaining_energy < (uint32_t)rd )
-			if ( (remaining_energy = (uint32_t)rd) > (uint32_t)ENERGY_MAX_CAPACITY_MOVER )
+			if ( (remaining_energy + rd) > (uint32_t)ENERGY_MAX_CAPACITY_MOVER )
 			{
+//				acum_harvest += (uint32_t)ENERGY_MAX_CAPACITY_MOVER - (remaining_energy + (uint32_t)rd);
+                acum_harvest +=  (uint32_t)ENERGY_MAX_CAPACITY_MOVER - remaining_energy;
 				remaining_energy = (uint32_t)ENERGY_MAX_CAPACITY_MOVER;
-				acum_harvest += (uint32_t)ENERGY_MAX_CAPACITY_MOVER - (remaining_energy + (uint32_t)rd);
+
 			}
 			else
 			{
-				remaining_energy = remaining_energy + (uint32_t)rd;
-				acum_harvest += (uint32_t)rd;
+				remaining_energy = remaining_energy + rd;
+				acum_harvest += rd;
 			}
 		}
 		else
@@ -476,14 +686,15 @@ PROCESS_THREAD(energytrace_process, ev, data)
         energy_rxtx = voltage * tx_current_consumption(tx_level) * rxtx_time / 1000 / 10;
 
 //		energy_rxtx = ( rxtx_time * TMOTE_VOLTAGE);
-
-		acum_consumption += energy_rxtx;
+//        printf("energy_rxtx -> %lu\n",energy_rxtx);
 		if (remaining_energy > energy_rxtx)
 		{
+		    acum_consumption += energy_rxtx;
 			remaining_energy -= energy_rxtx;
 		}
 		else
 		{
+            acum_consumption += remaining_energy;
 			remaining_energy = 0;
 		}
 #else
@@ -506,6 +717,8 @@ PROCESS_THREAD(energytrace_process, ev, data)
 
 	PROCESS_END();
 }
+
+//TODO Reimplement original Bernoulli harvest method
 
 
 
@@ -629,7 +842,7 @@ PROCESS_THREAD(energytrace_process_print, ev, data)
 void
 energytrace_start(void)
 {
-	clock_time_t period = CLOCK_SECOND / 100; //Addapt period to a smaller scale (1us) &EGB
+	clock_time_t period = CLOCK_SECOND / 100; //Adapt period to a smaller scale (1us) &EGB
 	clock_time_t long_period = CLOCK_SECOND * 5;
 	process_start(&energytrace_process, (void *)&period);
 //	process_start(&energytrace_process_print, (void *)&long_period);

@@ -665,7 +665,7 @@ int staffetta_send_packet(void) {
                 }
             }
 // #if EDC_WITH_RV
-           	// avg_edc = MIN( ( (6 / node_energy_state) + (rendezvous_time/100) + (edc_sum/AVG_EDC_SIZE)), MAX_EDC); //limit to 255
+//           	 avg_edc = MIN( ( (6 / node_energy_state) + (rendezvous_time/100) + (edc_sum/AVG_EDC_SIZE)), MAX_EDC); //limit to 255
 // #else
            	avg_edc = MIN( (6 / node_energy_state) + (edc_sum / AVG_EDC_SIZE ), MAX_EDC);
 // #endif /*EDC_WITH_RV*/            
@@ -716,7 +716,7 @@ int staffetta_send_packet(void) {
 	    radio_flush_rx();
 	    goto_idle();
 	    // printf("12|%lu\n", rendezvous_time);
-	    printf("13|%u\n", node_energy_state);
+	    //printf("13|%u\n", node_energy_state);
 
 	    
 	    return RET_FAST_FORWARD;
@@ -888,10 +888,8 @@ int staffetta_send_packet(void) {
     {
 #if ELAPSED_TIME
  	    uint32_t on_time,elapsed_time;
-	    uint32_t on_time_t;
 
-	    on_time_t = ((energest_type_time(ENERGEST_TYPE_TRANSMIT)+energest_type_time(ENERGEST_TYPE_LISTEN)) * 1000);
-	    on_time = on_time_t / RTIMER_ARCH_SECOND;
+	    on_time = ( (energest_type_time(ENERGEST_TYPE_TRANSMIT) + energest_type_time(ENERGEST_TYPE_LISTEN) ) * 1000) / RTIMER_ARCH_SECOND;
 	    elapsed_time = clock_time() * 1000 / CLOCK_SECOND;
 	    *rxtx_time = (on_time*1000) / elapsed_time;
         if (!(IS_SINK)){
@@ -924,7 +922,7 @@ int staffetta_send_packet(void) {
 
 	void staffetta_init(void) {
 	    int i;
-
+		random_init( (unsigned short) (clock_time()) );
 #if WITH_FLOCKLAB_SINK
 	    gpio_init();
 #endif /*WITH_FLOCKLAB_SINK*/

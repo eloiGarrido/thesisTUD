@@ -56,7 +56,7 @@ finally:
         if dfSolar[i].find('e') != -1:
             dfSolar[i] = 0
         else:
-            dfSolar[i] = float(dfSolar[i]) * 100.0
+            dfSolar[i] = float(dfSolar[i]) * 10.0
             dfSolar[i] = int(round(dfSolar[i]))
 
 

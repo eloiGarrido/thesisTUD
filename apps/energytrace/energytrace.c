@@ -157,6 +157,31 @@ int fd_read_mover;
 int fd_read_solar;
 #endif
 #endif /*COFFEE_FILE_SYSTEM*/
+
+
+#if ADAPTIVE_PACKET_CREATION
+#define hr_threshold 50
+static uint16_t last_hr = 0;
+static uint32_t time_hr = 0;
+uint8_t context_trigger(void)
+{
+	uint16_t hr;
+	uint32_t time_now, time_diff;
+
+	time_now = RTIMER_NOW();
+	time_diff = (time_now - time_hr) / TMOTE_ARCH_SECOND;
+
+	hr = get_harvesting_rate();
+	if ( (abs( hr - last_hr) > hr_threshold) && time_diff > 5 )
+	{
+		time_hr = time_now;
+		last_hr = hr;
+		return 1;
+	}
+	return 0;
+}
+#endif /*ADAPTIVE_PACKET_CREATION*/
+
 // static uint32_t high_th = 1838;
 // static uint32_t low_th = 1738;
 /*---------------------------------------------------------------------------*/
@@ -170,28 +195,28 @@ int fd_read_solar;
 // static uint8_t tx_levels[TX_LEVELS] =  {31, 27, 23, 19, 15, 11, 7, 3};
 // static uint8_t tx_current_consumption[TX_LEVELS] = {174, 165, 152, 139, 125, 112, 99, 85};
 
-static int
-dir_test(void)
-{
-  struct cfs_dir dir;
-  struct cfs_dirent dirent;
-
-  /* Coffee provides a root directory only. */
-  if(cfs_opendir(&dir, "/") != 0) {
-    printf("failed to open the root directory\n");
-    return 0;
-  }
-
-  /* List all files and their file sizes. */
-  printf("Available files\n");
-  while(cfs_readdir(&dir, &dirent) == 0) {
-    printf("%s (%lu bytes)\n", dirent.name, (unsigned long)dirent.size);
-  }
-
-  cfs_closedir(&dir);
-
-  return 1;
-}
+//static int
+//dir_test(void)
+//{
+//  struct cfs_dir dir;
+//  struct cfs_dirent dirent;
+//
+//  /* Coffee provides a root directory only. */
+//  if(cfs_opendir(&dir, "/") != 0) {
+//    printf("failed to open the root directory\n");
+//    return 0;
+//  }
+//
+//  /* List all files and their file sizes. */
+//  printf("Available files\n");
+//  while(cfs_readdir(&dir, &dirent) == 0) {
+//    printf("%s (%lu bytes)\n", dirent.name, (unsigned long)dirent.size);
+//  }
+//
+//  cfs_closedir(&dir);
+//
+//  return 1;
+//}
 
 
 #ifdef MODEL_SOLAR
@@ -391,10 +416,13 @@ int read_lines(char message[MESSAGE_SIZE], uint16_t lines, uint8_t solarNoMover)
 #ifdef MODEL_SOLAR
 uint8_t init_solar_file()
 {
+	int rnd;
+	rnd = random_rand() % 1500;
 //    cfs_coffee_format();
 	fd_read_solar = cfs_open("cfs_file.txt", CFS_READ);
   	if(fd_read_solar != -1)
 	{
+		cfs_seek(fd_read_solar, rnd, CFS_SEEK_SET);
 		return 1;
 	}
 	else
@@ -713,6 +741,11 @@ PROCESS_THREAD(energytrace_process, ev, data)
             compute_node_state();
             compute_node_duty_cycle();
             compute_harvesting_rate();
+
+
+#if ADAPTIVE_PACKET_CREATION
+		energy_change = context_trigger();
+#endif /*ADAPTIVE_PACKET_CREATION*/
 	}
 
 	PROCESS_END();

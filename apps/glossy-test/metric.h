@@ -13,7 +13,8 @@
 // #define NS_ENERGY_HIGH	24610	//24.61mJ * 1000 (Floating Point)
 
 #define NS_ENERGY_LOW	410 	//4.1mJ * 1000 (Floating Point)
-#define NS_ENERGY_MID	1097	//10.971mJ * 1000 (Floating Point)
+//#define NS_ENERGY_MID	1097	//10.971mJ * 1000 (Floating Point)
+#define NS_ENERGY_MID	750	//10.971mJ * 1000 (Floating Point)
 #define NS_ENERGY_HIGH	2461	//24.61mJ * 1000 (Floating Point)
 #define HYSTERESIS      1
 // #define NS_EH_LOW	410 	// 0.41 mW/s * 1000 (FP)

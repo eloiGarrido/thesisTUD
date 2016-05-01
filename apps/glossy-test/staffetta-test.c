@@ -101,16 +101,18 @@ PROCESS_THREAD(staffetta_test, ev, data){
         PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
         //Perform a data exchange
 
-        #if ENERGY_HARV
+#if ENERGY_HARV
         if (node_energy_state != NS_ZERO){
             timer_on = RTIMER_NOW();
             staffetta_result = staffetta_send_packet();
             timer_off = RTIMER_NOW();
-            // printf("9|%lu\n",timer_on); //Flag when the node turns on
-            // printf("10|%lu\n",timer_off); //Notify when a node goes to sleep
+             printf("9|%lu\n",timer_on); //Flag when the node turns on
+             printf("10|%lu\n",timer_off); //Notify when a node goes to sleep
             //printf("11|%u\n", staffetta_result);
+        } else { // Node did not have enough energy to operate
+            printf("5\n");
         }
-        #else
+#else
         if (node_energy_state != NS_ZERO){
             timer_on = RTIMER_NOW();
             staffetta_result = staffetta_send_packet();
@@ -118,8 +120,10 @@ PROCESS_THREAD(staffetta_test, ev, data){
             // printf("9|%lu\n",timer_on); //Flag when the node turns on
             // printf("10|%lu\n",timer_off); //Notify when a node goes to sleep
             //printf("11|%u\n", staffetta_result);y when a node goes to sleep
+        } else { // Node did not have enough energy to operate
+            printf("5\n");
         }
-        #endif /*ENERGY_HARV*/
+#endif /*ENERGY_HARV*/
 
         //TODO compute histogram of staffetta results
         //leds_off(LEDS_RED);

@@ -47,6 +47,25 @@ PROCESS_THREAD(staffetta_print_stats_process, ev, data){
         }
         PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
     }
+#elif RANDOM_PACKET_CREATION
+    #define RAND_PACKET_CREATION 50
+
+    etimer_set(&et,CLOCK_SECOND+(random_rand()%(CLOCK_SECOND*RAND_PACKET_CREATION)));
+
+    PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
+    while(1) {
+        staffetta_print_stats();
+        staffetta_add_data(round_stats++);
+
+
+        //#if ENERGY_HARV
+        //#endif /*ENERGY_HARV*/
+        etimer_set(&et,CLOCK_SECOND*10);
+        printf("6|%d|%lu|%d|%lu|%lu\n", node_energy_state, remaining_energy, harvesting_rate, acum_consumption, acum_harvest);
+        acum_consumption = 0; // Reset acumulative values
+        acum_harvest = 0;
+        PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
+    }
 #else
     etimer_set(&et,CLOCK_SECOND*25+(random_rand()%(CLOCK_SECOND*10)));
 
@@ -80,7 +99,7 @@ PROCESS_THREAD(staffetta_test, ev, data){
 
     leds_init();
     leds_on(LEDS_GREEN);
-    staffetta_init() ;
+    staffetta_init();
     random_init(node_id);
     watchdog_stop();
     leds_off(LEDS_GREEN);

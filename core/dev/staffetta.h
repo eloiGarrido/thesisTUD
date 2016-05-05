@@ -111,7 +111,9 @@
 // #define EDC_WITH_RV         0
 #define STAFFETTA_ENERGEST  1
 #define ELAPSED_TIME        0
-#define ADAPTIVE_PACKET_CREATION 0
+
+#define ADAPTIVE_PACKET_CREATION  0
+#define RANDOM_PACKET_CREATION    0
 /*-------------------------- MACROS -------------------------------------------------*/
 #define MIN(a, b) ((a) < (b)? (a) : (b))
 #define MAX(a, b) ((a) > (b)? (a) : (b))

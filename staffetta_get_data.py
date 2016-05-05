@@ -16,6 +16,7 @@ convert Cooja results into statistical data and graphs
 '''
 # env = 'uni'
 env = 'home'
+repeated = True
 # simulation = 'orig'
 simulation = 'eh'
 # model = 'solar'
@@ -36,13 +37,21 @@ simulation_name = str(simulation) + "_" + str(env) + "_" + str(model) + "_" + st
 
 file_path = ""
 if env == 'uni':
-    general_path = "/home/egarrido/contiki/tools/cooja/build/"
+    if ( repeated ):
+        general_path = "/home/egarrido/"
+    else:
+        general_path = "/home/egarrido/contiki/tools/cooja/build/"
+
     if simulation == 'orig':
         file_path = "/home/egarrido/staffetta_sensys2015/eh_staffetta/results/original/" + simulation_name
     elif simulation == 'eh':
         file_path = "/home/egarrido/staffetta_sensys2015/eh_staffetta/results/eh_staffetta/" + simulation_name
 elif env == 'home':
-    general_path = "/home/jester/contiki/tools/cooja/build/"
+    if ( repeated ):
+        general_path = "/home/jester/"
+    else:
+        general_path = "/home/jester/contiki/tools/cooja/build/"
+
     if simulation == 'orig':
         file_path = "/home/jester/thesisTUDelft/eh_staffetta/results/original/" + simulation_name
     elif simulation == 'eh':
@@ -387,6 +396,14 @@ class LogConverter(object):
 
 
 #--------------------------- Printing Functions ---------------------------#
+    def print_dead_node(self):
+        print ('>> Printing dead occurrences...')
+        plt.figure()
+        for i in range (0, self.number_of_nodes-1):
+            plt.bar(i+1,self.nodes[i]['no_energy'], align='center')
+        self.format_figure('Node dead times', 'Node', 'Occurrences', 'node_dead_times')
+
+
     def print_delay(self,pkt_delay):
         print ('>> Printing delay...')
         plt.figure()
@@ -502,7 +519,7 @@ class LogConverter(object):
         node_acum_harv = []
         node_acum_cons = []
         for i in range (1, self.number_of_nodes):
-            node_acum_harv.append( (sum(self.nodes[i]['acum_harvest']) ) / 1000 ) #Initial energy add as harvested
+            node_acum_harv.append( (sum(self.nodes[i]['acum_harvest']) ) / 1000 + 1838) #Initial energy add as harvested
             node_acum_cons.append( (sum(self.nodes[i]['acum_consumption'])) / 1000)
 
         rects1 = plt.bar(index, node_acum_harv, bar_width,

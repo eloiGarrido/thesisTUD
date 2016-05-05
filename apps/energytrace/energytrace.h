@@ -17,9 +17,9 @@
 // #define FIXED_ENERGY_STEP  	1
 
 /* choose energy harvesting model */
-#define MODEL_BERNOULLI
+// #define MODEL_BERNOULLI
 // #define MODEL_MARKOV
-//#define MODEL_SOLAR
+#define MODEL_SOLAR
 // #define MODEL_MOVER
 
 #define RANDOM_RAND_MAX 65535U

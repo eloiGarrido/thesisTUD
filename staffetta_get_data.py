@@ -14,13 +14,13 @@ from operator import add
 Log Converter
 convert Cooja results into statistical data and graphs
 '''
-# env = 'uni'
-env = 'home'
+env = 'uni'
+# env = 'home'
 repeated = True
 # simulation = 'orig'
 simulation = 'eh'
-# model = 'solar'
-model = 'bernoulli'
+model = 'solar'
+# model = 'bernoulli'
 # model = 'mover'
 energy = 'energest'
 # energy = 'noEnergest'
@@ -37,17 +37,19 @@ simulation_name = str(simulation) + "_" + str(env) + "_" + str(model) + "_" + st
 
 file_path = ""
 if env == 'uni':
-    if ( repeated ):
+    if ( repeated == True):
         general_path = "/home/egarrido/"
     else:
         general_path = "/home/egarrido/contiki/tools/cooja/build/"
+
+    print(general_path)
 
     if simulation == 'orig':
         file_path = "/home/egarrido/staffetta_sensys2015/eh_staffetta/results/original/" + simulation_name
     elif simulation == 'eh':
         file_path = "/home/egarrido/staffetta_sensys2015/eh_staffetta/results/eh_staffetta/" + simulation_name
 elif env == 'home':
-    if ( repeated ):
+    if ( repeated == True):
         general_path = "/home/jester/"
     else:
         general_path = "/home/jester/contiki/tools/cooja/build/"
@@ -94,7 +96,7 @@ class LogConverter(object):
 
         self.print_delay(pkt_delay)
 
-        # self.print_dc()
+        self.print_dc()
         self.print_drop_ratio(pkt_delay)
 
         # for i in range (1, number_of_nodes):
@@ -103,7 +105,9 @@ class LogConverter(object):
 
         self.generate_graphs()
         try:
-            shutil.copy( general_path + "COOJA.testlog", file_path )
+            # shutil.copy( general_path + "COOJA.testlog", file_path )
+            shutil.copy( general_path + filename, file_path )
+
         except:
             print ('>> Error when moving COOJA.testlog')
 
@@ -440,8 +444,17 @@ class LogConverter(object):
         print ('>> Printf node state...')
         plt.figure()
         for i in range(1, self.number_of_nodes):
-            plt.plot(self.nodes[i]['node_state'])
+            results = map(int,self.nodes[i]['node_energy_state'])
+            plt.plot(results)
         self.format_figure('Node State', 'Node', 'State', 'node_state')
+
+    def print_packet_created(self):
+        print('>> Printing created packets...')
+        plt.figure()
+        for i in range(1, self.number_of_nodes):
+            plt.bar(i, len(self.nodes[i]['seq']), align='center')
+
+        self.format_figure('Packets Created', 'Node', 'Packets', 'packets_created')
 
     def print_drop_ratio(self, pkt_delay):
         print ('>> Printing packet drop ratio...')
@@ -519,8 +532,8 @@ class LogConverter(object):
         node_acum_harv = []
         node_acum_cons = []
         for i in range (1, self.number_of_nodes):
-            node_acum_harv.append( (sum(self.nodes[i]['acum_harvest']) ) / 1000 + 1838) #Initial energy add as harvested
-            node_acum_cons.append( (sum(self.nodes[i]['acum_consumption'])) / 1000)
+            node_acum_harv.append( (sum(self.nodes[i]['accum_harvest']) ) / 1000 ) #Initial energy add as harvested
+            node_acum_cons.append( (sum(self.nodes[i]['accum_consumption'])) / 1000)
 
         rects1 = plt.bar(index, node_acum_harv, bar_width,
                  alpha=opacity,
@@ -562,7 +575,7 @@ class LogConverter(object):
         print ('>> Printing node state...')
         plt.figure()
         avg_state = []
-
+        avg_state_t = []
         for i in range (1, self.number_of_nodes):
             sum_t  = 0.0
             counter = 0.0
@@ -573,8 +586,11 @@ class LogConverter(object):
 
             # plt.plot(self.nodes[i]['node_energy_state'])
         for i in range(0,self.number_of_nodes-1):
-            plt.bar(i+1, avg_state[i] ,align='center')
-
+            result = map(float,self.nodes[i]['node_energy_state'])
+            avg_state_t.append(result)
+            # plt.bar(i+1, avg_state[i] ,align='center')
+        plt.boxplot(avg_state_t,0,'')            
+        plt.ylim(-0.2, 3.2)
         avg = float(sum(avg_state)) / float(self.number_of_nodes - 1)
         plt.axhline(avg, color='r')
         plt.annotate(str(avg), xy=(self.number_of_nodes-2, 0 ))
@@ -684,8 +700,12 @@ class LogConverter(object):
         self.print_harvesting_rate()
         self.print_on_time()
         self.print_wakeups()
+
         self.print_node_state() #Average node state 
-        # self.printf_node_state() #graph with node state changes
+        self.printf_node_state() #graph with node state changes
+        
+        self.print_packet_created()
+
         plt.show()
         return
 
@@ -698,4 +718,7 @@ if __name__ == '__main__':
         print('Usage: python log_converter.py <LOG_FILENAME>')
         print len(sys.argv)
         exit(1)
+    # try:
     adapter = LogConverter(sys.argv[1], int(sys.argv[2]))
+    # except:
+        # print('Error at LogConverter')

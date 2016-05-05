@@ -160,7 +160,7 @@ int fd_read_solar;
 
 
 #if ADAPTIVE_PACKET_CREATION
-#define hr_threshold 50
+#define hr_threshold 3
 static uint16_t last_hr = 0;
 static uint32_t time_hr = 0;
 uint8_t context_trigger(void)

@@ -29,6 +29,10 @@ nodes = '11'
 duration = '5min'
 age = 'slow4Age'
 # age = 'noAge'
+
+minutes = 10
+simulation_time = minutes * 60 * 1000 * 1000
+# 600000000
 simulation_name = str(simulation) + "_" + str(env) + "_" + str(model) + "_" + str(age) + "_" + str(energy) + "_" + str(RV) + "_" + str(nodes) + "_" + str(duration)
 
  
@@ -389,7 +393,10 @@ class LogConverter(object):
             counter += 1.0
         try:
             # avg_dc_t = float(600000000) / float(total_on)
-            avg_dc =   float(total_on) / float(self.nodes[node_id]['time_off'][len(self.nodes[node_id]['time_off'])-1])
+            # avg_dc =   float(total_on) / float(self.nodes[node_id]['time_off'][len(self.nodes[node_id]['time_off'])-1])
+            avg_dc =   float(total_on) / float(simulation_time)
+# 600000000
+            
             # print ('avg_dc_t: '+str(avg_dc_t) + ' avg_dc:'+str(avg_dc))
         except:
             avg_dc = 0
@@ -705,7 +712,8 @@ class LogConverter(object):
         self.printf_node_state() #graph with node state changes
         
         self.print_packet_created()
-
+        self.print_dead_node()
+        
         plt.show()
         return
 

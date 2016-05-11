@@ -10,14 +10,19 @@
 
 #include "../../core/sys/clock.h"
 
+#define SHOW_ENERGY_INFO 	1
 
-#define SHOW_ENERGY_INFO 1
-#define STAFFETTA_ENERGEST 1
+#define STAFFETTA_ENERGEST 	1
+#define COFFEE_FILE_SYSTEM
+// #define FIXED_ENERGY_STEP  	1
+
 /* choose energy harvesting model */
-#define MODEL_BERNOULLI
+// #define MODEL_BERNOULLI
 // #define MODEL_MARKOV
-//#define MODEL_SOLAR
+#define MODEL_SOLAR
 // #define MODEL_MOVER
+
+#define RANDOM_RAND_MAX 65535U
 #define RAND_MAX 2147483647
 #define PI 3.14159265
 
@@ -58,7 +63,7 @@
 
 #define ENERGY_CONSUMES_PER_MS 		85		//Energy consumed per in uJ
 
-#define FIXED_ENERGY_STEP           0
+
 /*---------------------------------------------------------------------------*/
 void energytrace_start(void);
 void energytrace_stop(void);
@@ -92,8 +97,11 @@ typedef enum {
 
 void energytrace_print(char *str);
 
+extern uint32_t acum_consumption;
+extern uint32_t acum_harvest;
 extern uint32_t remaining_energy;
 extern uint32_t harvesting_rate_array[5];
+extern uint8_t  energy_change;
 /* node state */
 extern node_state_t node_state;
 extern node_state_t node_state_old;

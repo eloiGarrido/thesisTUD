@@ -3,6 +3,8 @@
 #include "../../apps/energytrace/energytrace.h"
 #include "../../core/dev/metric.h"
 
+// #define ADAPTIVE_PACKET_CREATION 1
+
 //uint16_t harvesting_rate;
 //node_energy_state_t node_energy_state;
 static uint8_t round_stats;
@@ -21,21 +23,69 @@ PROCESS_THREAD(staffetta_print_stats_process, ev, data){
     loop_stats = node_id;
 
     //etimer_set(&et,random_rand()%(CLOCK_SECOND*5));
+#if ADAPTIVE_PACKET_CREATION
+    uint8_t counter = 0;
     etimer_set(&et,CLOCK_SECOND*25+(random_rand()%(CLOCK_SECOND*10)));
 
     PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
     while(1) {
-        // staffetta_print_stats();
-
-        staffetta_add_data(round_stats++);
-        //#if ENERGY_HARV
-        printf("6|%d|%ld|%d\n", node_energy_state, remaining_energy, harvesting_rate);
+        if(energy_change == 1)
+        {
+            staffetta_print_stats();
+            staffetta_add_data(round_stats++);
+            energy_change = 0;
+        }
+                //#if ENERGY_HARV
         //#endif /*ENERGY_HARV*/
-        etimer_set(&et,CLOCK_SECOND*10);
+        etimer_set(&et,CLOCK_SECOND);
+        counter++;
+        if (counter >= 25){
+            printf("6|%d|%lu|%d|%lu|%lu\n", node_energy_state, remaining_energy, harvesting_rate, acum_consumption, acum_harvest);
+            acum_consumption = 0; // Reset acumulative values
+            acum_harvest = 0;
+            counter = 0;
+        }
         PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
     }
+#elif RANDOM_PACKET_CREATION
+    #define RAND_PACKET_CREATION 50
 
+    etimer_set(&et,CLOCK_SECOND+(random_rand()%(CLOCK_SECOND*RAND_PACKET_CREATION)));
+
+    PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
+    while(1) {
+        staffetta_print_stats();
+        staffetta_add_data(round_stats++);
+
+
+        //#if ENERGY_HARV
+        //#endif /*ENERGY_HARV*/
+        etimer_set(&et,CLOCK_SECOND*10);
+        printf("6|%d|%lu|%d|%lu|%lu\n", node_energy_state, remaining_energy, harvesting_rate, acum_consumption, acum_harvest);
+        acum_consumption = 0; // Reset acumulative values
+        acum_harvest = 0;
+        PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
+    }
+#else
+    etimer_set(&et,CLOCK_SECOND*25+(random_rand()%(CLOCK_SECOND*10)));
+
+    PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
+    while(1) {
+        staffetta_print_stats();
+        staffetta_add_data(round_stats++);
+
+
+        //#if ENERGY_HARV
+        //#endif /*ENERGY_HARV*/
+        etimer_set(&et,CLOCK_SECOND*10);
+        printf("6|%d|%lu|%d|%lu|%lu\n", node_energy_state, remaining_energy, harvesting_rate, acum_consumption, acum_harvest);
+        acum_consumption = 0; // Reset acumulative values 
+        acum_harvest = 0;
+        PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
+    }
+#endif /*ADAPTIVE_PACKET_CREATION*/
     PROCESS_END();
+
 }
 
 
@@ -49,7 +99,7 @@ PROCESS_THREAD(staffetta_test, ev, data){
 
     leds_init();
     leds_on(LEDS_GREEN);
-    staffetta_init() ;
+    staffetta_init();
     random_init(node_id);
     watchdog_stop();
     leds_off(LEDS_GREEN);
@@ -70,29 +120,27 @@ PROCESS_THREAD(staffetta_test, ev, data){
         PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
         //Perform a data exchange
 
-        #if ENERGY_HARV
-        //printf("6,%d,%ld,%d\n", node_energy_state, remaining_energy, harvesting_rate);
+#if ENERGY_HARV
+        if (node_energy_state != NS_ZERO){
+            timer_on = RTIMER_NOW();
+            staffetta_result = staffetta_send_packet();
+            timer_off = RTIMER_NOW();
+             printf("9|%lu\n",timer_on); //Flag when the node turns on
+             printf("10|%lu\n",timer_off); //Notify when a node goes to sleep
+        } else { // Node did not have enough energy to operate
+            printf("5\n");
+        }
+#else
         if (node_energy_state != NS_ZERO){
             timer_on = RTIMER_NOW();
             staffetta_result = staffetta_send_packet();
             timer_off = RTIMER_NOW();
             printf("9|%lu\n",timer_on); //Flag when the node turns on
             printf("10|%lu\n",timer_off); //Notify when a node goes to sleep
-            //printf("11|%u\n", staffetta_result);
+        } else { // Node did not have enough energy to operate
+            printf("5\n");
         }
-        #else
-        if (node_energy_state != NS_ZERO){
-            timer_on = RTIMER_NOW();
-            staffetta_result = staffetta_send_packet();
-            timer_off = RTIMER_NOW();
-            printf("9|%lu\n",timer_on); //Flag when the node turns on
-            printf("10|%lu\n",timer_off); //Notify when a node goes to sleep
-            //printf("11|%u\n", staffetta_result);y when a node goes to sleep
-        }
-        #endif /*ENERGY_HARV*/
-
-        //TODO compute histogram of staffetta results
-        //leds_off(LEDS_RED);
+#endif /*ENERGY_HARV*/
     }
 
     PROCESS_END();

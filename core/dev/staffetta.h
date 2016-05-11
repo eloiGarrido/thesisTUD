@@ -38,6 +38,27 @@
  *         Adam Dunkels <adam@sics.se>
  */
 
+
+
+//FILEPATH = "/home/jester/cfs_file.txt"
+//
+//sim = mote.getSimulation();
+//log.log(sim.getMotesCount());
+//for (i=1; i < sim.getMotesCount(); i++) {
+//   m = sim.getMote(i);
+//   fs = m.getFilesystem();
+//   success = fs.insertFile(FILEPATH);
+//}
+//
+//TIMEOUT(600000);
+//
+//while (true) {
+//  log.log(id + "|" + time + "|" + msg + "|\n");
+//  YIELD();
+//}
+
+
+
 #ifndef __STAFFETTA_H__
 #define __STAFFETTA_H__
 
@@ -87,6 +108,12 @@
 #define ENERGY_HARV         1 //Enable dynamic budget depending on Energy Harvesting capabilities
 #define NEW_EDC             1
 #define AGEING              1 //EDC vector ages depending on rendezvous value
+// #define EDC_WITH_RV         0
+#define STAFFETTA_ENERGEST  1
+#define ELAPSED_TIME        0
+
+#define ADAPTIVE_PACKET_CREATION  1
+#define RANDOM_PACKET_CREATION    0
 /*-------------------------- MACROS -------------------------------------------------*/
 #define MIN(a, b) ((a) < (b)? (a) : (b))
 #define MAX(a, b) ((a) > (b)? (a) : (b))

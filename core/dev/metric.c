@@ -69,7 +69,43 @@ uint8_t get_duty_cycle(void){
 }
 
 void compute_node_state(void){
+#if HYSTERESIS
+    switch (node_energy_state)
+    {
+        case NS_HIGH:
+            if ( remaining_energy > ( (uint32_t)NS_ENERGY_HIGH - 200 ) ){ node_energy_state = NS_HIGH; }
+            else if ( remaining_energy > ( (uint32_t)NS_ENERGY_MID - 200) ){ node_energy_state = NS_MID; }
+            else if ( remaining_energy > (uint32_t)NS_ENERGY_LOW){ node_energy_state = NS_LOW; }
+            else { node_energy_state = NS_ZERO; }
+            break;
 
+        case NS_MID:
+            if ( remaining_energy > ( (uint32_t)NS_ENERGY_HIGH + 400 )) { node_energy_state = NS_HIGH; }
+            else if ( remaining_energy > ( (uint32_t)NS_ENERGY_MID - 200 )) { node_energy_state = NS_MID; }
+            else if ( remaining_energy > (uint32_t)NS_ENERGY_LOW) { node_energy_state = NS_LOW; }
+            else { node_energy_state = NS_ZERO; }
+            break;
+
+        case NS_LOW:
+            if ( remaining_energy > ( (uint32_t)NS_ENERGY_HIGH + 400 ) ){ node_energy_state = NS_HIGH; }
+            else if ( remaining_energy > ( (uint32_t)NS_ENERGY_MID + 200) ){ node_energy_state = NS_MID; }
+            else if ( remaining_energy > (uint32_t)NS_ENERGY_LOW){ node_energy_state = NS_LOW; }
+            else { node_energy_state = NS_ZERO; }
+            break;
+
+        default:
+            if (remaining_energy > (uint32_t)NS_ENERGY_HIGH) {
+                node_energy_state = NS_HIGH;
+            } else if (remaining_energy > (uint32_t)NS_ENERGY_MID){
+                node_energy_state = NS_MID;
+            } else if ( (uint32_t)remaining_energy > (uint32_t)NS_ENERGY_LOW){
+                node_energy_state = NS_LOW;
+            } else {
+                node_energy_state = NS_ZERO;
+            }
+            break;
+    }
+#else
 	if (remaining_energy > (uint32_t)NS_ENERGY_HIGH) {
 		node_energy_state = NS_HIGH;
 	} else if (remaining_energy > (uint32_t)NS_ENERGY_MID){
@@ -79,6 +115,7 @@ void compute_node_state(void){
 	} else {
 		node_energy_state = NS_ZERO;
 	}
+#endif /*HYSTERESIS*/
 }
 
 node_energy_state_t get_node_state(void){

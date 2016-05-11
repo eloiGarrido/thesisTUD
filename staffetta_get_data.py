@@ -14,25 +14,28 @@ from operator import add
 Log Converter
 convert Cooja results into statistical data and graphs
 '''
-env = 'uni'
+# Change this parameters according with simulation ones
+env = 'uni' #Where is the simulation being ran
 # env = 'home'
-repeated = True
+repeated = True #Is the simulation being run through repeated script?
 # simulation = 'orig'
-simulation = 'eh'
-model = 'solar'
+simulation = 'eh' #Original or EH code
+model = 'solar' #Energy model used
 # model = 'bernoulli'
 # model = 'mover'
+
 energy = 'energest'
 # energy = 'noEnergest'
-RV = '10k'
-nodes = '11'
-duration = '5min'
-age = 'slow4Age'
+
+RV = '10k' #Rendezvous time threshold
+nodes = '11' #Number of nodes
+duration = '5min' #Simulation duration
+age = 'slow4Age' #Ageing parameter
 # age = 'noAge'
 
 minutes = 10
 simulation_time = minutes * 60 * 1000 * 1000
-# 600000000
+
 simulation_name = str(simulation) + "_" + str(env) + "_" + str(model) + "_" + str(age) + "_" + str(energy) + "_" + str(RV) + "_" + str(nodes) + "_" + str(duration)
 
  
@@ -103,13 +106,8 @@ class LogConverter(object):
         self.print_dc()
         self.print_drop_ratio(pkt_delay)
 
-        # for i in range (1, number_of_nodes):
-        #     self.print_rendezvous(i)
-        # plt.show()
-
         self.generate_graphs()
         try:
-            # shutil.copy( general_path + "COOJA.testlog", file_path )
             shutil.copy( general_path + filename, file_path )
 
         except:
@@ -392,12 +390,8 @@ class LogConverter(object):
             # total_on += abs( self.nodes[node_id]['time_on'][i] - self.nodes[node_id]['time_off'][i+1] )
             counter += 1.0
         try:
-            # avg_dc_t = float(600000000) / float(total_on)
             # avg_dc =   float(total_on) / float(self.nodes[node_id]['time_off'][len(self.nodes[node_id]['time_off'])-1])
             avg_dc =   float(total_on) / float(simulation_time)
-# 600000000
-            
-            # print ('avg_dc_t: '+str(avg_dc_t) + ' avg_dc:'+str(avg_dc))
         except:
             avg_dc = 0
             avg_dc_t = 0
@@ -517,19 +511,12 @@ class LogConverter(object):
             avg.append(0.0)
 
         for i in range (1, self.number_of_nodes):
-            # for j in range (0, len(self.nodes[i]['remaining_energy'])):
-            #     try:
-            #         avg[j] += float(self.nodes[i]['remaining_energy'][j]) / float(self.number_of_nodes - 1)
-            #     except:
-            #         avg.append(float(self.nodes[i]['remaining_energy'][j]) / float(self.number_of_nodes - 1))
-        # plt.plot(avg)
             plt.plot((self.nodes[i]['remaining_energy']) )
         self.format_figure('Node Energy Overview','Time', 'Energy', 'node_energy_overview')
         return
 
     def print_energy_total(self):
         print ('>> Printing energy statistics...')
-        # plt.figure()
         fig, ax = plt.subplots()
         index = np.arange(self.number_of_nodes-1)
         bar_width = 0.35
@@ -591,11 +578,10 @@ class LogConverter(object):
                 counter += 1.0
             avg_state.append(sum_t/counter)
 
-            # plt.plot(self.nodes[i]['node_energy_state'])
         for i in range(0,self.number_of_nodes-1):
             result = map(float,self.nodes[i]['node_energy_state'])
             avg_state_t.append(result)
-            # plt.bar(i+1, avg_state[i] ,align='center')
+
         plt.boxplot(avg_state_t,0,'')            
         plt.ylim(-0.2, 3.2)
         avg = float(sum(avg_state)) / float(self.number_of_nodes - 1)

@@ -713,8 +713,6 @@ PROCESS_THREAD(energytrace_process, ev, data)
 		tx_level = cc2420_get_txpower();
         energy_rxtx = voltage * tx_current_consumption(tx_level) * rxtx_time / 1000 / 10;
 
-//		energy_rxtx = ( rxtx_time * TMOTE_VOLTAGE);
-//        printf("energy_rxtx -> %lu\n",energy_rxtx);
 		if (remaining_energy > energy_rxtx)
 		{
 		    acum_consumption += energy_rxtx;

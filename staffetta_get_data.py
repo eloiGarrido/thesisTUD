@@ -409,7 +409,7 @@ class LogConverter(object):
             print(float(self.nodes[i]['no_energy']))
             print(float(total_count))
             print('------------')
-            plt.annotate( str( 100 * (int(self.nodes[i]['no_energy']) / total_count) ) + '%', xy=(i, -1.5))
+            plt.annotate( str( int(100.0 * (float(self.nodes[i]['no_energy']) / float(total_count))) ) + '%', xy=(i, 0))
         self.format_figure('Node dead times', 'Node', 'Occurrences', 'node_dead_times')
 
 

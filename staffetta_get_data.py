@@ -14,8 +14,8 @@ from operator import add
 Log Converter
 convert Cooja results into statistical data and graphs
 '''
-# env = 'uni'
-env = 'home'
+env = 'uni'
+# env = 'home'
 repeated = True
 # simulation = 'orig'
 simulation = 'eh'
@@ -31,7 +31,7 @@ age = 'slow4Age'
 # age = 'noAge'
 simulation_name = str(simulation) + "_" + str(env) + "_" + str(model) + "_" + str(age) + "_" + str(energy) + "_" + str(RV) + "_" + str(nodes) + "_" + str(duration)
 
- 
+
 
 
 
@@ -589,7 +589,7 @@ class LogConverter(object):
             result = map(float,self.nodes[i]['node_energy_state'])
             avg_state_t.append(result)
             # plt.bar(i+1, avg_state[i] ,align='center')
-        plt.boxplot(avg_state_t,0,'')            
+        plt.boxplot(avg_state_t,0,'')
         plt.ylim(-0.2, 3.2)
         avg = float(sum(avg_state)) / float(self.number_of_nodes - 1)
         plt.axhline(avg, color='r')
@@ -701,9 +701,9 @@ class LogConverter(object):
         self.print_on_time()
         self.print_wakeups()
 
-        self.print_node_state() #Average node state 
+        self.print_node_state() #Average node state
         self.printf_node_state() #graph with node state changes
-        
+
         self.print_packet_created()
 
         plt.show()

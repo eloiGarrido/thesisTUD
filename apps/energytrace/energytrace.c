@@ -163,194 +163,30 @@ int fd_read_solar;
 #define hr_threshold 3
 static uint16_t last_hr = 0;
 static uint32_t time_hr = 0;
+static int time_thld = 0;
 uint8_t context_trigger(void)
 {
 	uint16_t hr;
 	uint32_t time_now, time_diff;
 
 	time_now = RTIMER_NOW();
+	// time_now = clock_time();
 	time_diff = (time_now - time_hr) / TMOTE_ARCH_SECOND;
-
+	if (time_diff > 5){
+		time_thld = 1;
+	}
 	hr = get_harvesting_rate();
-	if ( (abs( hr - last_hr) > hr_threshold) && time_diff > 5 )
+	if ( (abs( hr - last_hr) > hr_threshold) && time_thld == 1 )
 	{
 		time_hr = time_now;
 		last_hr = hr;
+		time_thld = 0;
 		return 1;
 	}
 	return 0;
 }
 #endif /*ADAPTIVE_PACKET_CREATION*/
 
-// static uint32_t high_th = 1838;
-// static uint32_t low_th = 1738;
-/*---------------------------------------------------------------------------*/
-// int bernoulli_solar_harvesting_prob = (int)()
-/*---------------------------------------------------------------------------*/
-
-/**
- * Transmit power levels
- * values are from Page 51
- */
-// static uint8_t tx_levels[TX_LEVELS] =  {31, 27, 23, 19, 15, 11, 7, 3};
-// static uint8_t tx_current_consumption[TX_LEVELS] = {174, 165, 152, 139, 125, 112, 99, 85};
-
-//static int
-//dir_test(void)
-//{
-//  struct cfs_dir dir;
-//  struct cfs_dirent dirent;
-//
-//  /* Coffee provides a root directory only. */
-//  if(cfs_opendir(&dir, "/") != 0) {
-//    printf("failed to open the root directory\n");
-//    return 0;
-//  }
-//
-//  /* List all files and their file sizes. */
-//  printf("Available files\n");
-//  while(cfs_readdir(&dir, &dirent) == 0) {
-//    printf("%s (%lu bytes)\n", dirent.name, (unsigned long)dirent.size);
-//  }
-//
-//  cfs_closedir(&dir);
-//
-//  return 1;
-//}
-
-
-#ifdef MODEL_SOLAR
-//double randn (uint32_t mu, uint32_t sigma)
-//{
-//	double U1, U2, W, mult, U1_t, U2_t; //double
-//	static double X1, X2; //double
-//	static uint8_t call = 0; //int
-//    printf(">> 1\n");
-//	if (call == 1)
-//	{
-//		call = !call;
-//		return (mu + sigma * (uint32_t) X2);
-//    }
-//    printf(">> 2\n");
-//	do
-//	{
-////	    printf("random %ld\n", (double) random_rand());
-////	    printf("RAND_MAX %ld, %ld\n", (double) RAND_MAX, 2147483647);
-//        U1_t = (double) random_rand();
-//        U2_t = (double) random_rand();
-//        U1 = ( U1_t / 2147483647);
-//        U2 = ( U2_t/ 2147483647);
-//        printf("U1: %ld, U2: %ld\n", U1, U2);
-//        printf("U1: %ld, U2: %ld\n", U1, U2);
-//
-//		U1 = -1 + U1 * 2;
-//		U2 = -1 + U2 * 2;
-////		U1 = -1 + ((double) random_rand() / (double)RAND_MAX) * 2;
-////		U2 = -1 + ((double) random_rand() / (double)RAND_MAX) * 2;
-//		W = pow (U1, 2) + pow (U2, 2);
-//		printf("U1: %ld, U2: %ld, W: %ld\n", U1, U2, W);
-//	}
-//	while (W >= 1 || W == 0);
-//    printf(">> 3\n");
-//
-//	mult = sqrt ((-2 * logf(W)) / W);
-//	X1 = U1 * mult;
-//	X2 = U2 * mult;
-//    printf(">> 4\n");
-//
-//	call = !call;
-//	return (uint32_t)(mu + sigma * (double) X1);
-//}
-
-//uint32_t randn (uint32_t mu, uint32_t sigma)
-//{
-//    uint32_t return1, return2;
-//	uint32_t U1, U2, W, mult, U1_t, U2_t; //double
-//	uint32_t pow_U1, pow_U2;
-//	static uint32_t X1, X2; //double
-//	static uint8_t call = 0; //int
-//
-//	if (call == 1)
-//	{
-//		call = !call;
-//		return2 = (uint32_t)mu + (uint32_t)sigma * X2;
-//        printf("---------> Return2: %lu\n",return2);
-//
-//		return return2;
-//    }
-////    printf(">> 2\n");
-//	do
-//	{
-//
-//        U1_t = random_rand() * RANDOM_RAND_MAX;
-//        U1_t = U1_t * 1000;
-//        U2_t = random_rand()* RANDOM_RAND_MAX;
-//        U2_t = U2_t * 1000;
-//        U1 = ( U1_t / RANDOM_RAND_MAX );
-//        U2 = ( U2_t / RANDOM_RAND_MAX );
-//
-////		printf(">> U1: %lu, U2: %lu\n", U1, U2);
-//
-//		U1 = -1000 + ( U1 * 2 );
-//		U2 = -1000 + ( U2 * 2 );
-////        printf(">>>> U1: %lu, U2: %lu\n", U1, U2);
-//
-////        pow_U1 = pow(U1,2);
-//        pow_U1 = U1;
-//        pow_U1 = pow_U1 * U1;
-//
-//        pow_U2 = U2;
-//        pow_U2 = pow_U2 * U2;
-////        pow_U2 = pow(U2,2);
-////        pow_U2 = U2 * U2;
-////        printf(">>>>>> pow_U1: %lu, pow_U2: %lu\n", pow_U1, pow_U2);
-//
-////        printf(">>>> U1: %lu, U2: %lu\n", U1, U2);
-//        W = pow_U1 + pow_U2;
-////		W = pow (U1, 2) + pow (U2, 2);
-////		printf("U1: %lu, U2: %lu, W: %lu\n", U1, U2, W);
-//	}while (W >= (uint32_t)1000 || W <= (uint32_t)0 || U1 > 1000);
-////    printf("U2_t: %lu, RAND_MAX_t: %lu, U2: %lu\n", U2_t, RANDOM_RAND_MAX, U2);
-////    printf(">> 3\n");
-////    printf(">> U1_t: %lu, U2_t: %lu, W: %lu\n", U1_t, U2_t, W);
-////    printf(">>>>>> pow_U1: %lu, pow_U2: %lu\n", pow_U1, pow_U2);
-//
-//
-//	mult = sqrt ((2 * 1000 * logf(W)) / (W));
-////    printf("U1: %lu, U2: %lu, W: %lu, mult: %lu\n", U1, U2, W, mult);
-//	X1 = U1 * mult ;
-//	X2 = U2 * mult ;
-////    printf(">> 4\n");
-//
-//	call = !call;
-////	printf("X1: %lu, X2: %lu\n",X1, X2);
-//	return1 = (uint32_t)mu + (uint32_t)sigma * X1;
-//	printf("---------> Return1: %lu\n",return1);
-//	return return1;
-//}
-
-
-//
-////uint32_t solar_energy_input (uint32_t time_solar, uint8_t scalling_factor)
-//uint32_t solar_energy_input ( uint8_t scalling_factor)
-//{
-//
-//	uint32_t result;
-//	double normal_var;
-//	int solar_mu = 200;
-//	int solar_sigma = 40;
-//
-//    uint32_t time_solar = RTIMER_NOW();
-//
-////    printf(">>>> Before randn\n");
-//	normal_var = randn(solar_mu, solar_sigma);
-////    printf(">>>> After randn\n");
-//
-//	result = (uint32_t)( scalling_factor * normal_var * cos( time_solar / (70 * M_PI) ) * cos( time_solar / (100 * M_PI) ) );
-//	printf(">> solar_energy_input -> %lu\n",result);
-//	return result;
-//}
-#endif /*MODEL_SOLAR*/
 
 #ifdef COFFEE_FILE_SYSTEM
 #define MESSAGE_SIZE 30
@@ -381,12 +217,12 @@ int read_lines(char message[MESSAGE_SIZE], uint16_t lines, uint8_t solarNoMover)
   if (solarNoMover == 0){fd_read = fd_read_mover;}
 #endif
 
-  if(fd_read != -1) 
+  if(fd_read != -1)
   {
     do
     {
       bytes_read = cfs_read(fd_read, char_buffer, sizeof(char));
-      if (bytes_read > 0) 
+      if (bytes_read > 0)
       {
         string_buffer[idx] = char_buffer[0];
         idx += 1;
@@ -401,8 +237,8 @@ int read_lines(char message[MESSAGE_SIZE], uint16_t lines, uint8_t solarNoMover)
       }
     }while (lines_read < lines);
     strncpy(message, string_buffer, idx);
-  } 
-  else 
+  }
+  else
   {
     printf("ERROR: read_lines.\n");
   }
@@ -468,8 +304,8 @@ uint8_t init_mover_file()
   	if(fd_read_mover != -1)
 	{
 		return 1;
-	} 
-	else 
+	}
+	else
 	{
 		return 0;
 	}
@@ -499,7 +335,7 @@ uint32_t get_mover_energy(void)
 		{
 			return -1;
 		}
-	
+
 	}
 }
 #endif
@@ -540,7 +376,7 @@ PROCESS_THREAD(energytrace_process, ev, data)
 	static struct etimer periodic;
 	clock_time_t *period;
 	static node_class_t node_class; //EGB
-	uint32_t rxtx_time; 
+	uint32_t rxtx_time;
 	uint32_t energy_rxtx;
 	uint32_t rd = 0;
     uint8_t tx_level;
@@ -548,9 +384,9 @@ PROCESS_THREAD(energytrace_process, ev, data)
 
 
 	// remaining_energy = ENERGY_MAX_CAPACITY_SOLAR / 4;
-	// remaining_energy 
+	// remaining_energy
 	node_activation_ev = process_alloc_event();
-	
+
 
 	PROCESS_BEGIN();
 #ifdef MODEL_MOVER
@@ -612,11 +448,11 @@ PROCESS_THREAD(energytrace_process, ev, data)
 
 /*EGB---------------------------------------------------------------------------*/
 
-		if (node_state == NODE_ACTIVE && remaining_energy < (uint32_t)ENERGY_LOWER_THRESHOLD) 
+		if (node_state == NODE_ACTIVE && remaining_energy < (uint32_t)ENERGY_LOWER_THRESHOLD)
 		{
 			node_state = NODE_INACTIVE;
-		} 
-		else if (node_state == NODE_INACTIVE && remaining_energy > (uint32_t)ENERGY_UPPER_THRESHOLD) 
+		}
+		else if (node_state == NODE_INACTIVE && remaining_energy > (uint32_t)ENERGY_UPPER_THRESHOLD)
 		{
 			node_state = NODE_ACTIVE;
 		}
@@ -647,7 +483,7 @@ PROCESS_THREAD(energytrace_process, ev, data)
 			harvesting_rate_array[harvesting_array_index] = rd;
 			harvesting_array_index++;
 			if (harvesting_array_index > 4){ harvesting_array_index = 0;}
-			
+
 			// if ((uint32_t)ENERGY_MAX_CAPACITY_SOLAR - remaining_energy < (uint32_t)rd )
 			if ( (remaining_energy + rd) > (uint32_t)ENERGY_MAX_CAPACITY_SOLAR )
 			{
@@ -675,7 +511,7 @@ PROCESS_THREAD(energytrace_process, ev, data)
 			harvesting_rate_array[harvesting_array_index] = rd;
 			harvesting_array_index++;
 			if (harvesting_array_index > 4){ harvesting_array_index = 0;}
-			
+
 			// if ((uint32_t)ENERGY_MAX_CAPACITY_MOVER - remaining_energy < (uint32_t)rd )
 			if ( (remaining_energy + rd) > (uint32_t)ENERGY_MAX_CAPACITY_MOVER )
 			{
@@ -733,7 +569,7 @@ PROCESS_THREAD(energytrace_process, ev, data)
 			remaining_energy = 0;
 		}
 #endif /*STAFFETTA_ENERGEST*/
-			
+
 
 
             compute_node_state();
@@ -798,7 +634,7 @@ energytrace_print(char *str)
 	// long rx_time_us = 1000 * listen / TMOTE_ARCH_SECOND;
 	tx_energy = voltage * tx_current_consumption(tx_level) * tx_time_us / 1000 / 10;
 	rx_energy = voltage * rx_current_consumption * rx_time_us / 1000 / 10;
-	
+
 	// printf("tx_energy %ld, rx_energy %ld\n",tx_energy,rx_energy );
 	if ( (uint32_t)tx_energy >= remaining_energy)
 	{
@@ -885,4 +721,3 @@ energytrace_stop(void)
 	process_exit(&energytrace_process);
 //	process_exit(&energytrace_process_print);
 }
-

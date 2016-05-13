@@ -42,12 +42,11 @@ if env == 'uni':
     else:
         general_path = "/home/egarrido/contiki/tools/cooja/build/"
 
-    print(general_path)
-
     if simulation == 'orig':
         file_path = "/home/egarrido/staffetta_sensys2015/eh_staffetta/results/original/" + simulation_name
     elif simulation == 'eh':
         file_path = "/home/egarrido/staffetta_sensys2015/eh_staffetta/results/eh_staffetta/" + simulation_name
+
 elif env == 'home':
     if ( repeated == True):
         general_path = "/home/jester/"
@@ -379,7 +378,7 @@ class LogConverter(object):
         for i in range (0, len(self.nodes[node_id]['time_on'])-1):
 
             # period = self.nodes[node_id]['time_off'][i+1] - self.nodes[node_id]['time_off'][i]
-            period = self.nodes[node_id]['time_off'][i+1] - self.nodes[node_id]['time_off'][i]
+            period = abs(self.nodes[node_id]['time_off'][i+1] - self.nodes[node_id]['time_off'][i])
             on = abs( self.nodes[node_id]['time_off'][i] - self.nodes[node_id]['time_on'][i] )
             node_dc.append( float(on) / float(period) )
 
@@ -389,7 +388,8 @@ class LogConverter(object):
             counter += 1.0
         try:
             # avg_dc_t = float(600000000) / float(total_on)
-            avg_dc =   float(total_on) / float(self.nodes[node_id]['time_off'][len(self.nodes[node_id]['time_off'])-1])
+            # avg_dc =   float(total_on) / float(self.nodes[node_id]['time_off'][len(self.nodes[node_id]['time_off'])-1])
+            avg_dc = float(total_on) / 600000000
             # print ('avg_dc_t: '+str(avg_dc_t) + ' avg_dc:'+str(avg_dc))
         except:
             avg_dc = 0
@@ -403,8 +403,13 @@ class LogConverter(object):
     def print_dead_node(self):
         print ('>> Printing dead occurrences...')
         plt.figure()
-        for i in range (0, self.number_of_nodes-1):
-            plt.bar(i+1,self.nodes[i]['no_energy'], align='center')
+        for i in range (1, self.number_of_nodes-1):
+            total_count = len(self.nodes[i]['time_on']) + int(self.nodes[i]['no_energy'])
+            plt.bar(i,self.nodes[i]['no_energy'], align='center')
+            print(float(self.nodes[i]['no_energy']))
+            print(float(total_count))
+            print('------------')
+            plt.annotate( str( 100 * (int(self.nodes[i]['no_energy']) / total_count) ) + '%', xy=(i, -1.5))
         self.format_figure('Node dead times', 'Node', 'Occurrences', 'node_dead_times')
 
 
@@ -474,8 +479,6 @@ class LogConverter(object):
             if pkt_delay[i]['delay'] == 'lost':
                 drop_pkt[node-1] += 1.0
 
-
-
         for i in range(0, len(total_pkt)):
             try:
                 plt.bar(i+1, ( drop_pkt[i] / total_pkt[i]),align='center' )
@@ -532,7 +535,7 @@ class LogConverter(object):
         node_acum_harv = []
         node_acum_cons = []
         for i in range (1, self.number_of_nodes):
-            node_acum_harv.append( (sum(self.nodes[i]['accum_harvest']) ) / 1000 ) #Initial energy add as harvested
+            node_acum_harv.append( (sum(self.nodes[i]['accum_harvest']) ) / 1000 + 18) #Initial energy add as harvested
             node_acum_cons.append( (sum(self.nodes[i]['accum_consumption'])) / 1000)
 
         rects1 = plt.bar(index, node_acum_harv, bar_width,
@@ -663,7 +666,8 @@ class LogConverter(object):
                 try:
                     avg[i] += float(self.nodes[j]['on_time'][i]) / float(self.number_of_nodes - 1)
                 except:
-                    print ('>> ERROR print on time: '+ str(i) + ' ' +str(j))
+                    continue
+                    # print ('>> ERROR print on time: '+ str(i) + ' ' +str(j))
         for i in range (1, self.number_of_nodes):
             plt.plot(self.nodes[i]['on_time'])
         plt.plot(avg,'dr', linewidth=5)
@@ -700,12 +704,20 @@ class LogConverter(object):
         self.print_harvesting_rate()
         self.print_on_time()
         self.print_wakeups()
-
-        self.print_node_state() #Average node state
-        self.printf_node_state() #graph with node state changes
+        try:
+            self.print_node_state() #Average node state
+        except:
+            print ('>> ERROR on print_node_state')
+        try:
+            self.printf_node_state() #graph with node state changes
+        except:
+            print ('>> ERROR on printf_node_state')
 
         self.print_packet_created()
-
+        # try:
+        self.print_dead_node()
+        # except:
+            # print ('>> ERROR on print_dead_node')
         plt.show()
         return
 

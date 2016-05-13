@@ -115,7 +115,7 @@ static int markov_prob_inactive_to_active = (int)(0.005 * PROB_SCALE_FACTOR);
 #ifdef MODEL_BERNOULLI
 
 /* harvesting probability */
-// static int bernoulli_harvesting_prob = (int)(0.5 * PROB_SCALE_FACTOR);
+static int bernoulli_harvesting_prob = (int)(0.5 * PROB_SCALE_FACTOR);
 
 #endif /* MODEL_BERNOULLI */
 
@@ -163,19 +163,22 @@ int fd_read_solar;
 #define hr_threshold 3
 static uint16_t last_hr = 0;
 static uint32_t time_hr = 0;
-uint8_t context_trigger(void)
-{
+static uint8_t time_margin = 0;
+uint8_t context_trigger(void) {
 	uint16_t hr;
 	uint32_t time_now, time_diff;
 
-	time_now = RTIMER_NOW();
+	// time_now = RTIMER_NOW();
+	time_now = clock_time();
 	time_diff = (time_now - time_hr) / TMOTE_ARCH_SECOND;
-
+	if (time_diff > 5) {
+		time_margin = 1;
+	}
 	hr = get_harvesting_rate();
-	if ( (abs( hr - last_hr) > hr_threshold) && time_diff > 5 )
-	{
+	if ( (abs(hr - last_hr) > hr_threshold) && time_diff == 1 ) {
 		time_hr = time_now;
 		last_hr = hr;
+		time_margin = 0;
 		return 1;
 	}
 	return 0;
@@ -333,7 +336,7 @@ uint32_t get_mover_energy(void)
 		{
 			return -1;
 		}
-	
+
 	}
 }
 #endif
@@ -459,7 +462,7 @@ PROCESS_THREAD(energytrace_process, ev, data)
 		if (node_class == NODE_SOLAR)
 		{
 #ifdef MODEL_SOLAR
-            rd = get_solar_energy();
+      rd = get_solar_energy();
 #elif defined(FIXED_ENERGY_STEP)
 			rd = ENERGY_HARVEST_STEP_SOLAR;
 #elif defined(MODEL_BERNOULLI)
@@ -540,16 +543,16 @@ PROCESS_THREAD(energytrace_process, ev, data)
 		staffetta_get_energy_consumption(&rxtx_time);
 
 		tx_level = cc2420_get_txpower();
-        energy_rxtx = voltage * tx_current_consumption(tx_level) * rxtx_time / 1000 / 10;
+    energy_rxtx = voltage * tx_current_consumption(tx_level) * rxtx_time / 1000 / 10;
 
 		if (remaining_energy > energy_rxtx)
 		{
-		    acum_consumption += energy_rxtx;
+	    acum_consumption += energy_rxtx;
 			remaining_energy -= energy_rxtx;
 		}
 		else
 		{
-            acum_consumption += remaining_energy;
+      acum_consumption += remaining_energy;
 			remaining_energy = 0;
 		}
 #else
@@ -572,9 +575,9 @@ PROCESS_THREAD(energytrace_process, ev, data)
 
 
 
-            compute_node_state();
-            compute_node_duty_cycle();
-            compute_harvesting_rate();
+    compute_node_state();
+    compute_node_duty_cycle();
+    compute_harvesting_rate();
 
 
 #if ADAPTIVE_PACKET_CREATION

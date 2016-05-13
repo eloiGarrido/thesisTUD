@@ -14,10 +14,11 @@
 
 #define STAFFETTA_ENERGEST 	1
 #define COFFEE_FILE_SYSTEM
+// #define ADAPTIVE_PACKET_CREATION 1
 // #define FIXED_ENERGY_STEP  	1
 
 /* choose energy harvesting model */
-//#define MODEL_BERNOULLI
+#define MODEL_BERNOULLI
 //#define MODEL_MARKOV
 #define MODEL_SOLAR
 //#define MODEL_MOVER
@@ -58,7 +59,7 @@
 #define ENERGY_MAX_CAPACITY_SOLAR  5445
 #define ENERGY_MAX_CAPACITY_MOVER  850		//0.5 * 1mF * 3.3v^2	-> in uJ
 
-#define ENERGY_HARVEST_STEP_SOLAR 	100		//Average solar harvest amount 
+#define ENERGY_HARVEST_STEP_SOLAR 	100		//Average solar harvest amount
 #define ENERGY_HARVEST_STEP_MOVER	70		//Average mover harvest amount
 
 #define ENERGY_CONSUMES_PER_MS 		85		//Energy consumed per in uJ

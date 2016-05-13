@@ -38,7 +38,7 @@ simulation_time = minutes * 60 * 1000 * 1000
 
 simulation_name = str(simulation) + "_" + str(env) + "_" + str(model) + "_" + str(age) + "_" + str(energy) + "_" + str(RV) + "_" + str(nodes) + "_" + str(duration)
 
- 
+
 
 
 
@@ -406,6 +406,10 @@ class LogConverter(object):
         plt.figure()
         for i in range (0, self.number_of_nodes-1):
             plt.bar(i+1,self.nodes[i]['no_energy'], align='center')
+            print(int(self.nodes[i]['no_energy']))
+            print(len(self.nodes[i]['time_on']))
+            total_cycles = int(self.nodes[i]['no_energy']) + len(self.nodes[i]['time_on'])
+            plt.annotate( str(100*( float(self.nodes[i]['no_energy']) / float(total_cycles) ))+'%', xy=(i+1,0.5))
         self.format_figure('Node dead times', 'Node', 'Occurrences', 'node_dead_times')
 
 
@@ -582,7 +586,7 @@ class LogConverter(object):
             result = map(float,self.nodes[i]['node_energy_state'])
             avg_state_t.append(result)
 
-        plt.boxplot(avg_state_t,0,'')            
+        plt.boxplot(avg_state_t,0,'')
         plt.ylim(-0.2, 3.2)
         avg = float(sum(avg_state)) / float(self.number_of_nodes - 1)
         plt.axhline(avg, color='r')
@@ -656,7 +660,8 @@ class LogConverter(object):
                 try:
                     avg[i] += float(self.nodes[j]['on_time'][i]) / float(self.number_of_nodes - 1)
                 except:
-                    print ('>> ERROR print on time: '+ str(i) + ' ' +str(j))
+                    continue
+                    # print ('>> ERROR print on time: '+ str(i) + ' ' +str(j))
         for i in range (1, self.number_of_nodes):
             plt.plot(self.nodes[i]['on_time'])
         plt.plot(avg,'dr', linewidth=5)
@@ -682,7 +687,7 @@ class LogConverter(object):
         self.format_figure('Node avg DC', 'Node', 'avg DC (%)', 'avg_duty_cycle')
 
     def generate_graphs(self):
-        print ('>> Generating graphics...')
+        print ('>>>>>> Generating graphics <<<<<<')
         self.print_avg_edc()
         self.print_boxplot_edc()
 
@@ -693,13 +698,17 @@ class LogConverter(object):
         self.print_harvesting_rate()
         self.print_on_time()
         self.print_wakeups()
-
-        self.print_node_state() #Average node state 
+        try:
+            self.print_node_state() #Average node state
+        except:
+            print('>> Error while printing node state')
         self.printf_node_state() #graph with node state changes
-        
+
         self.print_packet_created()
-        self.print_dead_node()
-        
+        try:
+            self.print_dead_node()
+        except:
+            print('>> Error while printinf dead_node')
         plt.show()
         return
 

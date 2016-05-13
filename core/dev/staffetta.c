@@ -265,7 +265,7 @@ static void age_edc(){
 			edc[age_idx] = MIN(edc[age_idx]++, MAX_EDC);
 		}else{
 			edc_age_counter[age_idx]--;
-		} 
+		}
 	}
 }
 #endif /*AGEING*/
@@ -463,7 +463,7 @@ int staffetta_send_packet(void) {
 			}
 			//Give time to the radio to finish sending the data
 			t2 = RTIMER_NOW (); while(RTIMER_CLOCK_LT (RTIMER_NOW (), t2 + RTIMER_ARCH_SECOND/1000));
-            
+
 			leds_off(LEDS_GREEN);
 			//Fast-forward
 			radio_flush_rx();
@@ -668,7 +668,7 @@ int staffetta_send_packet(void) {
 //           	 avg_edc = MIN( ( (6 / node_energy_state) + (rendezvous_time/100) + (edc_sum/AVG_EDC_SIZE)), MAX_EDC); //limit to 255
 // #else
            	avg_edc = MIN( (6 / node_energy_state) + (edc_sum / AVG_EDC_SIZE ), MAX_EDC);
-// #endif /*EDC_WITH_RV*/            
+// #endif /*EDC_WITH_RV*/
 #else
             if((rendezvous_time<RENDEZ_TIME) && (avg_edc > strobe_ack[PKT_GRADIENT])){
 
@@ -697,7 +697,7 @@ int staffetta_send_packet(void) {
                     num_wakeups = MAX(1,(NS_ENERGY_HIGH*10)/avg_rendezvous);
                     break;
             }
-#else	
+#else
 			num_wakeups = MAX(1,(BUDGET*10)/avg_rendezvous);
 #endif /*ENERGY_HARV*/
 #else
@@ -707,7 +707,7 @@ int staffetta_send_packet(void) {
 			if (!IS_SINK) {
 				// printf("2,%d,%ld\n",strobe_ack[PKT_SRC],num_wakeups);
 			}
-			
+
 #if AGEING
 			age_edc();
 #endif /*AGEING*/
@@ -718,7 +718,7 @@ int staffetta_send_packet(void) {
 	    // printf("12|%lu\n", rendezvous_time);
 	    //printf("13|%u\n", node_energy_state);
 
-	    
+
 	    return RET_FAST_FORWARD;
 	}
 
@@ -902,7 +902,9 @@ int staffetta_send_packet(void) {
 
         all_rxtx = energest_type_time(ENERGEST_TYPE_TRANSMIT) + energest_type_time(ENERGEST_TYPE_LISTEN);
         rxtx_time_t = all_rxtx - last_rxtx;
-        *rxtx_time = 1000 * ( (rxtx_time_t * 1000) / TMOTE_ARCH_SECOND);
+        // *rxtx_time = 1000 * ( (rxtx_time_t * 1000) / TMOTE_ARCH_SECOND);
+        *rxtx_time = 1000 * ( (rxtx_time_t) / TMOTE_ARCH_SECOND);
+
         if (!(IS_SINK)){
             printf("3|%ld\n", *rxtx_time);
             printf("2|%ld\n",num_wakeups);
@@ -973,4 +975,3 @@ int staffetta_send_packet(void) {
 			sink_listen();
 		}
 	}
-

@@ -14,8 +14,8 @@ from operator import add
 Log Converter
 convert Cooja results into statistical data and graphs
 '''
-env = 'uni'
-# env = 'home'
+# env = 'uni'
+env = 'home'
 repeated = True
 # simulation = 'orig'
 simulation = 'eh'
@@ -379,7 +379,7 @@ class LogConverter(object):
         for i in range (0, len(self.nodes[node_id]['time_on'])-1):
 
             # period = self.nodes[node_id]['time_off'][i+1] - self.nodes[node_id]['time_off'][i]
-            period = self.nodes[node_id]['abs_time_off'][i+1] - self.nodes[node_id]['abs_time_off'][i]
+            period = self.nodes[node_id]['time_off'][i+1] - self.nodes[node_id]['time_off'][i]
             on = abs( self.nodes[node_id]['time_off'][i] - self.nodes[node_id]['time_on'][i] )
             node_dc.append( float(on) / float(period) )
 

@@ -87,7 +87,7 @@
 #define WITH_GRADIENT 		1 // ensure that messages follows a gradient to the sink (number of wakeups)
 #define BCP_GRADIENT		0 // use the queue size as gradient (BCP)
 #define ORW_GRADIENT		1 // use the expected duty cycle as gradient (ORW)
-#define DYN_DC 			    1 // Staffetta adaptative wakeups
+
 
 #define FAST_FORWARD 		1  // forward as soon as you can (not dummy messages)
 #define BUDGET_PRECISION 	1 //use fixed point precision to compute the number of wakeups
@@ -110,10 +110,12 @@
 #define AGEING              1 //EDC vector ages depending on rendezvous value
 // #define EDC_WITH_RV         0
 #define STAFFETTA_ENERGEST  1
-#define ELAPSED_TIME        0
+#define ELAPSED_TIME        1
 
 #define ADAPTIVE_PACKET_CREATION  1
 #define RANDOM_PACKET_CREATION    0
+// #define SCALE_FACTOR 100
+#define DYN_DC 			    1 // Staffetta adaptative wakeups
 /*-------------------------- MACROS -------------------------------------------------*/
 #define MIN(a, b) ((a) < (b)? (a) : (b))
 #define MAX(a, b) ((a) > (b)? (a) : (b))

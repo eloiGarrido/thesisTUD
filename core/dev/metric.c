@@ -37,8 +37,9 @@
  * 			Eloi Garrido Barrabés
  */
 //#include "contiki.h"
+#include "contiki.h"
 #include "metric.h"
-#include "../apps/energytrace/energytrace.h"
+#include "../energytrace/energytrace.h"
 #include <stdio.h>
 /*---------------------------------------------------------------------------*/
 /* DEFINES */
@@ -46,7 +47,7 @@
 /* VARIABLES AND CONSTANTS */
 int node_duty_cycle;
 node_energy_state_t node_energy_state = NS_ZERO;
-uint16_t harvesting_rate = 0;
+uint32_t harvesting_rate = 0;
 
 /*---------------------------------------------------------------------------*/
 /* FUNCTIONS */
@@ -59,7 +60,7 @@ void compute_node_duty_cycle(void){
 	}else if (node_energy_state == NS_LOW){
 		node_duty_cycle = DC_LOW;
 	}else{
-		node_duty_cycle = DC_ZERO;	
+		node_duty_cycle = DC_ZERO;
 	}
 
 }
@@ -73,22 +74,22 @@ void compute_node_state(void){
     switch (node_energy_state)
     {
         case NS_HIGH:
-            if ( remaining_energy > ( (uint32_t)NS_ENERGY_HIGH - 200 ) ){ node_energy_state = NS_HIGH; }
-            else if ( remaining_energy > ( (uint32_t)NS_ENERGY_MID - 200) ){ node_energy_state = NS_MID; }
+            if ( remaining_energy > ( (uint32_t)NS_ENERGY_HIGH - 200*SCALE_FACTOR ) ){ node_energy_state = NS_HIGH; }
+            else if ( remaining_energy > ( (uint32_t)NS_ENERGY_MID - 200*SCALE_FACTOR) ){ node_energy_state = NS_MID; }
             else if ( remaining_energy > (uint32_t)NS_ENERGY_LOW){ node_energy_state = NS_LOW; }
             else { node_energy_state = NS_ZERO; }
             break;
 
         case NS_MID:
-            if ( remaining_energy > ( (uint32_t)NS_ENERGY_HIGH + 400 )) { node_energy_state = NS_HIGH; }
-            else if ( remaining_energy > ( (uint32_t)NS_ENERGY_MID - 200 )) { node_energy_state = NS_MID; }
+            if ( remaining_energy > ( (uint32_t)NS_ENERGY_HIGH + 400*SCALE_FACTOR )) { node_energy_state = NS_HIGH; }
+            else if ( remaining_energy > ( (uint32_t)NS_ENERGY_MID - 200*SCALE_FACTOR)) { node_energy_state = NS_MID; }
             else if ( remaining_energy > (uint32_t)NS_ENERGY_LOW) { node_energy_state = NS_LOW; }
             else { node_energy_state = NS_ZERO; }
             break;
 
         case NS_LOW:
-            if ( remaining_energy > ( (uint32_t)NS_ENERGY_HIGH + 400 ) ){ node_energy_state = NS_HIGH; }
-            else if ( remaining_energy > ( (uint32_t)NS_ENERGY_MID + 200) ){ node_energy_state = NS_MID; }
+            if ( remaining_energy > ( (uint32_t)NS_ENERGY_HIGH + 400*SCALE_FACTOR ) ){ node_energy_state = NS_HIGH; }
+            else if ( remaining_energy > ( (uint32_t)NS_ENERGY_MID + 200*SCALE_FACTOR) ){ node_energy_state = NS_MID; }
             else if ( remaining_energy > (uint32_t)NS_ENERGY_LOW){ node_energy_state = NS_LOW; }
             else { node_energy_state = NS_ZERO; }
             break;
@@ -125,15 +126,14 @@ node_energy_state_t get_node_state(void){
 void compute_harvesting_rate(void){
 	int indx;
 	uint32_t acum = 0;
-	for (indx = 0; indx < 5; indx++){
+	for (indx = 0; indx < 10; indx++){
 		acum += harvesting_rate_array[indx];
 	}
-	if (acum < 5){ harvesting_rate = 0;}
-	else{harvesting_rate = acum / 5;}
-	
+	if (acum < 10){ harvesting_rate = 0;}
+	else{harvesting_rate = acum / 10;}
+
 }
 
-uint16_t get_harvesting_rate(void){
+uint32_t get_harvesting_rate(void){
 	return harvesting_rate;
 }
-

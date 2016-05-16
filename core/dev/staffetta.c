@@ -46,6 +46,7 @@
 #include "../../apps/energytrace/energytrace.h"
 
 
+
 /*---------------------------VARIABLES------------------------------------------------*/
 #define TMOTE_ARCH_SECOND 8192
 static int debug;
@@ -60,7 +61,8 @@ static uint32_t rendezvous[AVG_SIZE];
 static uint8_t rendezvous_idx;
 
 #if ENERGY_HARV
-static uint32_t avg_rendezvous = NS_ENERGY_LOW;
+// static uint32_t avg_rendezvous = NS_ENERGY_LOW / SCALE_FACTOR;
+static uint32_t avg_rendezvous = 410;
 #else
 static uint32_t avg_rendezvous = BUDGET;
 #endif /*ENERGY_HARV*/
@@ -80,7 +82,7 @@ static uint32_t edc_age_counter[AVG_EDC_SIZE];
 
 //EGB support variables
 #if NEW_EDC
-int index;
+// int index;
 //uint8_t is_present = 0;
 //uint8_t num_neighbors = 0;
 uint32_t edc_id[AVG_EDC_SIZE];
@@ -258,11 +260,18 @@ static inline uint32_t ageing_ratio(uint32_t rv_time) {
 
 static void age_edc(){
 	int age_idx;
+  int var;
 	for ( age_idx = 0; age_idx < AVG_EDC_SIZE; age_idx++ ) {
 		if ( edc_age_counter[age_idx] == 0 ){
 			edc_age_counter[age_idx] = ageing_ratio( edc_age[age_idx] );
 			// edc[age_idx]++;
-			edc[age_idx] = MIN(edc[age_idx]++, MAX_EDC);
+      var = edc[age_idx]++;
+      if ( var < MAX_EDC ){
+        edc[age_idx] = var;
+      }else{
+        edc[age_idx] = MAX_EDC;
+      }
+			// edc[age_idx] = MIN(edc[age_idx]++, MAX_EDC);
 		}else{
 			edc_age_counter[age_idx]--;
 		}
@@ -688,13 +697,16 @@ int staffetta_send_packet(void) {
             switch (node_energy_state)
             {
                 case NS_LOW:
-                    num_wakeups = MAX(1,(NS_ENERGY_LOW*10)/avg_rendezvous);
+                    // num_wakeups = MAX(1,( (NS_ENERGY_LOW/SCALE_FACTOR) * 10)/avg_rendezvous);
+                    num_wakeups = MAX(1,( (410) * 10)/avg_rendezvous);
                     break;
                 case NS_MID:
-                    num_wakeups = MAX(1,(NS_ENERGY_MID*10)/avg_rendezvous);
+                    // num_wakeups = MAX(1,( (NS_ENERGY_MID/SCALE_FACTOR) * 10)/avg_rendezvous);
+                    num_wakeups = MAX(1,( (750) * 10)/avg_rendezvous);
                     break;
                 case NS_HIGH:
-                    num_wakeups = MAX(1,(NS_ENERGY_HIGH*10)/avg_rendezvous);
+                    // num_wakeups = MAX(1,( (NS_ENERGY_HIGH/SCALE_FACTOR) * 10)/avg_rendezvous);
+                    num_wakeups = MAX(1,( (2461) * 10)/avg_rendezvous);
                     break;
             }
 #else
@@ -930,8 +942,10 @@ int staffetta_send_packet(void) {
 	    current_state = idle;
 	    //Clear average buffer
 #if ENERGY_HARV
-        for (i=0;i<AVG_SIZE;i++) rendezvous[i]=NS_ENERGY_LOW;
-        rendezvous_sum = NS_ENERGY_LOW*AVG_SIZE;
+// for (i=0;i<AVG_SIZE;i++) rendezvous[i]= (NS_ENERGY_LOW / SCALE_FACTOR);
+    for (i=0;i<AVG_SIZE;i++) rendezvous[i] = 410;
+    // rendezvous_sum = (NS_ENERGY_LOW / SCALE_FACTOR) * AVG_SIZE;
+        rendezvous_sum = 410 * AVG_SIZE;
 #else
 	    for (i=0;i<AVG_SIZE;i++) rendezvous[i]=BUDGET;
 	    rendezvous_sum = BUDGET*AVG_SIZE;

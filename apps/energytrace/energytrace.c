@@ -142,8 +142,8 @@ static long voltage = 3;
 
 /* Remaining energy (uJ) */
 uint32_t remaining_energy = ENERGY_INITIAL;
-uint32_t harvesting_rate_array[5] = {0,0,0,0,0};
-uint8_t harvesting_array_index = 0;
+uint32_t harvesting_rate_array[10] = {0,0,0,0,0,0,0,0,0,0};
+static uint8_t harvesting_array_index = 0;
 uint32_t acum_consumption = 0;
 uint32_t acum_harvest = 0;
 
@@ -176,6 +176,7 @@ uint8_t context_trigger(void)
 		time_thld = 1;
 	}
 	hr = get_harvesting_rate();
+	// hr = hr / 100;
 	if ( (abs( hr - last_hr) > hr_threshold) && time_thld == 1 )
 	{
 		time_hr = time_now;
@@ -209,19 +210,19 @@ int read_lines(char message[MESSAGE_SIZE], uint16_t lines, uint8_t solarNoMover)
   clean_message(string_buffer);
   clean_message(message);
 
-#ifdef MODEL_SOLAR
-  if (solarNoMover == 1){fd_read = fd_read_solar;}
-#endif
-
-#ifdef MODEL_MOVER
-  if (solarNoMover == 0){fd_read = fd_read_mover;}
-#endif
+// #ifdef MODEL_SOLAR
+//   if (solarNoMover == 1){fd_read = fd_read_solar;}
+// #endif
+//
+// #ifdef MODEL_MOVER
+//   if (solarNoMover == 0){fd_read = fd_read_mover;}
+// #endif
 
   if(fd_read != -1)
   {
     do
     {
-      bytes_read = cfs_read(fd_read, char_buffer, sizeof(char));
+      bytes_read = cfs_read(fd_read_solar, char_buffer, sizeof(char));
       if (bytes_read > 0)
       {
         string_buffer[idx] = char_buffer[0];
@@ -256,6 +257,7 @@ uint8_t init_solar_file()
 	rnd = random_rand() % 1500;
 //    cfs_coffee_format();
 	fd_read_solar = cfs_open("cfs_file.txt", CFS_READ);
+	// fd_read_solar = cfs_open("cfs_file_x100.txt", CFS_READ);
   	if(fd_read_solar != -1)
 	{
 		cfs_seek(fd_read_solar, rnd, CFS_SEEK_SET);
@@ -269,9 +271,9 @@ uint8_t init_solar_file()
 
 uint32_t get_solar_energy(void)
 {
-  	int bytes_read = 0;
-  	char message[MESSAGE_SIZE];
-  	uint32_t result;
+	int bytes_read = 0;
+	char message[MESSAGE_SIZE];
+	uint32_t result;
 	bytes_read = read_lines( message, 1, 1 );
 	if (bytes_read > 0)
 	{
@@ -366,7 +368,7 @@ inline long tx_current_consumption(uint8_t tx_level)
 }
 
 PROCESS(energytrace_process, "Periodic energy output");
-PROCESS(energytrace_process_print, "Periodic energy output print");
+// PROCESS(energytrace_process_print, "Periodic energy output print");
 /*---------------------------------------------------------------------------*/
 
 
@@ -448,52 +450,48 @@ PROCESS_THREAD(energytrace_process, ev, data)
 
 /*EGB---------------------------------------------------------------------------*/
 
-		if (node_state == NODE_ACTIVE && remaining_energy < (uint32_t)ENERGY_LOWER_THRESHOLD)
-		{
-			node_state = NODE_INACTIVE;
-		}
-		else if (node_state == NODE_INACTIVE && remaining_energy > (uint32_t)ENERGY_UPPER_THRESHOLD)
-		{
-			node_state = NODE_ACTIVE;
-		}
+		// if (node_state == NODE_ACTIVE && remaining_energy < (uint32_t)ENERGY_LOWER_THRESHOLD)
+		// {
+		// 	node_state = NODE_INACTIVE;
+		// }
+		// else if (node_state == NODE_INACTIVE && remaining_energy > (uint32_t)ENERGY_UPPER_THRESHOLD)
+		// {
+		// 	node_state = NODE_ACTIVE;
+		// }
 
 
 		if (node_class == NODE_SOLAR)
 		{
 #ifdef MODEL_SOLAR
-//            rtimer_clock_t t2;
-//			t2 = RTIMER_NOW ();
-//			rd = solar_energy_input(RTIMER_NOW () ,1); //TODO Validate
-
 //			rd = solar_energy_input(1); //TODO Validate
-
-            rd = get_solar_energy();
+			rd = 0;
+    	rd = get_solar_energy();
 
 #else
 #if FIXED_ENERGY_STEP
-			    rd = ENERGY_HARVEST_STEP_SOLAR;
+			  rd = ENERGY_HARVEST_STEP_SOLAR;
 #else
 				rd = random_rand() % 100;
 				rd = rd * 2 * ENERGY_HARVEST_STEP_SOLAR;
-				rd = rd / 100;
+				// rd = rd / 100;
 				rd = rd * 0.85;
+				// rd = rd * SCALE_FACTOR;
 #endif /*FIXED_ENERGY_STEP*/
 #endif /*MODEL_SOLAR*/
 
 			harvesting_rate_array[harvesting_array_index] = rd;
 			harvesting_array_index++;
-			if (harvesting_array_index > 4){ harvesting_array_index = 0;}
+			if (harvesting_array_index > 9){ harvesting_array_index = 0;}
 
 			// if ((uint32_t)ENERGY_MAX_CAPACITY_SOLAR - remaining_energy < (uint32_t)rd )
 			if ( (remaining_energy + rd) > (uint32_t)ENERGY_MAX_CAPACITY_SOLAR )
 			{
-                acum_harvest += (uint32_t)ENERGY_MAX_CAPACITY_SOLAR - remaining_energy;
-//				acum_harvest +=  ( remaining_energy + (uint32_t)rd ) - (uint32_t)ENERGY_MAX_CAPACITY_SOLAR;
+      	acum_harvest += ((uint32_t)ENERGY_MAX_CAPACITY_SOLAR - remaining_energy);
 				remaining_energy = (uint32_t)ENERGY_MAX_CAPACITY_SOLAR;
 			}
 			else
 			{
-				remaining_energy = remaining_energy + rd;
+				remaining_energy += rd;
 				acum_harvest += rd;
 			}
 
@@ -505,18 +503,20 @@ PROCESS_THREAD(energytrace_process, ev, data)
 #else
 			rd = random_rand() % 100;
 			rd = rd * 2 * ENERGY_HARVEST_STEP_MOVER;
-			rd = rd / 100;
+			// rd = rd / 100;
+			// rd = rd * SCALE_FACTOR;
+
 #endif /*MODEL_MOVER*/
 
 			harvesting_rate_array[harvesting_array_index] = rd;
 			harvesting_array_index++;
-			if (harvesting_array_index > 4){ harvesting_array_index = 0;}
+			if (harvesting_array_index > 9){ harvesting_array_index = 0;}
 
 			// if ((uint32_t)ENERGY_MAX_CAPACITY_MOVER - remaining_energy < (uint32_t)rd )
 			if ( (remaining_energy + rd) > (uint32_t)ENERGY_MAX_CAPACITY_MOVER )
 			{
 //				acum_harvest += (uint32_t)ENERGY_MAX_CAPACITY_MOVER - (remaining_energy + (uint32_t)rd);
-                acum_harvest +=  (uint32_t)ENERGY_MAX_CAPACITY_MOVER - remaining_energy;
+        acum_harvest +=  ((uint32_t)ENERGY_MAX_CAPACITY_MOVER - remaining_energy);
 				remaining_energy = (uint32_t)ENERGY_MAX_CAPACITY_MOVER;
 
 			}
@@ -547,16 +547,17 @@ PROCESS_THREAD(energytrace_process, ev, data)
 		staffetta_get_energy_consumption(&rxtx_time);
 
 		tx_level = cc2420_get_txpower();
-        energy_rxtx = voltage * tx_current_consumption(tx_level) * rxtx_time / 1000 / 10;
-
+    // energy_rxtx = voltage * tx_current_consumption(tx_level) * rxtx_time / 1000 / 10;
+		energy_rxtx = voltage * tx_current_consumption(tx_level) * rxtx_time / 1000 / 10; //SCALE_FACTOR
+		energy_rxtx = energy_rxtx * SCALE_FACTOR;
 		if (remaining_energy > energy_rxtx)
 		{
-		    acum_consumption += energy_rxtx;
+	    acum_consumption += energy_rxtx;
 			remaining_energy -= energy_rxtx;
 		}
 		else
 		{
-            acum_consumption += remaining_energy;
+      acum_consumption += remaining_energy;
 			remaining_energy = 0;
 		}
 #else
@@ -572,9 +573,9 @@ PROCESS_THREAD(energytrace_process, ev, data)
 
 
 
-            compute_node_state();
-            compute_node_duty_cycle();
-            compute_harvesting_rate();
+    compute_node_state();
+    compute_node_duty_cycle();
+    compute_harvesting_rate();
 
 
 #if ADAPTIVE_PACKET_CREATION
@@ -589,128 +590,128 @@ PROCESS_THREAD(energytrace_process, ev, data)
 
 
 
-void
-energytrace_print(char *str)
-{
-	static uint32_t last_cpu, last_lpm, last_transmit, last_listen;
+// void
+// energytrace_print(char *str)
+// {
+// 	static uint32_t last_cpu, last_lpm, last_transmit, last_listen;
+//
+// 	uint32_t cpu, lpm, transmit, listen;
+// 	uint32_t all_cpu, all_lpm, all_transmit, all_listen;
+//
+//
+// 	uint8_t tx_level;
+// 	long tx_energy, rx_energy;
+// 	static uint32_t all_tx_consumed, all_rx_consumed;
+//
+// 	static uint32_t seqno;
+//
+// 	energest_flush();
+//
+// 	all_cpu = energest_type_time(ENERGEST_TYPE_CPU);
+// 	all_lpm = energest_type_time(ENERGEST_TYPE_LPM);
+// 	all_transmit = energest_type_time(ENERGEST_TYPE_TRANSMIT);
+// 	all_listen = energest_type_time(ENERGEST_TYPE_LISTEN);
+//
+// 	cpu = all_cpu - last_cpu;
+// 	lpm = all_lpm - last_lpm;
+//
+// 	/* tx and rx  (in ticks) */
+// 	if (remaining_energy > 0) {
+// 		transmit = all_transmit - last_transmit;
+// 		listen = all_listen - last_listen;
+// 	} else {
+// 		transmit = 0;
+// 		listen = 0;
+// 	}
+//
+//
+// 	tx_level = cc2420_get_txpower();
+//
+// 	/* Energy (uJ) = v (V) * current (mA) * time (us) / 1000 */
+// 	/* divide by 10 means scale down current value (eliminating the `dot') */
+// 	long tx_time_us = 1000 * ((1000 * transmit) / TMOTE_ARCH_SECOND);
+// 	long rx_time_us = 1000 * ((1000 * listen) / TMOTE_ARCH_SECOND);
+// 	// long tx_time_us = 1000 * transmit / TMOTE_ARCH_SECOND;
+// 	// long rx_time_us = 1000 * listen / TMOTE_ARCH_SECOND;
+// 	tx_energy = voltage * tx_current_consumption(tx_level) * tx_time_us / 1000 / 10;
+// 	rx_energy = voltage * rx_current_consumption * rx_time_us / 1000 / 10;
+//
+// 	// printf("tx_energy %ld, rx_energy %ld\n",tx_energy,rx_energy );
+// 	if ( (uint32_t)tx_energy >= remaining_energy)
+// 	{
+// 		remaining_energy = 0;
+// 	}
+// 	else
+// 	{
+// 		remaining_energy = remaining_energy - (uint32_t)tx_energy;
+// 	}
+//
+// 	if ( (uint32_t)rx_energy >= remaining_energy)
+// 	{
+// 		remaining_energy = 0;
+// 	}
+// 	else
+// 	{
+// 		remaining_energy = remaining_energy - (uint32_t)rx_energy;
+// 	}
+//
+//
+// 	// remaining_energy = MAX(remaining_energy - tx_energy, 0);
+// 	// remaining_energy = MAX(remaining_energy - rx_energy, 0);
+//
+// 	all_tx_consumed += tx_energy;
+// 	all_rx_consumed += rx_energy;
+// 	// printf("DEBUG: tx_time_us: %lu, voltage: %lu, tx_current: %lu, tx_energy: %lu\n", tx_time_us, voltage, tx_current_consumption(tx_level), tx_energy);
+//
+// #if SHOW_ENERGY_INFO
+// 	// printf("INFO: energy, level: %d, remaining_energy(uJ): %u, transmit(us): %lu, listen(us): %lu, tx_energy(uJ): %lu, rx_energy(uJ): %lu, all_tx_consumed(uJ): %ld, all_rx_consumed(uJ): %lu,  harvest_state: %d\n",
+// 	      //  tx_level,
+// 	      //  remaining_energy,
+// 	      //  tx_time_us,
+// 	      //  rx_time_us,
+// 	      //  tx_energy,
+// 	      //  rx_energy,
+// 	      //  all_tx_consumed,
+// 	      //  all_rx_consumed,
+// 	      //  harvest_state
+// 	      // );
+//
+// #endif
+//
+// 	last_cpu = energest_type_time(ENERGEST_TYPE_CPU);
+// 	last_lpm = energest_type_time(ENERGEST_TYPE_LPM);
+// 	last_transmit = energest_type_time(ENERGEST_TYPE_TRANSMIT);
+// 	last_listen = energest_type_time(ENERGEST_TYPE_LISTEN);
+//
+// 	seqno++;
+// }
 
-	uint32_t cpu, lpm, transmit, listen;
-	uint32_t all_cpu, all_lpm, all_transmit, all_listen;
-
-
-	uint8_t tx_level;
-	long tx_energy, rx_energy;
-	static uint32_t all_tx_consumed, all_rx_consumed;
-
-	static uint32_t seqno;
-
-	energest_flush();
-
-	all_cpu = energest_type_time(ENERGEST_TYPE_CPU);
-	all_lpm = energest_type_time(ENERGEST_TYPE_LPM);
-	all_transmit = energest_type_time(ENERGEST_TYPE_TRANSMIT);
-	all_listen = energest_type_time(ENERGEST_TYPE_LISTEN);
-
-	cpu = all_cpu - last_cpu;
-	lpm = all_lpm - last_lpm;
-
-	/* tx and rx  (in ticks) */
-	if (remaining_energy > 0) {
-		transmit = all_transmit - last_transmit;
-		listen = all_listen - last_listen;
-	} else {
-		transmit = 0;
-		listen = 0;
-	}
-
-
-	tx_level = cc2420_get_txpower();
-
-	/* Energy (uJ) = v (V) * current (mA) * time (us) / 1000 */
-	/* divide by 10 means scale down current value (eliminating the `dot') */
-	long tx_time_us = 1000 * ((1000 * transmit) / TMOTE_ARCH_SECOND);
-	long rx_time_us = 1000 * ((1000 * listen) / TMOTE_ARCH_SECOND);
-	// long tx_time_us = 1000 * transmit / TMOTE_ARCH_SECOND;
-	// long rx_time_us = 1000 * listen / TMOTE_ARCH_SECOND;
-	tx_energy = voltage * tx_current_consumption(tx_level) * tx_time_us / 1000 / 10;
-	rx_energy = voltage * rx_current_consumption * rx_time_us / 1000 / 10;
-
-	// printf("tx_energy %ld, rx_energy %ld\n",tx_energy,rx_energy );
-	if ( (uint32_t)tx_energy >= remaining_energy)
-	{
-		remaining_energy = 0;
-	}
-	else
-	{
-		remaining_energy = remaining_energy - (uint32_t)tx_energy;
-	}
-
-	if ( (uint32_t)rx_energy >= remaining_energy)
-	{
-		remaining_energy = 0;
-	}
-	else
-	{
-		remaining_energy = remaining_energy - (uint32_t)rx_energy;
-	}
-
-
-	// remaining_energy = MAX(remaining_energy - tx_energy, 0);
-	// remaining_energy = MAX(remaining_energy - rx_energy, 0);
-
-	all_tx_consumed += tx_energy;
-	all_rx_consumed += rx_energy;
-	// printf("DEBUG: tx_time_us: %lu, voltage: %lu, tx_current: %lu, tx_energy: %lu\n", tx_time_us, voltage, tx_current_consumption(tx_level), tx_energy);
-
-#if SHOW_ENERGY_INFO
-	// printf("INFO: energy, level: %d, remaining_energy(uJ): %u, transmit(us): %lu, listen(us): %lu, tx_energy(uJ): %lu, rx_energy(uJ): %lu, all_tx_consumed(uJ): %ld, all_rx_consumed(uJ): %lu,  harvest_state: %d\n",
-	      //  tx_level,
-	      //  remaining_energy,
-	      //  tx_time_us,
-	      //  rx_time_us,
-	      //  tx_energy,
-	      //  rx_energy,
-	      //  all_tx_consumed,
-	      //  all_rx_consumed,
-	      //  harvest_state
-	      // );
-
-#endif
-
-	last_cpu = energest_type_time(ENERGEST_TYPE_CPU);
-	last_lpm = energest_type_time(ENERGEST_TYPE_LPM);
-	last_transmit = energest_type_time(ENERGEST_TYPE_TRANSMIT);
-	last_listen = energest_type_time(ENERGEST_TYPE_LISTEN);
-
-	seqno++;
-}
-
-PROCESS_THREAD(energytrace_process_print, ev, data)
-{
-	static struct etimer periodic2;
-	clock_time_t *period2;
-
-	PROCESS_BEGIN();
-	period2 = data;
-
-	if (period2 == NULL) {
-		PROCESS_EXIT();
-	}
-	etimer_set(&periodic2, *period2);
-
-	while (1) {
-		PROCESS_WAIT_UNTIL(etimer_expired(&periodic2));
-		etimer_reset(&periodic2);
-//		energytrace_print("");
-	}
-	PROCESS_END();
-}
+// PROCESS_THREAD(energytrace_process_print, ev, data)
+// {
+// 	static struct etimer periodic2;
+// 	clock_time_t *period2;
+//
+// 	PROCESS_BEGIN();
+// 	period2 = data;
+//
+// 	if (period2 == NULL) {
+// 		PROCESS_EXIT();
+// 	}
+// 	etimer_set(&periodic2, *period2);
+//
+// 	while (1) {
+// 		PROCESS_WAIT_UNTIL(etimer_expired(&periodic2));
+// 		etimer_reset(&periodic2);
+// //		energytrace_print("");
+// 	}
+// 	PROCESS_END();
+// }
 
 void
 energytrace_start(void)
 {
 	clock_time_t period = CLOCK_SECOND / 100; //Adapt period to a smaller scale (1us) &EGB
-	clock_time_t long_period = CLOCK_SECOND * 5;
+	// clock_time_t long_period = CLOCK_SECOND * 5;
 	process_start(&energytrace_process, (void *)&period);
 //	process_start(&energytrace_process_print, (void *)&long_period);
 }

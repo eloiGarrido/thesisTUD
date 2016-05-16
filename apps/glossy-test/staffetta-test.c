@@ -38,8 +38,8 @@ PROCESS_THREAD(staffetta_print_stats_process, ev, data){
         }
         etimer_set(&et,CLOCK_SECOND*1);
         counter = counter + 1;
-        if (counter >= 25){
-            printf("6|%d|%lu|%d|%lu|%lu\n", node_energy_state, remaining_energy, harvesting_rate, acum_consumption, acum_harvest);
+        if (counter >= 15){
+            printf("6|%d|%lu|%lu|%lu|%lu\n", node_energy_state, remaining_energy, harvesting_rate, acum_consumption, acum_harvest);
             acum_consumption = 0; // Reset acumulative values
             acum_harvest = 0;
             counter = 0;
@@ -56,7 +56,7 @@ PROCESS_THREAD(staffetta_print_stats_process, ev, data){
         staffetta_add_data(round_stats++);
 
         etimer_set(&et,CLOCK_SECOND * 1 + (random_rand()%(CLOCK_SECOND*60)));
-        printf("6|%d|%lu|%d|%lu|%lu\n", node_energy_state, remaining_energy, harvesting_rate, acum_consumption, acum_harvest);
+        printf("6|%d|%lu|%d|%lu|%lu\n", node_energy_state, remaining_energy/SCALE_FACTOR, harvesting_rate/SCALE_FACTOR, acum_consumption/SCALE_FACTOR, acum_harvest/SCALE_FACTOR);
         acum_consumption = 0; // Reset acumulative values
         acum_harvest = 0;
         PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
@@ -69,8 +69,8 @@ PROCESS_THREAD(staffetta_print_stats_process, ev, data){
         staffetta_add_data(round_stats++);
 
         etimer_set(&et,CLOCK_SECOND*10);
-        printf("6|%d|%lu|%d|%lu|%lu\n", node_energy_state, remaining_energy, harvesting_rate, acum_consumption, acum_harvest);
-        acum_consumption = 0; // Reset acumulative values 
+        printf("6|%d|%lu|%d|%lu|%lu\n", node_energy_state, remaining_energy/SCALE_FACTOR, harvesting_rate/SCALE_FACTOR, acum_consumption/SCALE_FACTOR, acum_harvest/SCALE_FACTOR);
+        acum_consumption = 0; // Reset acumulative values
         acum_harvest = 0;
         PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
     }
@@ -114,8 +114,10 @@ PROCESS_THREAD(staffetta_test, ev, data){
 #if ENERGY_HARV
         if (node_energy_state != NS_ZERO){
             timer_on = RTIMER_NOW();
+            // timer_on = clock_time();
             staffetta_result = staffetta_send_packet();
             timer_off = RTIMER_NOW();
+            // timer_off = clock_time();
              printf("9|%lu\n",timer_on); //Flag when the node turns on
              printf("10|%lu\n",timer_off); //Notify when a node goes to sleep
             //printf("11|%u\n", staffetta_result);
@@ -141,4 +143,3 @@ PROCESS_THREAD(staffetta_test, ev, data){
 
     PROCESS_END();
 }
-

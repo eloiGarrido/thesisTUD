@@ -14,8 +14,8 @@ from operator import add
 Log Converter
 convert Cooja results into statistical data and graphs
 '''
-env = 'uni'
-# env = 'home'
+# env = 'uni'
+env = 'home'
 repeated = True
 # simulation = 'orig'
 simulation = 'eh'
@@ -105,6 +105,10 @@ class LogConverter(object):
         self.generate_graphs()
         try:
             # shutil.copy( general_path + "COOJA.testlog", file_path )
+            print('>>>> Moving File <<<<')
+            print(general_path)
+            print(filename)
+            print(file_path)
             shutil.copy( general_path + filename, file_path )
 
         except:
@@ -409,7 +413,7 @@ class LogConverter(object):
             print(float(self.nodes[i]['no_energy']))
             print(float(total_count))
             print('------------')
-            plt.annotate( str( int(100.0 * (float(self.nodes[i]['no_energy']) / float(total_count))) ) + '%', xy=(i, 0))
+            plt.annotate( str( (100.0 * float(self.nodes[i]['no_energy'])) / float(total_count) ) + '%', xy=(i, 0))
         self.format_figure('Node dead times', 'Node', 'Occurrences', 'node_dead_times')
 
 
@@ -513,12 +517,6 @@ class LogConverter(object):
             avg.append(0.0)
 
         for i in range (1, self.number_of_nodes):
-            # for j in range (0, len(self.nodes[i]['remaining_energy'])):
-            #     try:
-            #         avg[j] += float(self.nodes[i]['remaining_energy'][j]) / float(self.number_of_nodes - 1)
-            #     except:
-            #         avg.append(float(self.nodes[i]['remaining_energy'][j]) / float(self.number_of_nodes - 1))
-        # plt.plot(avg)
             plt.plot((self.nodes[i]['remaining_energy']) )
         self.format_figure('Node Energy Overview','Time', 'Energy', 'node_energy_overview')
         return
@@ -535,7 +533,7 @@ class LogConverter(object):
         node_acum_harv = []
         node_acum_cons = []
         for i in range (1, self.number_of_nodes):
-            node_acum_harv.append( (sum(self.nodes[i]['accum_harvest']) ) / 1000 + 18) #Initial energy add as harvested
+            node_acum_harv.append( (sum(self.nodes[i]['accum_harvest']) ) / 1000) #Initial energy add as harvested
             node_acum_cons.append( (sum(self.nodes[i]['accum_consumption'])) / 1000)
 
         rects1 = plt.bar(index, node_acum_harv, bar_width,
@@ -559,7 +557,7 @@ class LogConverter(object):
 
         plt.tight_layout()
         plt.draw()
-        plt.savefig(file_path + 'node_energy_total')
+        plt.savefig(file_path+'node_energy_total.eps', format='eps')
         return
 
     def print_energy_bar(self):

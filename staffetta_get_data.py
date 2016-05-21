@@ -330,6 +330,7 @@ class LogConverter(object):
         elif msg_type == 8: #Packet path (Node)
             self.nodes[id-1]['pkt'].append(msg[3] + ',' + msg[4] + ',' + msg[5] + ',' + msg[6] + ',' + str(time))
         elif msg_type == 9: #Node goes OFF
+            self.nodes[id-1]['time_on'].append(float(msg[3]))
             self.nodes[id-1]['time_off'].append(float(msg[3]))
             self.nodes[id-1]['abs_time_off'].append(time)
         elif msg_type == 10:#Node goes ON

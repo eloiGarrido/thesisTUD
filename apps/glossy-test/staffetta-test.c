@@ -56,7 +56,7 @@ PROCESS_THREAD(staffetta_print_stats_process, ev, data){
         staffetta_add_data(round_stats++);
 
         etimer_set(&et,CLOCK_SECOND * 1 + (random_rand()%(CLOCK_SECOND*60)));
-        printf("6|%d|%lu|%d|%lu|%lu\n", node_energy_state, remaining_energy/SCALE_FACTOR, harvesting_rate/SCALE_FACTOR, acum_consumption/SCALE_FACTOR, acum_harvest/SCALE_FACTOR);
+        printf("6|%d|%lu|%d|%lu|%lu\n", node_energy_state, remaining_energy, harvesting_rate, acum_consumption, acum_harvest);
         acum_consumption = 0; // Reset acumulative values
         acum_harvest = 0;
         PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
@@ -69,7 +69,7 @@ PROCESS_THREAD(staffetta_print_stats_process, ev, data){
         staffetta_add_data(round_stats++);
 
         etimer_set(&et,CLOCK_SECOND*10);
-        printf("6|%d|%lu|%d|%lu|%lu\n", node_energy_state, remaining_energy/SCALE_FACTOR, harvesting_rate/SCALE_FACTOR, acum_consumption/SCALE_FACTOR, acum_harvest/SCALE_FACTOR);
+        printf("6|%d|%lu|%lu|%lu|%lu\n", node_energy_state, remaining_energy, harvesting_rate, acum_consumption, acum_harvest);
         acum_consumption = 0; // Reset acumulative values
         acum_harvest = 0;
         PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));

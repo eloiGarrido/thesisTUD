@@ -14,7 +14,7 @@
 
 #define STAFFETTA_ENERGEST 	1
 #define COFFEE_FILE_SYSTEM
-// #define SCALE_FACTOR 100
+#define SCALE_FACTOR 100
 // #define FIXED_ENERGY_STEP  	1
 
 /* choose energy harvesting model */

@@ -286,10 +286,10 @@ int staffetta_send_packet(void) {
     uint8_t strobe[STAFFETTA_PKT_LEN+3];
     uint8_t strobe_ack[STAFFETTA_PKT_LEN+3];
     uint8_t select[STAFFETTA_PKT_LEN+3];
-    uint8_t footer[2];
+    // uint8_t footer[2];
     int i,collisions,strobes,bytes_read;
 
-    int is_present = 0;
+    // int is_present = 0;
     //prepare strobe_ack packet
     strobe_ack[PKT_LEN] = STAFFETTA_PKT_LEN+FOOTER_LEN;
     strobe_ack[PKT_SRC] = node_id;

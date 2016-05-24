@@ -14,8 +14,8 @@ from operator import add
 Log Converter
 convert Cooja results into statistical data and graphs
 '''
-env = 'uni'
-# env = 'home'
+# env = 'uni'
+env = 'home'
 repeated = True
 # simulation = 'orig'
 simulation = 'eh'
@@ -25,7 +25,7 @@ model = 'solar'
 energy = 'energest'
 # energy = 'noEnergest'
 RV = '10k'
-nodes = '11'
+nodes = '16'
 duration = '20min'
 age = 'slow4Age'
 # age = 'noAge'

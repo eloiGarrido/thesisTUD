@@ -17,6 +17,7 @@ convert Cooja results into statistical data and graphs
 # env = 'uni'
 env = 'home'
 repeated = True
+dropbox = False
 # simulation = 'orig'
 simulation = 'eh'
 model = 'solar'
@@ -26,22 +27,23 @@ energy = 'energest'
 # energy = 'noEnergest'
 RV = '10k'
 nodes = '16'
-duration = '20min'
+duration = '30min'
 age = 'slow4Age'
 # age = 'noAge'
 # simulation_name = "repeated_" + str(simulation) + "_" + str(env) + "_" + str(model) + "_" + str(age) + "_" + str(energy) + "_" + str(RV) + "_" + str(nodes) + "_" + str(duration)
-simulation_name = "rep_" + str(simulation) + "_" + str(env) + "_" + str(model)  + "_" + str(nodes) + "_" + str(duration)
-
-
-
-
+# simulation_name = "rep_" + str(simulation) + "_" + str(env) + "_" + str(model)  + "_" + str(nodes) + "_" + str(duration)
+simulation_name = 'sim3_11' + str(simulation) + '_' + str(duration) + '_' + '_uni'
+output_array = []
 
 file_path = ""
 if env == 'uni':
     if ( repeated == True):
         general_path = "/home/egarrido/"
+    elif (dropbox == True):
+        general_path = "/home/egarrido/Dropbox/thesisTUDelft/21_05_sim1_16n/"
     else:
         general_path = "/home/egarrido/contiki/tools/cooja/build/"
+
 
     if simulation == 'orig':
         file_path = "/home/egarrido/staffetta_sensys2015/eh_staffetta/results/original/" + simulation_name
@@ -75,6 +77,7 @@ while not_created == 0:
 class LogConverter(object):
 
     def __init__(self, filename, number_of_nodes):
+        simulation = filename
         self.nodes = []
         self.number_of_nodes = number_of_nodes
 
@@ -110,7 +113,8 @@ class LogConverter(object):
             print(general_path)
             print(filename)
             print(file_path)
-            shutil.copy( general_path + filename, file_path )
+            # Copy simulation file into folder
+            # shutil.copy( general_path + filename, file_path )
 
         except:
             print ('>> Error when moving COOJA.testlog')
@@ -123,14 +127,19 @@ class LogConverter(object):
             self.nodes.append({'id':i, 'node_state': [], 'no_energy': 0, 'time5': [], 'accum_harvest':[], 'accum_consumption' :[],'rv_time':[], 'time2':[], 'time3':[], 'time4':[], 'time6':[], 'time_on': [], 'time_off': [], 'abs_time_off': [], 'pkt':[], 'num_wakeups':[], 'on_time': [], 'avg_edc':[], 'seq':[], 'node_energy_state':[], 'remaining_energy':[], 'harvesting_rate':[]})
 
 #--------------------------- Output Functions ---------------------------#
-#TODO Create a function to output each type of file data
     def output_energy_values(self, filename):
         txt_name = str(filename)
 
         with open(txt_name, 'w') as fp:
             fp.write('\n'.join(self.output))
 
-
+    def output_results (self, information):
+        print (information)
+        txt_name = file_path +  "results_out.txt"
+        with open(txt_name, 'w') as fp_out:
+            for i in range (0, len(information)):
+                fp_out.write(str(information[i])+"\n")
+        fp_out.close()
 
     def output_file(self, element, filename, num):
         if num == 1:
@@ -409,13 +418,25 @@ class LogConverter(object):
     def print_dead_node(self):
         print ('>> Printing dead occurrences...')
         plt.figure()
+        dead_node_avg = 0.0
+        counter = 0
         for i in range (1, self.number_of_nodes-1):
             total_count = len(self.nodes[i]['time_on']) + int(self.nodes[i]['no_energy'])
             plt.bar(i,self.nodes[i]['no_energy'], align='center')
             print(float(self.nodes[i]['no_energy']))
             print(float(total_count))
             print('------------')
+            counter = counter + 1
+            dead_node_avg += (100.0 * float(self.nodes[i]['no_energy'])) / float(total_count)
             plt.annotate( str( (100.0 * float(self.nodes[i]['no_energy'])) / float(total_count) ) + '%', xy=(i, 0))
+        # Compute average dead nodes
+        dead_node_avg = dead_node_avg / counter
+        # Print average
+        plt.axhline(dead_node_avg, color='r')
+        # Save data to outputfile
+        string_t = 'avg_node_dead:' + str(dead_node_avg)
+        output_array.append(string_t)
+
         self.format_figure('Node dead times', 'Node', 'Occurrences', 'node_dead_times')
 
 
@@ -447,7 +468,9 @@ class LogConverter(object):
 
         plt.axhline(int(acum), color='r')
         plt.annotate(acum, xy=(self.number_of_nodes-2,int(acum) + 0.5))
-
+        # Add delay to output file
+        string_t = 'avg_delay:' + str(int(acum))
+        output_array.append(string_t)
 
         self.format_figure('Node average delay','Node', 'Delay', 'node_delay')
 
@@ -492,6 +515,9 @@ class LogConverter(object):
                 plt.bar(i+1, 0 ,align='center')
         plt.axhline( sum(drop_pkt) / sum(total_pkt), color='r' )
         plt.annotate(str(sum(drop_pkt) / sum(total_pkt)), xy=(self.number_of_nodes-2 , (sum(drop_pkt) / sum(total_pkt)) + 0.05))
+        # Output data
+        string_t = 'drop_ratio:' + str(sum(drop_pkt) / sum(total_pkt))
+        output_array.append(string_t)
 
         self.format_figure('Node packet drop ratio', 'Node', 'Packet Dropped', 'packet_drop')
 
@@ -597,6 +623,9 @@ class LogConverter(object):
         avg = float(sum(avg_state)) / float(self.number_of_nodes - 1)
         plt.axhline(avg, color='r')
         plt.annotate(str(avg), xy=(self.number_of_nodes-2, 0 ))
+        # Output file
+        string_t = 'node_state:' + str(avg)
+        output_array.append(string_t)
         self.format_figure('Node State','Time', 'State', 'node_state_bar')
         return
 
@@ -651,6 +680,9 @@ class LogConverter(object):
         avg = float(sum(avg_wup)) / float(self.number_of_nodes -1)
         plt.axhline(avg, color='r')
         plt.annotate(str(avg), xy=(self.number_of_nodes-2, avg+0.5))
+        # Output file
+        string_t = 'wakeups:' + str(avg)
+        output_array.append(string_t)
         self.format_figure('Node Number of Wake-ups','Time', 'Wake-ups', 'wakeups')
         return
 
@@ -718,7 +750,8 @@ class LogConverter(object):
         self.print_dead_node()
         # except:
             # print ('>> ERROR on print_dead_node')
-        plt.show()
+        # plt.show()
+        self.output_results(output_array)
         return
 
 #--------------------------- Main Function ---------------------------#

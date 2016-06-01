@@ -340,7 +340,7 @@ class LogConverter(object):
             self.nodes[id-1]['pkt'].append(msg[3] + ',' + msg[4] + ',' + msg[5] + ',' + msg[6] + ',' + str(time))
         elif msg_type == 9: #Node goes OFF
             self.nodes[id-1]['time_on'].append(float(msg[3]))
-            self.nodes[id-1]['time_off'].append(float(msg[3]))
+            self.nodes[id-1]['time_off'].append(float(msg[4]))
             self.nodes[id-1]['abs_time_off'].append(time)
         elif msg_type == 10:#Node goes ON
             self.nodes[id-1]['time_on'].append(float(msg[3]))
@@ -350,7 +350,18 @@ class LogConverter(object):
             self.nodes[id-1]['node_state'].append(int(msg[3]))
         elif msg_type == 14:
             self.nodes[id-1]['avg_edc'].append(int(msg[3]))
-
+        elif msg_type == 15:
+            self.nodes[id-1]['on_time'].append(msg[3])
+            self.nodes[id-1]['time3'].append(time)
+            self.nodes[id-1]['q_size'].append(int(msg[4]))
+            self.nodes[id-1]['avg_edc'].append(int(msg[5]))
+            self.nodes[id-1]['num_wakeups'].append(msg[6])
+            self.nodes[id-1]['time2'].append(time)
+        elif msg_type == 16:
+            self.nodes[id-1]['on_time'].append(msg[3])
+            self.nodes[id-1]['time3'].append(time)
+            self.nodes[id-1]['num_wakeups'].append(msg[4])
+            self.nodes[id-1]['time2'].append(time)
     def parse(self, line):
         '''
         Parse each line

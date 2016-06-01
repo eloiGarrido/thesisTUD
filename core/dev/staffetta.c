@@ -680,21 +680,15 @@ int staffetta_send_packet(void) {
 	    			edc_age_counter[edc_idx] = 2;
 		    	}
 #endif /*AGEING*/
-
           edc_idx = (edc_idx+1)%AVG_EDC_SIZE;
           edc_sum = 0;
           for (i=0;i<AVG_EDC_SIZE;i++){
               edc_sum += edc[i];
           }
       }
-// #if EDC_WITH_RV
-//           	 avg_edc = MIN( ( (6 / node_energy_state) + (rendezvous_time/100) + (edc_sum/AVG_EDC_SIZE)), MAX_EDC); //limit to 255
-// #else
       avg_edc = MIN( (6 / node_energy_state) + (edc_sum / AVG_EDC_SIZE ), MAX_EDC);
-// #endif /*EDC_WITH_RV*/
 #else
-      if((rendezvous_time<RENDEZ_TIME) && (avg_edc > strobe_ack[PKT_GRADIENT])){
-
+      if ((rendezvous_time<RENDEZ_TIME) && (avg_edc > strobe_ack[PKT_GRADIENT])) {
 				edc[edc_idx] = strobe_ack[PKT_GRADIENT];
 				edc_idx = (edc_idx+1)%AVG_EDC_SIZE;
 				edc_sum = 0;
@@ -720,7 +714,8 @@ int staffetta_send_packet(void) {
                     break;
                 case NS_HIGH:
                     // num_wakeups = MAX(1,( (NS_ENERGY_HIGH/SCALE_FACTOR) * 10)/avg_rendezvous);
-                    num_wakeups = MAX(1,( (2461) * 10)/avg_rendezvous);
+                    // num_wakeups = MAX(1,( (2461) * 10)/avg_rendezvous);
+                    num_wakeups = MAX(1,( (1500) * 10)/avg_rendezvous);
                     break;
             }
 #else
@@ -899,9 +894,11 @@ int staffetta_send_packet(void) {
 	    elapsed_time = clock_time() * 1000 / CLOCK_SECOND;
 	    if (!(IS_SINK)){
 #if ORW_GRADIENT
-			printf("3|%ld\n",(on_time*1000)/elapsed_time);
-			printf("14|%ld\n",avg_edc);
-			printf("2|%ld\n",num_wakeups);
+			// printf("3|%ld|%d\n",(on_time*1000)/elapsed_time, q_size);
+			// printf("14|%ld\n",avg_edc);
+			// printf("2|%ld\n",num_wakeups);
+
+      printf("15|%ld|%d|%ld|%ld\n",(on_time*1000)/elapsed_time, q_size, avg_edc, num_wakeups );
 #else
 			printf("3|%ld|%d\n",(on_time*1000)/elapsed_time,q_size);
 #endif /*ORW_GRADIENT*/
@@ -919,8 +916,10 @@ int staffetta_send_packet(void) {
 	    elapsed_time = clock_time() * 1000 / CLOCK_SECOND;
 	    *rxtx_time = (on_time*1000) / elapsed_time;
         if (!(IS_SINK)){
-			printf("3|%ld\n",(on_time*1000)/elapsed_time);
-			printf("2|%ld\n",num_wakeups);
+			// printf("3|%ld\n",(on_time*1000)/elapsed_time);
+			// printf("2|%ld\n",num_wakeups);
+
+      printf("16|%ld|%ld\n",(on_time*1000)/elapsed_time, num_wakeups);
 		}
 #else
         static uint32_t last_rxtx;
@@ -930,8 +929,9 @@ int staffetta_send_packet(void) {
         rxtx_time_t = all_rxtx - last_rxtx;
         *rxtx_time = 1000 * ( (rxtx_time_t * 1000) / TMOTE_ARCH_SECOND);
         if (!(IS_SINK)){
-            printf("3|%ld\n", *rxtx_time);
-            printf("2|%ld\n",num_wakeups);
+            // printf("3|%ld\n", *rxtx_time);
+            // printf("2|%ld\n",num_wakeups);
+          printf("16|%ld|%ld\n",*rxtx_time, num_wakeups);
         }
         last_rxtx = energest_type_time(ENERGEST_TYPE_LISTEN) + energest_type_time(ENERGEST_TYPE_TRANSMIT);
 

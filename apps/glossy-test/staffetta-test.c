@@ -119,7 +119,7 @@ PROCESS_THREAD(staffetta_test, ev, data){
             timer_off = RTIMER_NOW();
             // timer_off = clock_time();
             //  printf("9|%lu\n",timer_on); //Flag when the node turns on
-             printf("9|%lu|%lu\n",timer_on,timer_off); //Notify when a node goes to sleep
+            printf("9|%lu|%lu\n",timer_on,timer_off); //Notify when a node goes to sleep
             //printf("11|%u\n", staffetta_result);
         } else { // Node did not have enough energy to operate
             printf("5\n");

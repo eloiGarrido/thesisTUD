@@ -22,8 +22,8 @@
 // #define NS_ENERGY_HIGH	2461	//24.61mJ * 1000 (Floating Point)
 #define NS_ENERGY_LOW	41000 	//4.1mJ * 1000 (Floating Point)
 #define NS_ENERGY_MID	75000
-#define NS_ENERGY_HIGH	246100	//24.61mJ * 1000 (Floating Point)
-
+// #define NS_ENERGY_HIGH 246100	//24.61mJ * 1000 (Floating Point)
+#define NS_ENERGY_HIGH 150000
 // #define NS_EH_LOW	410 	// 0.41 mW/s * 1000 (FP)
 // #define NS_EH_MID	1098 	// 0.41 mW/s * 1000 (FP)
 // #define NS_EH_HIGH	2461 	// 0.41 mW/s * 1000 (FP)
@@ -32,8 +32,9 @@
 // #define NS_EH_MID	110	// 0.41 mW/s * 1000 (FP)
 // #define NS_EH_HIGH	246	// 0.41 mW/s * 1000 (FP)
 #define NS_EH_LOW	4100	// 0.41 mW/s * 1000 (FP)
-#define NS_EH_MID	11000	// 0.41 mW/s * 1000 (FP)
-#define NS_EH_HIGH	24600	// 0.41 mW/s * 1000 (FP)
+#define NS_EH_MID	7500	// 0.41 mW/s * 1000 (FP)
+// #define NS_EH_HIGH 24600	// 0.41 mW/s * 1000 (FP)
+#define NS_EH_HIGH 15000	// 0.41 mW/s * 1000 (FP)
 
 #define DC_ZERO 0
 #define DC_LOW 	5 	// Duty Cycle 0.5% * 10

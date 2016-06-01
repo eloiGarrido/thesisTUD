@@ -124,7 +124,7 @@ class LogConverter(object):
         Create data structure,  array of dictionaries containing all node information
         '''
         for i in range (0, self.number_of_nodes):
-            self.nodes.append({'id':i, 'node_state': [], 'no_energy': 0, 'time5': [], 'accum_harvest':[], 'accum_consumption' :[],'rv_time':[], 'time2':[], 'time3':[], 'time4':[], 'time6':[], 'time_on': [], 'time_off': [], 'abs_time_off': [], 'pkt':[], 'num_wakeups':[], 'on_time': [], 'avg_edc':[], 'seq':[], 'node_energy_state':[], 'remaining_energy':[], 'harvesting_rate':[]})
+            self.nodes.append({'id':i, 'node_state': [],'q_size':[], 'no_energy': 0, 'time5': [], 'accum_harvest':[], 'accum_consumption' :[],'rv_time':[], 'time2':[], 'time3':[], 'time4':[], 'time6':[], 'time_on': [], 'time_off': [], 'abs_time_off': [], 'pkt':[], 'num_wakeups':[], 'on_time': [], 'avg_edc':[], 'seq':[], 'node_energy_state':[], 'remaining_energy':[], 'harvesting_rate':[]})
 
 #--------------------------- Output Functions ---------------------------#
     def output_energy_values(self, filename):

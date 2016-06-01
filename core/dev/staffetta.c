@@ -278,6 +278,19 @@ static void age_edc(){
 	}
 }
 #endif /*AGEING*/
+uint8_t find_worst_edc_entry () {
+  uint8_t i, idx;
+  uint8_t w_entry = 0;
+
+  for (i = 0; i < AVG_EDC_SIZE; i++) {
+    if ( edc[i] > w_entry ) {
+      w_entry = edc[i];
+      idx = i;
+    }
+    if (w_entry == MAX_EDC) { break;}
+  }
+  return idx;
+}
 
 /*--------------------------- STAFFETTA FUNCTIONS ------------------------------------------------*/
 
@@ -648,9 +661,10 @@ int staffetta_send_packet(void) {
 #if ORW_GRADIENT
 			// if the neighbor has a better EDC, add it to the average
 #if NEW_EDC
-            if( (rendezvous_time<RENDEZ_TIME) && (avg_edc > strobe_ack[PKT_GRADIENT]) && (node_id != strobe_ack[PKT_SRC])){
-                edc[edc_idx] = strobe_ack[PKT_GRADIENT];
-                edc_id[edc_idx] = strobe_ack[PKT_SRC];
+      if( (rendezvous_time<RENDEZ_TIME) && (avg_edc > strobe_ack[PKT_GRADIENT]) && (node_id != strobe_ack[PKT_SRC])){
+          edc_idx = find_worst_edc_entry();
+          edc[edc_idx] = strobe_ack[PKT_GRADIENT];
+          edc_id[edc_idx] = strobe_ack[PKT_SRC];
 
 #if AGEING //TODO Check that ageing works
 		    	edc_age[edc_idx] = rendezvous_time / (RENDEZ_TIME/10);
@@ -667,19 +681,19 @@ int staffetta_send_packet(void) {
 		    	}
 #endif /*AGEING*/
 
-                edc_idx = (edc_idx+1)%AVG_EDC_SIZE;
-                edc_sum = 0;
-                for (i=0;i<AVG_EDC_SIZE;i++){
-                    edc_sum += edc[i];
-                }
-            }
+          edc_idx = (edc_idx+1)%AVG_EDC_SIZE;
+          edc_sum = 0;
+          for (i=0;i<AVG_EDC_SIZE;i++){
+              edc_sum += edc[i];
+          }
+      }
 // #if EDC_WITH_RV
 //           	 avg_edc = MIN( ( (6 / node_energy_state) + (rendezvous_time/100) + (edc_sum/AVG_EDC_SIZE)), MAX_EDC); //limit to 255
 // #else
-           	avg_edc = MIN( (6 / node_energy_state) + (edc_sum / AVG_EDC_SIZE ), MAX_EDC);
+      avg_edc = MIN( (6 / node_energy_state) + (edc_sum / AVG_EDC_SIZE ), MAX_EDC);
 // #endif /*EDC_WITH_RV*/
 #else
-            if((rendezvous_time<RENDEZ_TIME) && (avg_edc > strobe_ack[PKT_GRADIENT])){
+      if((rendezvous_time<RENDEZ_TIME) && (avg_edc > strobe_ack[PKT_GRADIENT])){
 
 				edc[edc_idx] = strobe_ack[PKT_GRADIENT];
 				edc_idx = (edc_idx+1)%AVG_EDC_SIZE;

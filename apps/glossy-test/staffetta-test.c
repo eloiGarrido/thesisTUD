@@ -137,9 +137,6 @@ PROCESS_THREAD(staffetta_test, ev, data){
             printf("5\n");
         }
 #endif /*ENERGY_HARV*/
-
-        //TODO compute histogram of staffetta results
-        //leds_off(LEDS_RED);
     }
 
     PROCESS_END();

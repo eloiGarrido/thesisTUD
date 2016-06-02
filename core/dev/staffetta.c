@@ -170,8 +170,8 @@ static void goto_idle() {
     radio_flush_tx();
     current_state = idle;
     powercycle_turn_radio_off();
-    leds_off(LEDS_RED);
-    leds_off(LEDS_GREEN);
+    // leds_off(LEDS_RED);
+    // leds_off(LEDS_GREEN);
     fast_forward = 0;
     STOP_IDLE(); // if we go to idle before the idle timer expire we remove the timer
 
@@ -497,12 +497,12 @@ int staffetta_send_packet(void) {
 			}
 #if !FAST_FORWARD
 			goto_idle();
-			printf("8|%u|%u|%u|%u|%u\n",strobe[PKT_SRC],strobe[PKT_DST],strobe[PKT_SEQ],strobe[PKT_DATA],strobe[PKT_GRADIENT]);
+			// printf("8|%u|%u|%u|%u|%u\n",strobe[PKT_SRC],strobe[PKT_DST],strobe[PKT_SEQ],strobe[PKT_DATA],strobe[PKT_GRADIENT]);
 			return RET_NO_RX;
 #endif /*!FAST_FORWARD*/
 	    }
-	    leds_off(LEDS_GREEN);
-	    leds_on(LEDS_RED);
+	    // leds_off(LEDS_GREEN);
+	    // leds_on(LEDS_RED);
 	    //No message from backoff or backoff with fast-forward. LET'S TRANSMIT!
 
 	    //prepare strobe packet
@@ -643,7 +643,7 @@ int staffetta_send_packet(void) {
 	    }
 	    //turn off the radio
 	    goto_idle();
-	    leds_off(LEDS_RED);
+	    // leds_off(LEDS_RED);
 	    // add the rendezvous measure to our average window
 	    if (collisions==0) {
 			rendezvous_time = ((RTIMER_NOW() - rendezvous_starting_time) * 10000) / RTIMER_ARCH_SECOND ;
@@ -738,7 +738,7 @@ int staffetta_send_packet(void) {
 	    goto_idle();
 	    // printf("12|%lu\n", rendezvous_time);
 	    //printf("13|%u\n", node_energy_state);
-
+      printf("8|%u|%u|%u|%u|%u\n",strobe[PKT_SRC],strobe[PKT_DST],strobe[PKT_SEQ],strobe[PKT_DATA],strobe[PKT_GRADIENT]);
 
 	    return RET_FAST_FORWARD;
 	}
@@ -919,7 +919,7 @@ int staffetta_send_packet(void) {
 			// printf("3|%ld\n",(on_time*1000)/elapsed_time);
 			// printf("2|%ld\n",num_wakeups);
 
-      printf("16|%ld|%ld\n",(on_time*1000)/elapsed_time, num_wakeups);
+      printf("16|%ld|%ld|%d\n",(on_time*1000)/elapsed_time, num_wakeups, q_size);
 		}
 #else
         static uint32_t last_rxtx;

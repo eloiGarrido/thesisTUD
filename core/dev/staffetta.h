@@ -101,21 +101,26 @@
 #define RSSI_THRESHOLD 		-90
 #define WITH_SINK_DELAY 	1 // add a delay to the beacon ack of nodes that are not a sink (sink is always the first to answer to beacons)
 #define DATA_SIZE 		    100 // size of the packet queue
-#define MAX_EDC             255
+
 #define WITH_AGGREGATE		0
 #define RENDEZ_TIME       10000
 
 #define ENERGY_HARV         1 //Enable dynamic budget depending on Energy Harvesting capabilities
-#define NEW_EDC             0
-#define AGEING              0 //EDC vector ages depending on rendezvous value
+#define NEW_EDC             1
+#define AGEING              1 //EDC vector ages depending on rendezvous value
 // #define EDC_WITH_RV         0
 #define STAFFETTA_ENERGEST  1
 #define ELAPSED_TIME        1
 
-#define ADAPTIVE_PACKET_CREATION  0
+#define ADAPTIVE_PACKET_CREATION  1
 #define RANDOM_PACKET_CREATION    0
 // #define SCALE_FACTOR 100
-#define DYN_DC 			    0 // Staffetta adaptative wakeups
+#define DYN_DC 			    1 // Staffetta adaptative wakeups
+#if NEW_EDC
+#define MAX_EDC             100
+#else
+#define MAX_EDC             255
+#endif /*NEW_EDC*/
 /*-------------------------- MACROS -------------------------------------------------*/
 #define MIN(a, b) ((a) < (b)? (a) : (b))
 #define MAX(a, b) ((a) > (b)? (a) : (b))

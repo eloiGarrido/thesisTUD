@@ -62,7 +62,7 @@ static uint8_t rendezvous_idx;
 
 #if ENERGY_HARV
 // static uint32_t avg_rendezvous = NS_ENERGY_LOW / SCALE_FACTOR;
-static uint32_t avg_rendezvous = 410;
+static uint32_t avg_rendezvous = 750;
 #else
 static uint32_t avg_rendezvous = BUDGET;
 #endif /*ENERGY_HARV*/
@@ -151,14 +151,14 @@ static inline void radio_flush_rx(void) {
 static void powercycle_turn_radio_off(void) {
     if ((current_state == idle) && !(IS_SINK)){
 		radio_off();
-		leds_off(LEDS_BLUE);
+		// leds_off(LEDS_BLUE);
     }
 }
 
 static void powercycle_turn_radio_on(void) {
     if (current_state != disabled) {
 		radio_on();
-		leds_on(LEDS_BLUE);
+		// leds_on(LEDS_BLUE);
 		rendezvous_time = 0;
 		rendezvous_starting_time = RTIMER_NOW();
     }
@@ -320,7 +320,7 @@ int staffetta_send_packet(void) {
 
     //start backoff
     current_state = wait_to_send;
-    leds_on(LEDS_GREEN);
+    // leds_on(LEDS_GREEN);
     t0 = RTIMER_NOW();
     while (current_state == wait_to_send && RTIMER_CLOCK_LT (RTIMER_NOW(),t0 + BACKOFF_TIME)) {
 		if(FIFO_IS_1){
@@ -365,7 +365,7 @@ int staffetta_send_packet(void) {
 				FASTSPI_STROBE(CC2420_STXON);
 				BUSYWAIT_UNTIL(!(radio_status() & BV(CC2420_TX_ACTIVE)), RTIMER_SECOND / 10);
 				// and go to sleep
-				leds_off(LEDS_GREEN);
+				// leds_off(LEDS_GREEN);
 				radio_flush_rx();
 				goto_idle();
 				//PRINTF("Wrong CRC\n");
@@ -383,7 +383,7 @@ int staffetta_send_packet(void) {
 				//#else
 				//if(strobe[PKT_GRADIENT] > num_wakeups){
 				#endif
-					leds_off(LEDS_GREEN);
+					// leds_off(LEDS_GREEN);
 					radio_flush_rx();
 					goto_idle();
 					//PRINTF("sender is closer to the sink than me\n");
@@ -394,7 +394,7 @@ int staffetta_send_packet(void) {
 				if (strobe[PKT_TYPE] == TYPE_BEACON){
 					current_state = sending_ack;
 				}else{
-					leds_off(LEDS_GREEN);
+					// leds_off(LEDS_GREEN);
 					radio_flush_rx();
 					goto_idle();
 					//printf("expected beacon, got type %d\n",strobe[PKT_TYPE]);
@@ -463,7 +463,7 @@ int staffetta_send_packet(void) {
 					if (select[PKT_CRC] & FOOTER1_CRC_OK) {}
 					else {
 #if WITH_CRC
-						leds_off(LEDS_GREEN);
+						// leds_off(LEDS_GREEN);
 						radio_flush_rx();
 						goto_idle();
 						//PRINTF("Wrong CRC\n");
@@ -486,7 +486,7 @@ int staffetta_send_packet(void) {
 			//Give time to the radio to finish sending the data
 			t2 = RTIMER_NOW (); while(RTIMER_CLOCK_LT (RTIMER_NOW (), t2 + RTIMER_ARCH_SECOND/1000));
 
-			leds_off(LEDS_GREEN);
+			// leds_off(LEDS_GREEN);
 			//Fast-forward
 			radio_flush_rx();
 			radio_flush_tx();
@@ -706,16 +706,16 @@ int staffetta_send_packet(void) {
             {
                 case NS_LOW:
                     // num_wakeups = MAX(1,( (NS_ENERGY_LOW/SCALE_FACTOR) * 10)/avg_rendezvous);
-                    num_wakeups = MAX(1,( (410) * 10)/avg_rendezvous);
+                    num_wakeups = MAX(1,( 410 * 10)/avg_rendezvous);
                     break;
                 case NS_MID:
                     // num_wakeups = MAX(1,( (NS_ENERGY_MID/SCALE_FACTOR) * 10)/avg_rendezvous);
-                    num_wakeups = MAX(1,( (750) * 10)/avg_rendezvous);
+                    num_wakeups = MAX(1,( 750 * 10)/avg_rendezvous);
                     break;
                 case NS_HIGH:
                     // num_wakeups = MAX(1,( (NS_ENERGY_HIGH/SCALE_FACTOR) * 10)/avg_rendezvous);
                     // num_wakeups = MAX(1,( (2461) * 10)/avg_rendezvous);
-                    num_wakeups = MAX(1,( (1500) * 10)/avg_rendezvous);
+                    num_wakeups = MAX(1,( 1500 * 10)/avg_rendezvous);
                     break;
             }
 #else
@@ -736,9 +736,8 @@ int staffetta_send_packet(void) {
 
 	    radio_flush_rx();
 	    goto_idle();
-	    // printf("12|%lu\n", rendezvous_time);
-	    //printf("13|%u\n", node_energy_state);
-      printf("8|%u|%u|%u|%u|%u\n",strobe[PKT_SRC],strobe[PKT_DST],strobe[PKT_SEQ],strobe[PKT_DATA],strobe[PKT_GRADIENT]);
+	    
+      	printf("8|%u|%u|%u|%u|%u|%lu\n",strobe[PKT_SRC],strobe[PKT_DST],strobe[PKT_SEQ],strobe[PKT_DATA],strobe[PKT_GRADIENT], avg_rendezvous);
 
 	    return RET_FAST_FORWARD;
 	}
@@ -769,13 +768,13 @@ int staffetta_send_packet(void) {
 	    while (1) {
 			//there is a message in the buffer
 			if(FIFO_IS_1){
-				leds_on(LEDS_GREEN);
+				// leds_on(LEDS_GREEN);
 				t2 = RTIMER_NOW (); while(RTIMER_CLOCK_LT (RTIMER_NOW (), t2 + 3));
 				FASTSPI_READ_FIFO_BYTE(strobe[PKT_LEN]); //Read received packet
 				bytes_read = 1;
 
 				if (strobe[PKT_LEN]>=(STAFFETTA_PKT_LEN+3)) {
-					leds_off(LEDS_GREEN);
+					// leds_off(LEDS_GREEN);
 					radio_flush_rx();
 					current_state=idle;
 					//printf("sink got a too long beacon\n");
@@ -789,7 +788,7 @@ int staffetta_send_packet(void) {
 					// wait until the FIFO pin is 1 (until one more byte is received)
 					while (!FIFO_IS_1) {
 						if (!RTIMER_CLOCK_LT(RTIMER_NOW(), t1 + RTIMER_ARCH_SECOND/200)) {
-							leds_off(LEDS_GREEN);
+							// leds_off(LEDS_GREEN);
 							radio_flush_rx();
 							current_state=idle;
 							//printf("sink goto sleep after waiting for BEACON's byte %u from radio\n",bytes_read);
@@ -830,7 +829,7 @@ int staffetta_send_packet(void) {
 					FASTSPI_STROBE(CC2420_STXON);
 					BUSYWAIT_UNTIL(!(radio_status() & BV(CC2420_TX_ACTIVE)), RTIMER_SECOND / 10);
 
-					leds_off(LEDS_GREEN);
+					// leds_off(LEDS_GREEN);
 					radio_flush_rx();
 					current_state=idle;
 					//PRINTF("Wrong CRC\n");
@@ -843,7 +842,7 @@ int staffetta_send_packet(void) {
 					current_state = sending_ack;
 				}
 				else {
-					leds_off(LEDS_GREEN);
+					// leds_off(LEDS_GREEN);
 					radio_flush_rx();
 					current_state=idle;
 					continue;
@@ -851,8 +850,8 @@ int staffetta_send_packet(void) {
 			}
             // we received a beacon
             if(current_state==sending_ack){
-                leds_off(LEDS_GREEN);
-                leds_on(LEDS_BLUE);
+                // leds_off(LEDS_GREEN);
+                // leds_on(LEDS_BLUE);
                 strobe_ack[PKT_DST] = strobe[PKT_SRC];
                 strobe_ack[PKT_DATA] = strobe[PKT_DATA];
                 strobe_ack[PKT_SEQ] = strobe[PKT_SEQ];
@@ -872,7 +871,7 @@ int staffetta_send_packet(void) {
                 BUSYWAIT_UNTIL(!(radio_status() & BV(CC2420_TX_ACTIVE)), RTIMER_SECOND / 10);
                 //t2 = RTIMER_NOW (); while(RTIMER_CLOCK_LT (RTIMER_NOW (), t2 + RTIMER_ARCH_SECOND/500)); //give time to the radio to send a message (1ms) TODO: add this time to .h file
 
-                leds_off(LEDS_BLUE);
+                // leds_off(LEDS_BLUE);
                 radio_flush_rx();
                 current_state=idle;
                 //SINK output
@@ -897,8 +896,7 @@ int staffetta_send_packet(void) {
 			// printf("3|%ld|%d\n",(on_time*1000)/elapsed_time, q_size);
 			// printf("14|%ld\n",avg_edc);
 			// printf("2|%ld\n",num_wakeups);
-
-      printf("15|%ld|%d|%ld|%ld\n",(on_time*1000)/elapsed_time, q_size, avg_edc, num_wakeups );
+      		printf("15|%ld|%d|%ld|%ld\n",(on_time*1000)/elapsed_time, q_size, avg_edc, num_wakeups );
 #else
 			printf("3|%ld|%d\n",(on_time*1000)/elapsed_time,q_size);
 #endif /*ORW_GRADIENT*/
@@ -919,7 +917,7 @@ int staffetta_send_packet(void) {
 			// printf("3|%ld\n",(on_time*1000)/elapsed_time);
 			// printf("2|%ld\n",num_wakeups);
 
-      printf("16|%ld|%ld|%d\n",(on_time*1000)/elapsed_time, num_wakeups, q_size);
+      		printf("16|%ld|%ld|%d\n",(on_time*1000)/elapsed_time, num_wakeups, q_size);
 		}
 #else
         static uint32_t last_rxtx;
@@ -931,7 +929,7 @@ int staffetta_send_packet(void) {
         if (!(IS_SINK)){
             // printf("3|%ld\n", *rxtx_time);
             // printf("2|%ld\n",num_wakeups);
-          printf("16|%ld|%ld\n",*rxtx_time, num_wakeups);
+          	printf("16|%ld|%ld\n",*rxtx_time, num_wakeups);
         }
         last_rxtx = energest_type_time(ENERGEST_TYPE_LISTEN) + energest_type_time(ENERGEST_TYPE_TRANSMIT);
 
@@ -957,9 +955,9 @@ int staffetta_send_packet(void) {
 	    //Clear average buffer
 #if ENERGY_HARV
 // for (i=0;i<AVG_SIZE;i++) rendezvous[i]= (NS_ENERGY_LOW / SCALE_FACTOR);
-    for (i=0;i<AVG_SIZE;i++) rendezvous[i] = 410;
+    for (i=0;i<AVG_SIZE;i++) rendezvous[i] = 750;
     // rendezvous_sum = (NS_ENERGY_LOW / SCALE_FACTOR) * AVG_SIZE;
-        rendezvous_sum = 410 * AVG_SIZE;
+        rendezvous_sum = 750 * AVG_SIZE;
 #else
 	    for (i=0;i<AVG_SIZE;i++) rendezvous[i]=BUDGET;
 	    rendezvous_sum = BUDGET*AVG_SIZE;

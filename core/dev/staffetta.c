@@ -71,6 +71,7 @@ static uint32_t avg_rendezvous = BUDGET;
 // Edc expected duty cycle
 static uint32_t received_edc,edc_sum,edc_min;
 static uint32_t edc[AVG_EDC_SIZE];
+static uint32_t edc_id[AVG_EDC_SIZE];
 static uint8_t edc_idx;
 static uint32_t avg_edc;
 #endif /*ORW_GRADIENT*/
@@ -80,13 +81,9 @@ static uint32_t edc_age[AVG_EDC_SIZE];
 static uint32_t edc_age_counter[AVG_EDC_SIZE];
 #endif /*AGEING*/
 
-//EGB support variables
-#if NEW_EDC
-// int index;
-//uint8_t is_present = 0;
-//uint8_t num_neighbors = 0;
-uint32_t edc_id[AVG_EDC_SIZE];
-#endif /*NEW_EDC*/
+
+
+
 
 // Data exchange
 static uint8_t mySeq,data[DATA_SIZE],seq[DATA_SIZE],ttl[DATA_SIZE];
@@ -279,11 +276,12 @@ static void age_edc(){
 }
 #endif /*AGEING*/
 uint8_t find_worst_edc_entry () {
-  uint8_t i, idx;
+  uint8_t i;
+  uint8_t idx = MAX_EDC;
   uint8_t w_entry = 0;
 
   for (i = 0; i < AVG_EDC_SIZE; i++) {
-    if ( edc[i] > w_entry ) {
+    if ( edc[i] > w_entry && edc[i] != 0 ) {
       w_entry = edc[i];
       idx = i;
     }
@@ -497,9 +495,11 @@ int staffetta_send_packet(void) {
 			}
 #if !FAST_FORWARD
 			goto_idle();
-			// printf("8|%u|%u|%u|%u|%u\n",strobe[PKT_SRC],strobe[PKT_DST],strobe[PKT_SEQ],strobe[PKT_DATA],strobe[PKT_GRADIENT]);
+			printf("8|%u|%u|%u|%u|%u\n",strobe[PKT_SRC],strobe[PKT_DST],strobe[PKT_SEQ],strobe[PKT_DATA],strobe[PKT_GRADIENT]);
 			return RET_NO_RX;
 #endif /*!FAST_FORWARD*/
+      	// printf("8|%u|%u|%u|%u|%u|%lu\n",strobe[PKT_SRC],strobe[PKT_DST],strobe[PKT_SEQ],strobe[PKT_DATA],strobe[PKT_GRADIENT], avg_rendezvous);
+
 	    }
 	    // leds_off(LEDS_GREEN);
 	    // leds_on(LEDS_RED);
@@ -647,7 +647,7 @@ int staffetta_send_packet(void) {
 	    // add the rendezvous measure to our average window
 	    if (collisions==0) {
 			rendezvous_time = ((RTIMER_NOW() - rendezvous_starting_time) * 10000) / RTIMER_ARCH_SECOND ;
-            if(rendezvous_time<RENDEZ_TIME) {
+            if(rendezvous_time < RENDEZ_TIME) {
 				rendezvous[rendezvous_idx] = rendezvous_time;
 				rendezvous_idx = (rendezvous_idx+1)%AVG_SIZE;
 			}
@@ -661,49 +661,57 @@ int staffetta_send_packet(void) {
 #if ORW_GRADIENT
 			// if the neighbor has a better EDC, add it to the average
 #if NEW_EDC
-      if( (rendezvous_time<RENDEZ_TIME) && (avg_edc > strobe_ack[PKT_GRADIENT]) && (node_id != strobe_ack[PKT_SRC])){
-          edc_idx = find_worst_edc_entry();
-          edc[edc_idx] = strobe_ack[PKT_GRADIENT];
-          edc_id[edc_idx] = strobe_ack[PKT_SRC];
+      	if( (rendezvous_time<RENDEZ_TIME) && (avg_edc > strobe_ack[PKT_GRADIENT]) && (node_id != strobe_ack[PKT_SRC])){
+	    	edc_idx = find_worst_edc_entry();
+	     	edc[edc_idx] = strobe_ack[PKT_GRADIENT];
+	     	edc_id[edc_idx] = strobe_ack[PKT_SRC];
 
 #if AGEING //TODO Check that ageing works
-		    	edc_age[edc_idx] = rendezvous_time / (RENDEZ_TIME/10);
-		    	if ( edc_age[edc_idx] == 0 ){
-	    			edc_age_counter[edc_idx] = 10;
-		    	}else if ( edc_age[edc_idx] > 0 && edc_age[edc_idx] <= 2 ) {
-	    			edc_age_counter[edc_idx] = 8;
-		    	}else if ( edc_age[edc_idx] > 2 && edc_age[edc_idx] <= 4 ) {
-		    		edc_age_counter[edc_idx] = 6;
-		    	}else if ( edc_age[edc_idx] > 4 && edc_age[edc_idx] <= 6 ) {
-	    			edc_age_counter[edc_idx] = 4;
-		    	}else {
-	    			edc_age_counter[edc_idx] = 2;
-		    	}
+	    	edc_age[edc_idx] = rendezvous_time / (RENDEZ_TIME/10);
+	    	if ( edc_age[edc_idx] == 0 ){
+				edc_age_counter[edc_idx] = 10;
+	    	}else if ( edc_age[edc_idx] > 0 && edc_age[edc_idx] <= 2 ) {
+				edc_age_counter[edc_idx] = 8;
+	    	}else if ( edc_age[edc_idx] > 2 && edc_age[edc_idx] <= 4 ) {
+	    		edc_age_counter[edc_idx] = 6;
+	    	}else if ( edc_age[edc_idx] > 4 && edc_age[edc_idx] <= 6 ) {
+				edc_age_counter[edc_idx] = 4;
+	    	}else {
+				edc_age_counter[edc_idx] = 2;
+	    	}
 #endif /*AGEING*/
-          edc_idx = (edc_idx+1)%AVG_EDC_SIZE;
-          edc_sum = 0;
-          for (i=0;i<AVG_EDC_SIZE;i++){
-              edc_sum += edc[i];
-          }
-      }
-      avg_edc = MIN( (6 / node_energy_state) + (edc_sum / AVG_EDC_SIZE ), MAX_EDC);
-#else
-      if ((rendezvous_time<RENDEZ_TIME) && (avg_edc > strobe_ack[PKT_GRADIENT])) {
-				edc[edc_idx] = strobe_ack[PKT_GRADIENT];
-				edc_idx = (edc_idx+1)%AVG_EDC_SIZE;
-				edc_sum = 0;
-				for (i=0;i<AVG_EDC_SIZE;i++){
-				    edc_sum += edc[i];
-				}
+			edc_idx = (edc_idx+1)%AVG_EDC_SIZE;
+			edc_sum = 0;
+			for (i=0;i<AVG_EDC_SIZE;i++){
+		  		edc_sum += edc[i];
 			}
-			avg_edc = MIN( ((rendezvous_time/100)+(edc_sum/AVG_EDC_SIZE)),MAX_EDC); //limit to 255
+      	}
+      	avg_edc = MIN( (6 / node_energy_state) + (edc_sum / AVG_EDC_SIZE ), MAX_EDC);
+#else
+     	if ( avg_edc > strobe_ack[PKT_GRADIENT] && rendezvous_time < RENDEZ_TIME ) {
+			
+			// edc[edc_idx] = strobe_ack[PKT_GRADIENT];
+			// edc_id[edc_idx] = strobe_ack[PKT_SRC];
+			// edc_idx = (edc_idx+1)%AVG_EDC_SIZE;
+
+	    	edc_idx = find_worst_edc_entry();
+	    	if (edc_idx != MAX_EDC){
+	     		edc[edc_idx] = strobe_ack[PKT_GRADIENT];
+	     		edc_id[edc_idx] = strobe_ack[PKT_SRC];
+	     	}
+			edc_sum = 0;
+			for (i=0;i<AVG_EDC_SIZE;i++){
+			    edc_sum += edc[i];
+			}
+		}
+		// avg_edc = MIN( ((rendezvous_time/100) + (edc_sum/AVG_EDC_SIZE)), MAX_EDC); //limit to 255
+		avg_edc = MIN( ((avg_rendezvous/100) + (edc_sum/AVG_EDC_SIZE)), MAX_EDC); //limit to 255
 #endif /*NEW_EDC*/
 #endif /*ORW_GRADIENT*/
 
 #if DYN_DC
 #if ENERGY_HARV
-            switch (node_energy_state)
-            {
+            switch (node_energy_state){
                 case NS_LOW:
                     // num_wakeups = MAX(1,( (NS_ENERGY_LOW/SCALE_FACTOR) * 10)/avg_rendezvous);
                     num_wakeups = MAX(1,( 410 * 10)/avg_rendezvous);
@@ -714,7 +722,6 @@ int staffetta_send_packet(void) {
                     break;
                 case NS_HIGH:
                     // num_wakeups = MAX(1,( (NS_ENERGY_HIGH/SCALE_FACTOR) * 10)/avg_rendezvous);
-                    // num_wakeups = MAX(1,( (2461) * 10)/avg_rendezvous);
                     num_wakeups = MAX(1,( 1500 * 10)/avg_rendezvous);
                     break;
             }
@@ -736,8 +743,9 @@ int staffetta_send_packet(void) {
 
 	    radio_flush_rx();
 	    goto_idle();
-	    
-      	printf("8|%u|%u|%u|%u|%u|%lu\n",strobe[PKT_SRC],strobe[PKT_DST],strobe[PKT_SEQ],strobe[PKT_DATA],strobe[PKT_GRADIENT], avg_rendezvous);
+	    printf("18|%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu\n",edc[0],edc[1],edc[2],edc[3],edc[4],edc[5],edc[6],edc[7],edc[8],edc[9] );
+	    printf("19|%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu\n",edc_id[0],edc_id[1],edc_id[2],edc_id[3],edc_id[4],edc_id[5],edc_id[6],edc_id[7],edc_id[8],edc_id[9] );
+      	printf("8|%u|%u|%u|%u|%u|%lu\n",strobe_ack[PKT_SRC],strobe_ack[PKT_DST],strobe_ack[PKT_SEQ],strobe_ack[PKT_DATA],strobe_ack[PKT_GRADIENT], avg_rendezvous);
 
 	    return RET_FAST_FORWARD;
 	}
@@ -969,9 +977,9 @@ int staffetta_send_packet(void) {
 	    for (i=0;i<AVG_EDC_SIZE;i++){
 	        edc[i]=MAX_EDC;
         }
-#if NEW_EDC
+// #if NEW_EDC
 	    for (i=0;i<AVG_EDC_SIZE;i++) edc_id[i]=MAX_EDC;
-#endif
+// #endif
 
 	    edc_min = MAX_EDC;
 	    edc_idx = 0;

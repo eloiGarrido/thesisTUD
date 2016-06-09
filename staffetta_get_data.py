@@ -32,7 +32,7 @@ duration = '30min'
 age = 'slow4Age'
 # age = 'noAge'
 # simulation_name = 'sim3_11' + str(simulation) + '_' + str(duration) + '_' + '_uni'
-simulation_name = 'sim3_eh_10min_uni'
+simulation_name = 'simple'
 output_array = []
 
 file_path = ""
@@ -84,17 +84,23 @@ class LogConverter(object):
         # Add here function calls to output data
         self.create_structure()
         self.read_file(filename)
-        pkts = self.organize_pkts()
-        paths = self.create_pkt_path(pkts)
-        self.output_file(paths,"paths",0)
-        self.output_file(pkts, "packets",1)
-        pkt_delay, pkt_delay_raw = self.get_end_to_end_delay(pkts)
-        self.output_file(pkt_delay,"delay", 0)
+        # pkts = self.organize_pkts()
+        # paths = self.create_pkt_path(pkts)
+        # self.output_file(paths,"paths",0)
+        # self.output_file(pkts, "packets",1)
+        # pkt_delay, pkt_delay_raw = self.get_end_to_end_delay(pkts)
+        # self.output_file(pkt_delay,"delay", 0)
+
         # self.output_file(pkt_delay_raw,"delay_raw", 0)
         self.output_pkt_seq("origSeq")
 
 
-        self.generate_graphs(pkt_delay)
+        for i in range (1, number_of_nodes):
+            self.output_file(self.nodes[i]['edc'], "edc_"+str(i+1), 0)
+            self.output_file(self.nodes[i]['edc_id'], "edc_id_" + str(i + 1), 0)
+
+        # self.generate_graphs(pkt_delay)
+        self.generate_graphs()
         try:
             # shutil.copy( general_path + "COOJA.testlog", file_path )
             print('>>>> Moving File <<<<')
@@ -112,7 +118,7 @@ class LogConverter(object):
         Create data structure,  array of dictionaries containing all node information
         '''
         for i in range (0, self.number_of_nodes):
-            self.nodes.append({'id':i, 'node_state': [],'q_size':[], 'no_energy': 0, 'time5': [], 'xPos' : 0, 'yPos' : 0, 'accum_harvest':[], 'accum_consumption' :[],'rv_time':[], 'time2':[], 'time3':[], 'time4':[], 'time6':[], 'time_on': [], 'time_off': [], 'abs_time_off': [], 'pkt':[], 'num_wakeups':[], 'on_time': [], 'avg_edc':[], 'seq':[], 'node_energy_state':[], 'remaining_energy':[], 'harvesting_rate':[]})
+            self.nodes.append({'id':i, 'node_state': [],'q_size':[],'edc': [],'grad':[], 'edc_id': [], 'no_energy': 0, 'time5': [], 'xPos' : 0, 'yPos' : 0, 'accum_harvest':[], 'accum_consumption' :[],'rv_time':[], 'time2':[], 'time3':[], 'time4':[], 'time6':[], 'time_on': [], 'time_off': [], 'abs_time_off': [], 'pkt':[], 'num_wakeups':[], 'on_time': [], 'avg_edc':[], 'seq':[], 'node_energy_state':[], 'remaining_energy':[], 'harvesting_rate':[]})
 
 #--------------------------- Output Functions ---------------------------#
     def output_energy_values(self, filename):
@@ -354,7 +360,8 @@ class LogConverter(object):
             self.nodes[id-1]['pkt'].append(msg[3] + ',' +  msg[4] + ',' + msg[5] + ',' + msg[6] + ',' + str(time))
         elif msg_type == 8: #Packet path (Node)
             self.nodes[id-1]['pkt'].append(msg[3] + ',' + msg[4] + ',' + msg[5] + ',' + msg[6] + ',' + str(time))
-            self.nodes[id-1]['rv_time'].append(msg[8])
+            self.nodes[id-1]['grad'].append(float(msg[7]))
+            self.nodes[id-1]['rv_time'].append(float(msg[8]))
         elif msg_type == 9: #Node goes OFF
             self.nodes[id-1]['time_on'].append(float(msg[3]))
             self.nodes[id-1]['time_off'].append(float(msg[4]))
@@ -362,7 +369,7 @@ class LogConverter(object):
         elif msg_type == 10:#Node goes ON
             self.nodes[id-1]['time_on'].append(float(msg[3]))
         elif msg_type == 12: #Rendezvous time
-            self.nodes[id-1]['rv_time'].append(msg[3])
+            self.nodes[id-1]['rv_time'].append(float(msg[3]))
         elif msg_type == 13: #Node energy state
             self.nodes[id-1]['node_state'].append(int(msg[3]))
         elif msg_type == 14:
@@ -383,6 +390,10 @@ class LogConverter(object):
         elif msg_type == 17: # Node Position
             self.nodes[id-1]['xPos'] = msg[3]
             self.nodes[id-1]['yPos'] = msg[4]
+        elif msg_type == 18:
+            self.nodes[id-1]['edc'].append(msg[3])
+        elif msg_type == 19:
+            self.nodes[id - 1]['edc_id'].append(msg[3])
     def parse(self, line):
         '''
         Parse each line
@@ -513,6 +524,12 @@ class LogConverter(object):
 
         self.format_figure('Packets Created', 'Node', 'Packets', 'packets_created')
 
+    def print_grad(self):
+        for i in range(1, self.number_of_nodes):
+            plt.figure()
+            plt.plot(self.nodes[i]['grad'])
+            self.format_figure('Gradient' + str(i+1), 'Sample', 'Gradient', 'gradient_'+str(i+1))
+
     def print_drop_ratio(self, pkt_delay):
         print ('>> Printing packet drop ratio...')
         plt.figure()
@@ -544,13 +561,19 @@ class LogConverter(object):
 
         self.format_figure('Node packet drop ratio', 'Node', 'Packet Dropped', 'packet_drop')
 
-    def print_rendezvous(self, node):
-        print ('>> Printing rendezvous time, node ' + str(node) + '...')
+    def print_rendezvous(self):
+        print ('>> Printing rendezvous time...')
         plt.figure()
-        plt.plot(self.nodes[node]['rv_time'])
-        plt.axhline(10000, color='r')
+        avg_rv = []
+        # for i in range(0, self.number_of_nodes):
+        #     plt.plot(self.nodes[i]['rv_time'])
+        #     avg_rv.append(sum(float(self.nodes[i]['rv_time'])) / len(self.nodes[i]['rv_time']))
+        # plt.axhline(10000, color='r')
 
-        self.format_figure('Rendezvous', 'Node:'+str(node), 'Rendezvous time', 'rendezvous_time_'+str(node))
+        for i in range(1, self.number_of_nodes):
+            avg_rv.append(self.nodes[i]['rv_time'])
+        plt.boxplot(avg_rv, 0, '')
+        self.format_figure('Rendezvous', 'Node', 'Rendezvous time', 'rendezvous_time')
 
     def format_figure(self,title, xlab, ylab, filename):
         plt.title(title)
@@ -759,39 +782,45 @@ class LogConverter(object):
 
     def generate_topology(self):
         positions = {}
-        for i in range (1, self.number_of_nodes):
+        for i in range (1, self.number_of_nodes+1):
             positions[i] = (float(self.nodes[i-1]['xPos']),float(self.nodes[i-1]['yPos']))
         gen_topology(positions)
 
-    def generate_graphs(self, pkt_delay):
+    # def generate_graphs(self, pkt_delay):
+    def generate_graphs(self):
         print ('>> Generating graphics...')
+
+
+        # self.print_energy_levels()
+        # self.print_energy_bar()
+        # self.print_energy_total()
+
+        # self.print_harvesting_rate()
+        # self.print_on_time()
+        # self.print_wakeups()
+        # try:
+        #     self.print_node_state() #Average node state
+        # except:
+        #     print ('>> ERROR on print_node_state')
+        # try:
+        #     self.printf_node_state() #graph with node state changes
+        # except:
+        #     print ('>> ERROR on printf_node_state')
+        # self.print_packet_created()
+        # self.print_delay(pkt_delay)
+        # self.print_dc()
+        # self.print_drop_ratio(pkt_delay)
+        # self.print_dead_node()
+        # self.print_queue_size()
+        # self.output_results(output_array)
+
+        self.print_rendezvous()
+        self.print_grad()
         self.print_avg_edc()
         self.print_boxplot_edc()
 
-        self.print_energy_levels()
-        self.print_energy_bar()
-        self.print_energy_total()
-
-        self.print_harvesting_rate()
-        self.print_on_time()
-        self.print_wakeups()
-        try:
-            self.print_node_state() #Average node state
-        except:
-            print ('>> ERROR on print_node_state')
-        try:
-            self.printf_node_state() #graph with node state changes
-        except:
-            print ('>> ERROR on printf_node_state')
-        self.print_packet_created()
-        self.print_delay(pkt_delay)
-        self.print_dc()
-        self.print_drop_ratio(pkt_delay)
-        self.print_dead_node()
-        self.print_queue_size()
-        self.output_results(output_array)
-        self.generate_topology()
-        # plt.show()
+        # self.generate_topology()
+        plt.show()
         return
 
 #--------------------------- Main Function ---------------------------#

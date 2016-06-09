@@ -62,7 +62,7 @@ static uint8_t rendezvous_idx;
 
 #if ENERGY_HARV
 // static uint32_t avg_rendezvous = NS_ENERGY_LOW / SCALE_FACTOR;
-static uint32_t avg_rendezvous = 410;
+static uint32_t avg_rendezvous = 750;
 #else
 static uint32_t avg_rendezvous = BUDGET;
 #endif /*ENERGY_HARV*/
@@ -71,6 +71,7 @@ static uint32_t avg_rendezvous = BUDGET;
 // Edc expected duty cycle
 static uint32_t received_edc,edc_sum,edc_min;
 static uint32_t edc[AVG_EDC_SIZE];
+static uint32_t edc_id[AVG_EDC_SIZE];
 static uint8_t edc_idx;
 static uint32_t avg_edc;
 #endif /*ORW_GRADIENT*/
@@ -80,13 +81,9 @@ static uint32_t edc_age[AVG_EDC_SIZE];
 static uint32_t edc_age_counter[AVG_EDC_SIZE];
 #endif /*AGEING*/
 
-//EGB support variables
-#if NEW_EDC
-// int index;
-//uint8_t is_present = 0;
-//uint8_t num_neighbors = 0;
-uint32_t edc_id[AVG_EDC_SIZE];
-#endif /*NEW_EDC*/
+
+
+
 
 // Data exchange
 static uint8_t mySeq,data[DATA_SIZE],seq[DATA_SIZE],ttl[DATA_SIZE];
@@ -151,14 +148,14 @@ static inline void radio_flush_rx(void) {
 static void powercycle_turn_radio_off(void) {
     if ((current_state == idle) && !(IS_SINK)){
 		radio_off();
-		leds_off(LEDS_BLUE);
+		// leds_off(LEDS_BLUE);
     }
 }
 
 static void powercycle_turn_radio_on(void) {
     if (current_state != disabled) {
 		radio_on();
-		leds_on(LEDS_BLUE);
+		// leds_on(LEDS_BLUE);
 		rendezvous_time = 0;
 		rendezvous_starting_time = RTIMER_NOW();
     }
@@ -170,8 +167,8 @@ static void goto_idle() {
     radio_flush_tx();
     current_state = idle;
     powercycle_turn_radio_off();
-    leds_off(LEDS_RED);
-    leds_off(LEDS_GREEN);
+    // leds_off(LEDS_RED);
+    // leds_off(LEDS_GREEN);
     fast_forward = 0;
     STOP_IDLE(); // if we go to idle before the idle timer expire we remove the timer
 
@@ -278,6 +275,20 @@ static void age_edc(){
 	}
 }
 #endif /*AGEING*/
+uint8_t find_worst_edc_entry () {
+  uint8_t i;
+  uint8_t idx = MAX_EDC;
+  uint8_t w_entry = 0;
+
+  for (i = 0; i < AVG_EDC_SIZE; i++) {
+    if ( edc[i] > w_entry && edc[i] != 0 ) {
+      w_entry = edc[i];
+      idx = i;
+    }
+    if (w_entry == MAX_EDC) { break;}
+  }
+  return idx;
+}
 
 /*--------------------------- STAFFETTA FUNCTIONS ------------------------------------------------*/
 
@@ -307,7 +318,7 @@ int staffetta_send_packet(void) {
 
     //start backoff
     current_state = wait_to_send;
-    leds_on(LEDS_GREEN);
+    // leds_on(LEDS_GREEN);
     t0 = RTIMER_NOW();
     while (current_state == wait_to_send && RTIMER_CLOCK_LT (RTIMER_NOW(),t0 + BACKOFF_TIME)) {
 		if(FIFO_IS_1){
@@ -352,7 +363,7 @@ int staffetta_send_packet(void) {
 				FASTSPI_STROBE(CC2420_STXON);
 				BUSYWAIT_UNTIL(!(radio_status() & BV(CC2420_TX_ACTIVE)), RTIMER_SECOND / 10);
 				// and go to sleep
-				leds_off(LEDS_GREEN);
+				// leds_off(LEDS_GREEN);
 				radio_flush_rx();
 				goto_idle();
 				//PRINTF("Wrong CRC\n");
@@ -370,7 +381,7 @@ int staffetta_send_packet(void) {
 				//#else
 				//if(strobe[PKT_GRADIENT] > num_wakeups){
 				#endif
-					leds_off(LEDS_GREEN);
+					// leds_off(LEDS_GREEN);
 					radio_flush_rx();
 					goto_idle();
 					//PRINTF("sender is closer to the sink than me\n");
@@ -381,7 +392,7 @@ int staffetta_send_packet(void) {
 				if (strobe[PKT_TYPE] == TYPE_BEACON){
 					current_state = sending_ack;
 				}else{
-					leds_off(LEDS_GREEN);
+					// leds_off(LEDS_GREEN);
 					radio_flush_rx();
 					goto_idle();
 					//printf("expected beacon, got type %d\n",strobe[PKT_TYPE]);
@@ -450,7 +461,7 @@ int staffetta_send_packet(void) {
 					if (select[PKT_CRC] & FOOTER1_CRC_OK) {}
 					else {
 #if WITH_CRC
-						leds_off(LEDS_GREEN);
+						// leds_off(LEDS_GREEN);
 						radio_flush_rx();
 						goto_idle();
 						//PRINTF("Wrong CRC\n");
@@ -473,7 +484,7 @@ int staffetta_send_packet(void) {
 			//Give time to the radio to finish sending the data
 			t2 = RTIMER_NOW (); while(RTIMER_CLOCK_LT (RTIMER_NOW (), t2 + RTIMER_ARCH_SECOND/1000));
 
-			leds_off(LEDS_GREEN);
+			// leds_off(LEDS_GREEN);
 			//Fast-forward
 			radio_flush_rx();
 			radio_flush_tx();
@@ -487,9 +498,11 @@ int staffetta_send_packet(void) {
 			printf("8|%u|%u|%u|%u|%u\n",strobe[PKT_SRC],strobe[PKT_DST],strobe[PKT_SEQ],strobe[PKT_DATA],strobe[PKT_GRADIENT]);
 			return RET_NO_RX;
 #endif /*!FAST_FORWARD*/
+      	// printf("8|%u|%u|%u|%u|%u|%lu\n",strobe[PKT_SRC],strobe[PKT_DST],strobe[PKT_SEQ],strobe[PKT_DATA],strobe[PKT_GRADIENT], avg_rendezvous);
+
 	    }
-	    leds_off(LEDS_GREEN);
-	    leds_on(LEDS_RED);
+	    // leds_off(LEDS_GREEN);
+	    // leds_on(LEDS_RED);
 	    //No message from backoff or backoff with fast-forward. LET'S TRANSMIT!
 
 	    //prepare strobe packet
@@ -630,11 +643,11 @@ int staffetta_send_packet(void) {
 	    }
 	    //turn off the radio
 	    goto_idle();
-	    leds_off(LEDS_RED);
+	    // leds_off(LEDS_RED);
 	    // add the rendezvous measure to our average window
 	    if (collisions==0) {
 			rendezvous_time = ((RTIMER_NOW() - rendezvous_starting_time) * 10000) / RTIMER_ARCH_SECOND ;
-            if(rendezvous_time<RENDEZ_TIME) {
+            if(rendezvous_time < RENDEZ_TIME) {
 				rendezvous[rendezvous_idx] = rendezvous_time;
 				rendezvous_idx = (rendezvous_idx+1)%AVG_SIZE;
 			}
@@ -648,65 +661,68 @@ int staffetta_send_packet(void) {
 #if ORW_GRADIENT
 			// if the neighbor has a better EDC, add it to the average
 #if NEW_EDC
-            if( (rendezvous_time<RENDEZ_TIME) && (avg_edc > strobe_ack[PKT_GRADIENT]) && (node_id != strobe_ack[PKT_SRC])){
-                edc[edc_idx] = strobe_ack[PKT_GRADIENT];
-                edc_id[edc_idx] = strobe_ack[PKT_SRC];
+      	if( (rendezvous_time<RENDEZ_TIME) && (avg_edc > strobe_ack[PKT_GRADIENT]) && (node_id != strobe_ack[PKT_SRC])){
+	    	edc_idx = find_worst_edc_entry();
+	     	edc[edc_idx] = strobe_ack[PKT_GRADIENT];
+	     	edc_id[edc_idx] = strobe_ack[PKT_SRC];
 
 #if AGEING //TODO Check that ageing works
-		    	edc_age[edc_idx] = rendezvous_time / (RENDEZ_TIME/10);
-		    	if ( edc_age[edc_idx] == 0 ){
-	    			edc_age_counter[edc_idx] = 10;
-		    	}else if ( edc_age[edc_idx] > 0 && edc_age[edc_idx] <= 2 ) {
-	    			edc_age_counter[edc_idx] = 8;
-		    	}else if ( edc_age[edc_idx] > 2 && edc_age[edc_idx] <= 4 ) {
-		    		edc_age_counter[edc_idx] = 6;
-		    	}else if ( edc_age[edc_idx] > 4 && edc_age[edc_idx] <= 6 ) {
-	    			edc_age_counter[edc_idx] = 4;
-		    	}else {
-	    			edc_age_counter[edc_idx] = 2;
-		    	}
+	    	edc_age[edc_idx] = rendezvous_time / (RENDEZ_TIME/10);
+	    	if ( edc_age[edc_idx] == 0 ){
+				edc_age_counter[edc_idx] = 10;
+	    	}else if ( edc_age[edc_idx] > 0 && edc_age[edc_idx] <= 2 ) {
+				edc_age_counter[edc_idx] = 8;
+	    	}else if ( edc_age[edc_idx] > 2 && edc_age[edc_idx] <= 4 ) {
+	    		edc_age_counter[edc_idx] = 6;
+	    	}else if ( edc_age[edc_idx] > 4 && edc_age[edc_idx] <= 6 ) {
+				edc_age_counter[edc_idx] = 4;
+	    	}else {
+				edc_age_counter[edc_idx] = 2;
+	    	}
 #endif /*AGEING*/
-
-                edc_idx = (edc_idx+1)%AVG_EDC_SIZE;
-                edc_sum = 0;
-                for (i=0;i<AVG_EDC_SIZE;i++){
-                    edc_sum += edc[i];
-                }
-            }
-// #if EDC_WITH_RV
-//           	 avg_edc = MIN( ( (6 / node_energy_state) + (rendezvous_time/100) + (edc_sum/AVG_EDC_SIZE)), MAX_EDC); //limit to 255
-// #else
-           	avg_edc = MIN( (6 / node_energy_state) + (edc_sum / AVG_EDC_SIZE ), MAX_EDC);
-// #endif /*EDC_WITH_RV*/
-#else
-            if((rendezvous_time<RENDEZ_TIME) && (avg_edc > strobe_ack[PKT_GRADIENT])){
-
-				edc[edc_idx] = strobe_ack[PKT_GRADIENT];
-				edc_idx = (edc_idx+1)%AVG_EDC_SIZE;
-				edc_sum = 0;
-				for (i=0;i<AVG_EDC_SIZE;i++){
-				    edc_sum += edc[i];
-				}
+			edc_idx = (edc_idx+1)%AVG_EDC_SIZE;
+			edc_sum = 0;
+			for (i=0;i<AVG_EDC_SIZE;i++){
+		  		edc_sum += edc[i];
 			}
-			avg_edc = MIN( ((rendezvous_time/100)+(edc_sum/AVG_EDC_SIZE)),MAX_EDC); //limit to 255
+      	}
+      	avg_edc = MIN( (6 / node_energy_state) + (edc_sum / AVG_EDC_SIZE ), MAX_EDC);
+#else
+     	if ( avg_edc > strobe_ack[PKT_GRADIENT] && rendezvous_time < RENDEZ_TIME ) {
+			
+			// edc[edc_idx] = strobe_ack[PKT_GRADIENT];
+			// edc_id[edc_idx] = strobe_ack[PKT_SRC];
+			// edc_idx = (edc_idx+1)%AVG_EDC_SIZE;
+
+	    	edc_idx = find_worst_edc_entry();
+	    	if (edc_idx != MAX_EDC){
+	     		edc[edc_idx] = strobe_ack[PKT_GRADIENT];
+	     		edc_id[edc_idx] = strobe_ack[PKT_SRC];
+	     	}
+			edc_sum = 0;
+			for (i=0;i<AVG_EDC_SIZE;i++){
+			    edc_sum += edc[i];
+			}
+		}
+		// avg_edc = MIN( ((rendezvous_time/100) + (edc_sum/AVG_EDC_SIZE)), MAX_EDC); //limit to 255
+		avg_edc = MIN( ((avg_rendezvous/100) + (edc_sum/AVG_EDC_SIZE)), MAX_EDC); //limit to 255
 #endif /*NEW_EDC*/
 #endif /*ORW_GRADIENT*/
 
 #if DYN_DC
 #if ENERGY_HARV
-            switch (node_energy_state)
-            {
+            switch (node_energy_state){
                 case NS_LOW:
                     // num_wakeups = MAX(1,( (NS_ENERGY_LOW/SCALE_FACTOR) * 10)/avg_rendezvous);
-                    num_wakeups = MAX(1,( (410) * 10)/avg_rendezvous);
+                    num_wakeups = MAX(1,( 410 * 10)/avg_rendezvous);
                     break;
                 case NS_MID:
                     // num_wakeups = MAX(1,( (NS_ENERGY_MID/SCALE_FACTOR) * 10)/avg_rendezvous);
-                    num_wakeups = MAX(1,( (750) * 10)/avg_rendezvous);
+                    num_wakeups = MAX(1,( 750 * 10)/avg_rendezvous);
                     break;
                 case NS_HIGH:
                     // num_wakeups = MAX(1,( (NS_ENERGY_HIGH/SCALE_FACTOR) * 10)/avg_rendezvous);
-                    num_wakeups = MAX(1,( (2461) * 10)/avg_rendezvous);
+                    num_wakeups = MAX(1,( 1500 * 10)/avg_rendezvous);
                     break;
             }
 #else
@@ -727,9 +743,9 @@ int staffetta_send_packet(void) {
 
 	    radio_flush_rx();
 	    goto_idle();
-	    // printf("12|%lu\n", rendezvous_time);
-	    //printf("13|%u\n", node_energy_state);
-
+	    printf("18|%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu\n",edc[0],edc[1],edc[2],edc[3],edc[4],edc[5],edc[6],edc[7],edc[8],edc[9] );
+	    printf("19|%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu\n",edc_id[0],edc_id[1],edc_id[2],edc_id[3],edc_id[4],edc_id[5],edc_id[6],edc_id[7],edc_id[8],edc_id[9] );
+      	printf("8|%u|%u|%u|%u|%u|%lu\n",strobe_ack[PKT_SRC],strobe_ack[PKT_DST],strobe_ack[PKT_SEQ],strobe_ack[PKT_DATA],strobe_ack[PKT_GRADIENT], avg_rendezvous);
 
 	    return RET_FAST_FORWARD;
 	}
@@ -760,13 +776,13 @@ int staffetta_send_packet(void) {
 	    while (1) {
 			//there is a message in the buffer
 			if(FIFO_IS_1){
-				leds_on(LEDS_GREEN);
+				// leds_on(LEDS_GREEN);
 				t2 = RTIMER_NOW (); while(RTIMER_CLOCK_LT (RTIMER_NOW (), t2 + 3));
 				FASTSPI_READ_FIFO_BYTE(strobe[PKT_LEN]); //Read received packet
 				bytes_read = 1;
 
 				if (strobe[PKT_LEN]>=(STAFFETTA_PKT_LEN+3)) {
-					leds_off(LEDS_GREEN);
+					// leds_off(LEDS_GREEN);
 					radio_flush_rx();
 					current_state=idle;
 					//printf("sink got a too long beacon\n");
@@ -780,7 +796,7 @@ int staffetta_send_packet(void) {
 					// wait until the FIFO pin is 1 (until one more byte is received)
 					while (!FIFO_IS_1) {
 						if (!RTIMER_CLOCK_LT(RTIMER_NOW(), t1 + RTIMER_ARCH_SECOND/200)) {
-							leds_off(LEDS_GREEN);
+							// leds_off(LEDS_GREEN);
 							radio_flush_rx();
 							current_state=idle;
 							//printf("sink goto sleep after waiting for BEACON's byte %u from radio\n",bytes_read);
@@ -821,7 +837,7 @@ int staffetta_send_packet(void) {
 					FASTSPI_STROBE(CC2420_STXON);
 					BUSYWAIT_UNTIL(!(radio_status() & BV(CC2420_TX_ACTIVE)), RTIMER_SECOND / 10);
 
-					leds_off(LEDS_GREEN);
+					// leds_off(LEDS_GREEN);
 					radio_flush_rx();
 					current_state=idle;
 					//PRINTF("Wrong CRC\n");
@@ -834,7 +850,7 @@ int staffetta_send_packet(void) {
 					current_state = sending_ack;
 				}
 				else {
-					leds_off(LEDS_GREEN);
+					// leds_off(LEDS_GREEN);
 					radio_flush_rx();
 					current_state=idle;
 					continue;
@@ -842,8 +858,8 @@ int staffetta_send_packet(void) {
 			}
             // we received a beacon
             if(current_state==sending_ack){
-                leds_off(LEDS_GREEN);
-                leds_on(LEDS_BLUE);
+                // leds_off(LEDS_GREEN);
+                // leds_on(LEDS_BLUE);
                 strobe_ack[PKT_DST] = strobe[PKT_SRC];
                 strobe_ack[PKT_DATA] = strobe[PKT_DATA];
                 strobe_ack[PKT_SEQ] = strobe[PKT_SEQ];
@@ -863,7 +879,7 @@ int staffetta_send_packet(void) {
                 BUSYWAIT_UNTIL(!(radio_status() & BV(CC2420_TX_ACTIVE)), RTIMER_SECOND / 10);
                 //t2 = RTIMER_NOW (); while(RTIMER_CLOCK_LT (RTIMER_NOW (), t2 + RTIMER_ARCH_SECOND/500)); //give time to the radio to send a message (1ms) TODO: add this time to .h file
 
-                leds_off(LEDS_BLUE);
+                // leds_off(LEDS_BLUE);
                 radio_flush_rx();
                 current_state=idle;
                 //SINK output
@@ -885,9 +901,10 @@ int staffetta_send_packet(void) {
 	    elapsed_time = clock_time() * 1000 / CLOCK_SECOND;
 	    if (!(IS_SINK)){
 #if ORW_GRADIENT
-			printf("3|%ld\n",(on_time*1000)/elapsed_time);
-			printf("14|%ld\n",avg_edc);
-			printf("2|%ld\n",num_wakeups);
+			// printf("3|%ld|%d\n",(on_time*1000)/elapsed_time, q_size);
+			// printf("14|%ld\n",avg_edc);
+			// printf("2|%ld\n",num_wakeups);
+      		printf("15|%ld|%d|%ld|%ld\n",(on_time*1000)/elapsed_time, q_size, avg_edc, num_wakeups );
 #else
 			printf("3|%ld|%d\n",(on_time*1000)/elapsed_time,q_size);
 #endif /*ORW_GRADIENT*/
@@ -905,8 +922,10 @@ int staffetta_send_packet(void) {
 	    elapsed_time = clock_time() * 1000 / CLOCK_SECOND;
 	    *rxtx_time = (on_time*1000) / elapsed_time;
         if (!(IS_SINK)){
-			printf("3|%ld\n",(on_time*1000)/elapsed_time);
-			printf("2|%ld\n",num_wakeups);
+			// printf("3|%ld\n",(on_time*1000)/elapsed_time);
+			// printf("2|%ld\n",num_wakeups);
+
+      		printf("16|%ld|%ld|%d\n",(on_time*1000)/elapsed_time, num_wakeups, q_size);
 		}
 #else
         static uint32_t last_rxtx;
@@ -916,8 +935,9 @@ int staffetta_send_packet(void) {
         rxtx_time_t = all_rxtx - last_rxtx;
         *rxtx_time = 1000 * ( (rxtx_time_t * 1000) / TMOTE_ARCH_SECOND);
         if (!(IS_SINK)){
-            printf("3|%ld\n", *rxtx_time);
-            printf("2|%ld\n",num_wakeups);
+            // printf("3|%ld\n", *rxtx_time);
+            // printf("2|%ld\n",num_wakeups);
+          	printf("16|%ld|%ld\n",*rxtx_time, num_wakeups);
         }
         last_rxtx = energest_type_time(ENERGEST_TYPE_LISTEN) + energest_type_time(ENERGEST_TYPE_TRANSMIT);
 
@@ -943,9 +963,9 @@ int staffetta_send_packet(void) {
 	    //Clear average buffer
 #if ENERGY_HARV
 // for (i=0;i<AVG_SIZE;i++) rendezvous[i]= (NS_ENERGY_LOW / SCALE_FACTOR);
-    for (i=0;i<AVG_SIZE;i++) rendezvous[i] = 410;
+    for (i=0;i<AVG_SIZE;i++) rendezvous[i] = 750;
     // rendezvous_sum = (NS_ENERGY_LOW / SCALE_FACTOR) * AVG_SIZE;
-        rendezvous_sum = 410 * AVG_SIZE;
+        rendezvous_sum = 750 * AVG_SIZE;
 #else
 	    for (i=0;i<AVG_SIZE;i++) rendezvous[i]=BUDGET;
 	    rendezvous_sum = BUDGET*AVG_SIZE;
@@ -957,9 +977,9 @@ int staffetta_send_packet(void) {
 	    for (i=0;i<AVG_EDC_SIZE;i++){
 	        edc[i]=MAX_EDC;
         }
-#if NEW_EDC
+// #if NEW_EDC
 	    for (i=0;i<AVG_EDC_SIZE;i++) edc_id[i]=MAX_EDC;
-#endif
+// #endif
 
 	    edc_min = MAX_EDC;
 	    edc_idx = 0;

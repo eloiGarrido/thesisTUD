@@ -70,6 +70,9 @@ uint8_t get_duty_cycle(void){
 }
 
 void compute_node_state(void){
+#if FIX_NODE_STATE
+    node_energy_state = NS_MID;
+#else
 #if HYSTERESIS
     switch (node_energy_state)
     {
@@ -117,6 +120,7 @@ void compute_node_state(void){
 		node_energy_state = NS_ZERO;
 	}
 #endif /*HYSTERESIS*/
+#endif /*FIX_NODE_STATE*/
 }
 
 node_energy_state_t get_node_state(void){

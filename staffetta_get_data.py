@@ -10,12 +10,13 @@ import shutil
 import numpy as np
 import scipy
 from operator import add
+from topology import gen_topology
 '''
 Log Converter
 convert Cooja results into statistical data and graphs
 '''
-# env = 'uni'
-env = 'home'
+env = 'uni'
+# env = 'home'
 repeated = True
 dropbox = False
 # simulation = 'orig'
@@ -30,9 +31,8 @@ nodes = '16'
 duration = '30min'
 age = 'slow4Age'
 # age = 'noAge'
-# simulation_name = "repeated_" + str(simulation) + "_" + str(env) + "_" + str(model) + "_" + str(age) + "_" + str(energy) + "_" + str(RV) + "_" + str(nodes) + "_" + str(duration)
-# simulation_name = "rep_" + str(simulation) + "_" + str(env) + "_" + str(model)  + "_" + str(nodes) + "_" + str(duration)
-simulation_name = 'sim3_11' + str(simulation) + '_' + str(duration) + '_' + '_uni'
+# simulation_name = 'sim3_11' + str(simulation) + '_' + str(duration) + '_' + '_uni'
+simulation_name = 'simple'
 output_array = []
 
 file_path = ""
@@ -76,36 +76,30 @@ while not_created == 0:
 
 class LogConverter(object):
 
-    def __init__(self, filename, number_of_nodes):
+    def __init__(self, filename, number_of_nodes, simulation_duration):
         simulation = filename
         self.nodes = []
         self.number_of_nodes = number_of_nodes
-
+        self.simulation_duration = int(simulation_duration) * 60 * 1000 * 1000 # Simulation duration in ns
         # Add here function calls to output data
         self.create_structure()
         self.read_file(filename)
+        # pkts = self.organize_pkts()
+        # paths = self.create_pkt_path(pkts)
+        # self.output_file(paths,"paths",0)
+        # self.output_file(pkts, "packets",1)
+        # pkt_delay, pkt_delay_raw = self.get_end_to_end_delay(pkts)
+        # self.output_file(pkt_delay,"delay", 0)
 
-
-        pkts = self.organize_pkts()
-        paths = self.create_pkt_path(pkts)
-        self.output_file(paths,"paths",0)
-        self.output_file(pkts, "packets",1)
-
-        pkt_delay, pkt_delay_raw = self.get_end_to_end_delay(pkts)
-        self.output_file(pkt_delay,"delay", 0)
-        self.output_file(pkt_delay_raw,"delay_raw", 0)
-
+        # self.output_file(pkt_delay_raw,"delay_raw", 0)
         self.output_pkt_seq("origSeq")
 
-        self.print_delay(pkt_delay)
 
-        self.print_dc()
-        self.print_drop_ratio(pkt_delay)
+        for i in range (1, number_of_nodes):
+            self.output_file(self.nodes[i]['edc'], "edc_"+str(i+1), 0)
+            self.output_file(self.nodes[i]['edc_id'], "edc_id_" + str(i + 1), 0)
 
-        # for i in range (1, number_of_nodes):
-        #     self.print_rendezvous(i)
-        # plt.show()
-
+        # self.generate_graphs(pkt_delay)
         self.generate_graphs()
         try:
             # shutil.copy( general_path + "COOJA.testlog", file_path )
@@ -124,7 +118,7 @@ class LogConverter(object):
         Create data structure,  array of dictionaries containing all node information
         '''
         for i in range (0, self.number_of_nodes):
-            self.nodes.append({'id':i, 'node_state': [], 'no_energy': 0, 'time5': [], 'accum_harvest':[], 'accum_consumption' :[],'rv_time':[], 'time2':[], 'time3':[], 'time4':[], 'time6':[], 'time_on': [], 'time_off': [], 'abs_time_off': [], 'pkt':[], 'num_wakeups':[], 'on_time': [], 'avg_edc':[], 'seq':[], 'node_energy_state':[], 'remaining_energy':[], 'harvesting_rate':[]})
+            self.nodes.append({'id':i, 'node_state': [],'q_size':[],'edc': [],'grad':[], 'edc_id': [], 'no_energy': 0, 'time5': [], 'xPos' : 0, 'yPos' : 0, 'accum_harvest':[], 'accum_consumption' :[],'rv_time':[], 'time2':[], 'time3':[], 'time4':[], 'time6':[], 'time_on': [], 'time_off': [], 'abs_time_off': [], 'pkt':[], 'num_wakeups':[], 'on_time': [], 'avg_edc':[], 'seq':[], 'node_energy_state':[], 'remaining_energy':[], 'harvesting_rate':[]})
 
 #--------------------------- Output Functions ---------------------------#
     def output_energy_values(self, filename):
@@ -229,18 +223,26 @@ class LogConverter(object):
                 result = True
         return result
 
-    def find_packet_index(self, seq, src, sink_packet):
+    def find_packet_index(self, seq, src, sink_packets):
         index = -1
-        for pkt_idx in range(0, len(sink_packet)):
-            if sink_packet[pkt_idx] == []:
+        for pkt_idx in range(0, len(sink_packets)):
+            if sink_packets[pkt_idx] == []:
                 continue
             else:
-                sink_t = sink_packet[pkt_idx].split(',')
+                sink_t = sink_packets[pkt_idx].split(',')
                 if sink_t[3] == src and sink_t[2] == seq:
                     index = pkt_idx
                     break
         return index
 
+    def packet_end_of_simulation (self, seq,pkt_seq, node):
+        margin = 60 * 1000 * 1000 # Last 60 seconds are discarded
+        end_time = self.simulation_duration - margin
+
+        if int(self.nodes[node]['time4'][pkt_seq]) > end_time:
+            return True
+        else:
+            return False
     def create_pkt_delay(self,orig_packet, sink_packet):
         pkt_delay = []
         print ('>> Create packet delay...')
@@ -252,14 +254,23 @@ class LogConverter(object):
                 node = nodes+1
                 index = self.find_packet_index(seq, str(node), self.nodes[0]['pkt'])
                 if index == -1:
-                    pkt_delay.append({'src': node, 'seq':seq, 'delay': 'lost' })
-                else:
+
+
+                    discard = self.packet_end_of_simulation(seq, pkt_seq, nodes)
+                    if discard == True:
+                        continue
+                    else:
+                        pkt_delay.append({'src': node, 'seq':seq, 'delay': 'lost' })
+                elif index != -2:
                     sink_t = self.nodes[0]['pkt'][index].split(',')
-                    delay_t = long(sink_t[4]) - long( self.nodes[nodes]['time4'][pkt_seq] )
+                    # delay_t = long(sink_t[4]) - long( self.nodes[nodes]['time4'][pkt_seq] )
+                    delay_t = long(sink_t[4]) - long( self.nodes[node-1]['time4'][int(seq)] )
                     if delay_t < 0:
                         continue
                     else:
-                        pkt_delay.append({'src': node, 'seq':seq, 'delay': str(delay_t) })
+                        pkt_delay.append({'src': node, 'seq':seq, 'delay': str(delay_t  ) }) # From us to s
+                else:
+                    print ('What?')
         sorted_pkt_list = sorted(pkt_delay, key=lambda k: (k['src'], int(k['seq'])))
         return sorted_pkt_list
 
@@ -283,26 +294,37 @@ class LogConverter(object):
         print ('>> Getting end-to-end delay...')
         orig_packet = []
         sink_packet = []
-        for i in range(1, self.number_of_nodes):
-            if self.nodes[i]['pkt'] != []:
-                for len_pkt in range (0, len(self.nodes[i]['pkt'])):
-                    packet_t = self.nodes[i]['pkt'][len_pkt].split(',')
-                    if packet_t[0] == packet_t[3]: #Is a original packet
-                        orig_packet.append(  self.nodes[i]['pkt'][len_pkt] )
+        sink_counter = 0
+        # for i in range(1, self.number_of_nodes):
+        #     if self.nodes[i]['pkt'] != []:
+        #         for len_pkt in range (0, len(self.nodes[i]['pkt'])):
+        #             packet_t = self.nodes[i]['pkt'][len_pkt].split(',')
+        #             if packet_t[0] == packet_t[3]: #Is a original packet
+        #                 orig_packet.append(  self.nodes[i]['pkt'][len_pkt] )
+        for i in range ( 1, self.number_of_nodes):
+            for seq_len in range (0, len(self.nodes[i]['seq'])):
+                pkt_t = [i+1, 0, seq_len, self.nodes[i]['time4'][seq_len]] # SRC | DST | SEQ | Creation Time
+                orig_packet.append(pkt_t)
+
 
         # Look for received packets timestamp
         for len_orig_pkt in range( 0 , len(orig_packet)):
-            sink_packet.append([])
-            for sink in range (0, len(self.nodes[0]['pkt'])):
+            # sink_packet.append([])
+            for sink_idx in range (0, len(self.nodes[0]['pkt'])):
                 if self.nodes[0]['pkt'] != []:
-                    packet_orig_t = orig_packet[len_orig_pkt].split(',')
-                    packet_sink_t = self.nodes[0]['pkt'][sink].split(',')
-                    if packet_sink_t[2] == packet_orig_t[2] and packet_sink_t[3] == packet_orig_t[3]: # Same origin and sequence code
-                        sink_packet[len_orig_pkt] = self.nodes[0]['pkt'][sink]
+                    # packet_orig_t = orig_packet[len_orig_pkt].split(',')
+                    packet_orig_t = orig_packet[len_orig_pkt]
+                    packet_sink_t = self.nodes[0]['pkt'][sink_idx].split(',')
+                    # if packet_sink_t[2] == packet_orig_t[2] and packet_sink_t[3] == packet_orig_t[3]: # Same origin and sequence code
+                    if int(packet_sink_t[3]) == packet_orig_t[0] and int(packet_sink_t[2]) == packet_orig_t[2]: # Same origin and sequence code
+                        sink_packet.append([])
+                        sink_packet[sink_counter] = self.nodes[0]['pkt'][sink_idx]
+                        sink_counter += 1
                         break
 
         pkt_delay = self.create_pkt_delay(orig_packet, sink_packet)
-        pkt_delay_raw = self.create_pkt_delay_raw(orig_packet, sink_packet)
+        # pkt_delay_raw = self.create_pkt_delay_raw(orig_packet, sink_packet)
+        pkt_delay_raw = []
         return pkt_delay ,pkt_delay_raw
 
     def format_seq(self, msg):
@@ -338,19 +360,40 @@ class LogConverter(object):
             self.nodes[id-1]['pkt'].append(msg[3] + ',' +  msg[4] + ',' + msg[5] + ',' + msg[6] + ',' + str(time))
         elif msg_type == 8: #Packet path (Node)
             self.nodes[id-1]['pkt'].append(msg[3] + ',' + msg[4] + ',' + msg[5] + ',' + msg[6] + ',' + str(time))
+            self.nodes[id-1]['grad'].append(float(msg[7]))
+            self.nodes[id-1]['rv_time'].append(float(msg[8]))
         elif msg_type == 9: #Node goes OFF
             self.nodes[id-1]['time_on'].append(float(msg[3]))
-            self.nodes[id-1]['time_off'].append(float(msg[3]))
+            self.nodes[id-1]['time_off'].append(float(msg[4]))
             self.nodes[id-1]['abs_time_off'].append(time)
         elif msg_type == 10:#Node goes ON
             self.nodes[id-1]['time_on'].append(float(msg[3]))
         elif msg_type == 12: #Rendezvous time
-            self.nodes[id-1]['rv_time'].append(msg[3])
+            self.nodes[id-1]['rv_time'].append(float(msg[3]))
         elif msg_type == 13: #Node energy state
             self.nodes[id-1]['node_state'].append(int(msg[3]))
         elif msg_type == 14:
             self.nodes[id-1]['avg_edc'].append(int(msg[3]))
-
+        elif msg_type == 15:
+            self.nodes[id-1]['on_time'].append(msg[3])
+            self.nodes[id-1]['time3'].append(time)
+            self.nodes[id-1]['q_size'].append(int(msg[4]))
+            self.nodes[id-1]['avg_edc'].append(int(msg[5]))
+            self.nodes[id-1]['num_wakeups'].append(msg[6])
+            self.nodes[id-1]['time2'].append(time)
+        elif msg_type == 16:
+            self.nodes[id-1]['on_time'].append(msg[3])
+            self.nodes[id-1]['time3'].append(time)
+            self.nodes[id-1]['num_wakeups'].append(msg[4])
+            self.nodes[id-1]['time2'].append(time)
+            self.nodes[id-1]['q_size'].append(int(msg[5]))
+        elif msg_type == 17: # Node Position
+            self.nodes[id-1]['xPos'] = msg[3]
+            self.nodes[id-1]['yPos'] = msg[4]
+        elif msg_type == 18:
+            self.nodes[id-1]['edc'].append(msg[3])
+        elif msg_type == 19:
+            self.nodes[id - 1]['edc_id'].append(msg[3])
     def parse(self, line):
         '''
         Parse each line
@@ -389,28 +432,19 @@ class LogConverter(object):
         node_dc = []
         counter = 0.0
         total_on = 0.0
-        # TODO THis calculation is wrong, uses the radio on time instead of printf 9 and 10
         for i in range (0, len(self.nodes[node_id]['time_on'])-1):
-
-            # period = self.nodes[node_id]['time_off'][i+1] - self.nodes[node_id]['time_off'][i]
             period = abs(self.nodes[node_id]['time_off'][i+1] - self.nodes[node_id]['time_off'][i])
             on = abs( self.nodes[node_id]['time_off'][i] - self.nodes[node_id]['time_on'][i] )
             node_dc.append( float(on) / float(period) )
-
             total_on += on
-            # total_on = sum(self.nodes[node_id]['time_on'])
-            # total_on += abs( self.nodes[node_id]['time_on'][i] - self.nodes[node_id]['time_off'][i+1] )
             counter += 1.0
         try:
-            # avg_dc_t = float(600000000) / float(total_on)
-            # avg_dc =   float(total_on) / float(self.nodes[node_id]['time_off'][len(self.nodes[node_id]['time_off'])-1])
-            avg_dc = float(total_on) / 600000000
-            # print ('avg_dc_t: '+str(avg_dc_t) + ' avg_dc:'+str(avg_dc))
+            sim_duration = self.nodes[1]['time_off'][len(self.nodes[1]['time_off'])-1]
+            avg_dc = float(total_on) / self.simulation_duration
         except:
             avg_dc = 0
             avg_dc_t = 0
             print ('>> ERROR: No DC data')
-        # avg_dc = avg_dc / counter
         return node_dc, avg_dc
 
 
@@ -490,6 +524,12 @@ class LogConverter(object):
 
         self.format_figure('Packets Created', 'Node', 'Packets', 'packets_created')
 
+    def print_grad(self):
+        for i in range(1, self.number_of_nodes):
+            plt.figure()
+            plt.plot(self.nodes[i]['grad'])
+            self.format_figure('Gradient' + str(i+1), 'Sample', 'Gradient', 'gradient_'+str(i+1))
+
     def print_drop_ratio(self, pkt_delay):
         print ('>> Printing packet drop ratio...')
         plt.figure()
@@ -521,13 +561,19 @@ class LogConverter(object):
 
         self.format_figure('Node packet drop ratio', 'Node', 'Packet Dropped', 'packet_drop')
 
-    def print_rendezvous(self, node):
-        print ('>> Printing rendezvous time, node ' + str(node) + '...')
+    def print_rendezvous(self):
+        print ('>> Printing rendezvous time...')
         plt.figure()
-        plt.plot(self.nodes[node]['rv_time'])
-        plt.axhline(10000, color='r')
+        avg_rv = []
+        # for i in range(0, self.number_of_nodes):
+        #     plt.plot(self.nodes[i]['rv_time'])
+        #     avg_rv.append(sum(float(self.nodes[i]['rv_time'])) / len(self.nodes[i]['rv_time']))
+        # plt.axhline(10000, color='r')
 
-        self.format_figure('Rendezvous', 'Node:'+str(node), 'Rendezvous time', 'rendezvous_time_'+str(node))
+        for i in range(1, self.number_of_nodes):
+            avg_rv.append(self.nodes[i]['rv_time'])
+        plt.boxplot(avg_rv, 0, '')
+        self.format_figure('Rendezvous', 'Node', 'Rendezvous time', 'rendezvous_time')
 
     def format_figure(self,title, xlab, ylab, filename):
         plt.title(title)
@@ -551,7 +597,6 @@ class LogConverter(object):
 
     def print_energy_total(self):
         print ('>> Printing energy statistics...')
-        # plt.figure()
         fig, ax = plt.subplots()
         index = np.arange(self.number_of_nodes-1)
         bar_width = 0.35
@@ -575,8 +620,6 @@ class LogConverter(object):
                  color='r',
                  error_kw=error_config,
                  label='Consumption')
-        #plot
-
         plt.xlabel('Node')
         plt.ylabel('Energy (x / 1000)')
         plt.title('Energy Total Statistics')
@@ -699,13 +742,26 @@ class LogConverter(object):
                     avg[i] += float(self.nodes[j]['on_time'][i]) / float(self.number_of_nodes - 1)
                 except:
                     continue
-                    # print ('>> ERROR print on time: '+ str(i) + ' ' +str(j))
         for i in range (1, self.number_of_nodes):
             plt.plot(self.nodes[i]['on_time'])
         plt.plot(avg,'dr', linewidth=5)
 
         self.format_figure('Node ON Time','Time', 'ON Time', 'on_time')
         return
+
+    def print_queue_size(self):
+        print ('>> Printing queue size...')
+        plt.figure()
+        q_size_t = []
+        for i in range (1, self.number_of_nodes):
+            q_size_t.append(self.nodes[i]['q_size'])
+        plt.boxplot(q_size_t, 0, '')
+        self.format_figure('Queue Size', 'Node', 'Queue Size', 'queue_size')
+
+        plt.figure()
+        for i in range(1, self.number_of_nodes):
+            plt.plot(self.nodes[i]['q_size'])
+        self.format_figure('Queue Size', 'Time', 'Queue Size', 'queue_size_overview')
 
     def print_dc(self):
         print ('>> Printing DC...')
@@ -724,34 +780,47 @@ class LogConverter(object):
         plt.annotate(str(float(sum(avg_dc_array)) / float(len(avg_dc_array)) ), xy=(self.number_of_nodes - 2,(float(sum(avg_dc_array)) / float(len(avg_dc_array)) + 0.5)))
         self.format_figure('Node avg DC', 'Node', 'avg DC (%)', 'avg_duty_cycle')
 
+    def generate_topology(self):
+        positions = {}
+        for i in range (1, self.number_of_nodes+1):
+            positions[i] = (float(self.nodes[i-1]['xPos']),float(self.nodes[i-1]['yPos']))
+        gen_topology(positions)
+
+    # def generate_graphs(self, pkt_delay):
     def generate_graphs(self):
         print ('>> Generating graphics...')
+
+
+        # self.print_energy_levels()
+        # self.print_energy_bar()
+        # self.print_energy_total()
+
+        # self.print_harvesting_rate()
+        # self.print_on_time()
+        # self.print_wakeups()
+        # try:
+        #     self.print_node_state() #Average node state
+        # except:
+        #     print ('>> ERROR on print_node_state')
+        # try:
+        #     self.printf_node_state() #graph with node state changes
+        # except:
+        #     print ('>> ERROR on printf_node_state')
+        # self.print_packet_created()
+        # self.print_delay(pkt_delay)
+        # self.print_dc()
+        # self.print_drop_ratio(pkt_delay)
+        # self.print_dead_node()
+        # self.print_queue_size()
+        # self.output_results(output_array)
+
+        self.print_rendezvous()
+        self.print_grad()
         self.print_avg_edc()
         self.print_boxplot_edc()
 
-        self.print_energy_levels()
-        self.print_energy_bar()
-        self.print_energy_total()
-
-        self.print_harvesting_rate()
-        self.print_on_time()
-        self.print_wakeups()
-        try:
-            self.print_node_state() #Average node state
-        except:
-            print ('>> ERROR on print_node_state')
-        try:
-            self.printf_node_state() #graph with node state changes
-        except:
-            print ('>> ERROR on printf_node_state')
-
-        self.print_packet_created()
-        # try:
-        self.print_dead_node()
-        # except:
-            # print ('>> ERROR on print_dead_node')
-        # plt.show()
-        self.output_results(output_array)
+        # self.generate_topology()
+        plt.show()
         return
 
 #--------------------------- Main Function ---------------------------#
@@ -763,7 +832,4 @@ if __name__ == '__main__':
         print('Usage: python log_converter.py <LOG_FILENAME>')
         print len(sys.argv)
         exit(1)
-    # try:
-    adapter = LogConverter(sys.argv[1], int(sys.argv[2]))
-    # except:
-        # print('Error at LogConverter')
+    adapter = LogConverter(sys.argv[1], int(sys.argv[2]), int(sys.argv[3]))

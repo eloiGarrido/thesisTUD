@@ -1,0 +1,20 @@
+FILEPATH = "/home/egarrido/cfs_file.txt"
+
+sim = mote.getSimulation();
+//log.log(sim.getMotesCount());
+for (i=0; i < sim.getMotesCount(); i++) {
+  m = sim.getMote(i);
+  int = m.getInterfaces();
+  fs = m.getFilesystem();
+  success = fs.insertFile(FILEPATH);
+  xPos = int.getPosition().getXCoordinate();
+  yPos = int.getPosition().getYCoordinate();
+  log.log(i+1 + "|" + 0 + "|17|" + xPos + "|" + yPos + "|\n");
+}
+
+TIMEOUT(600000);
+
+while (true) {
+ log.log(id + "|" + time + "|" + msg + "|\n");
+ YIELD();
+}

@@ -79,25 +79,25 @@
 //TODO implement all the options
 
 #define PAKETS_PER_NODE 	6
-#define WITH_CRC 		    1
-#define IS_SINK 		    (node_id == 1)
+#define WITH_CRC 		      1
+#define IS_SINK 		      (node_id == 1)
 //#define IS_SINK 		    (node_id < 4) // Mobile sink on flocklab
-#define WITH_SELECT 		1 // enable 3-way handshake (in case of multiple forwarders, initiator can choose)
+#define WITH_SELECT 		  0 // enable 3-way handshake (in case of multiple forwarders, initiator can choose)
 
 #define WITH_GRADIENT 		1 // ensure that messages follows a gradient to the sink (number of wakeups)
-#define BCP_GRADIENT		0 // use the queue size as gradient (BCP)
-#define ORW_GRADIENT		1 // use the expected duty cycle as gradient (ORW)
+#define BCP_GRADIENT		  0 // use the queue size as gradient (BCP)
+#define ORW_GRADIENT		  1 // use the expected duty cycle as gradient (ORW)
 
 
-#define FAST_FORWARD 		1  // forward as soon as you can (not dummy messages)
+#define FAST_FORWARD 		  1  // forward as soon as you can (not dummy messages)
 #define BUDGET_PRECISION 	1 //use fixed point precision to compute the number of wakeups
-#define BUDGET 			    750 // how much energy should we use (in ms * 10)
-#define AVG_SIZE 		    5 // windows size for averaging the rendezvous time
-#define AVG_EDC_SIZE		10 //20 averaging size for orw's edc
+#define BUDGET 			      750 // how much energy should we use (in ms * 10)
+#define AVG_SIZE 		      5 // windows size for averaging the rendezvous time
+#define AVG_EDC_SIZE		  10 //20 averaging size for orw's edc
 #define WITH_RETX 		    0 // retransmit a beacon ack if we receive another beacon
-#define USE_BACKOFF 		1 // before sending listen to the channel for a certain period
+#define USE_BACKOFF 		  1 // before sending listen to the channel for a certain period
 #define SLEEP_BACKOFF 		0 // after the backoff, if we receive a beacon instead on starting a communication we go to sleep
-#define RSSI_FILTER 		0 // filter strobes with RSSI lower that a threshold
+#define RSSI_FILTER 		  0 // filter strobes with RSSI lower that a threshold
 #define RSSI_THRESHOLD 		-90
 #define WITH_SINK_DELAY 	1 // add a delay to the beacon ack of nodes that are not a sink (sink is always the first to answer to beacons)
 #define DATA_SIZE 		    100 // size of the packet queue
@@ -105,9 +105,9 @@
 #define WITH_AGGREGATE		0
 #define RENDEZ_TIME       10000
 
-#define ENERGY_HARV         1 //Enable dynamic budget depending on Energy Harvesting capabilities
-#define NEW_EDC             0
-#define AGEING              0 //EDC vector ages depending on rendezvous value
+#define ENERGY_HARV       1 //Enable dynamic budget depending on Energy Harvesting capabilities
+#define NEW_EDC           0
+#define AGEING            0 //EDC vector ages depending on rendezvous value
 // #define EDC_WITH_RV         0
 #define STAFFETTA_ENERGEST  1
 #define ELAPSED_TIME        1
@@ -115,12 +115,15 @@
 #define ADAPTIVE_PACKET_CREATION  0
 #define RANDOM_PACKET_CREATION    0
 // #define SCALE_FACTOR 100
-#define DYN_DC 			    0 // Staffetta adaptative wakeups
+#define DYN_DC 		0 // Staffetta adaptative wakeups
 #if NEW_EDC
-#define MAX_EDC             100
+#define MAX_EDC   100
 #else
-#define MAX_EDC             255
+#define MAX_EDC   255
 #endif /*NEW_EDC*/
+
+#define WAKE_UP_PERIOD  10
+#define WITH_COLLISION_AVOIDANCE 0
 /*-------------------------- MACROS -------------------------------------------------*/
 #define MIN(a, b) ((a) < (b)? (a) : (b))
 #define MAX(a, b) ((a) > (b)? (a) : (b))
@@ -160,15 +163,16 @@ struct staffetta_hdr {
   uint16_t wakeups;
 };
 
-#define RET_FAST_FORWARD 	1
-#define RET_NO_RX		    2
-#define RET_EMPTY_QUEUE		3
-#define RET_ERRORS		    4
-#define RET_WRONG_SELECT	5
-#define RET_FAIL_RX_BUFF	6
-#define RET_WRONG_TYPE		7
-#define RET_WRONG_CRC		8
-#define RET_WRONG_GRADIENT	9
+#define RET_FAST_FORWARD    1
+#define RET_NO_RX		        2
+#define RET_EMPTY_QUEUE		  3
+#define RET_ERRORS		      4
+#define RET_WRONG_SELECT	  5
+#define RET_FAIL_RX_BUFF	  6
+#define RET_WRONG_TYPE		  7
+#define RET_WRONG_CRC		    8
+#define RET_WRONG_GRADIENT  9
+#define RET_ALL_GOOD        10
 
 #define TYPE_BEACON       	1
 #define TYPE_BEACON_ACK   	2
@@ -191,23 +195,29 @@ struct staffetta_hdr {
 #define FOOTER1_CRC_OK                0x80
 #define FOOTER1_CORRELATION           0x7f
 
-#define STAFFETTA_LEN_FIELD              packet[0]
-#define STAFFETTA_HEADER_FIELD           packet[1]
-#define STAFFETTA_DATA_FIELD             packet[2]
-#define STAFFETTA_RELAY_CNT_FIELD        packet[packet_len_tmp - FOOTER_LEN]
-#define STAFFETTA_RSSI_FIELD             packet[packet_len_tmp - 1]
-#define STAFFETTA_CRC_FIELD              packet[packet_len_tmp]
+#define STAFFETTA_LEN_FIELD            packet[0]
+#define STAFFETTA_HEADER_FIELD         packet[1]
+#define STAFFETTA_DATA_FIELD           packet[2]
+#define STAFFETTA_RELAY_CNT_FIELD      packet[packet_len_tmp - FOOTER_LEN]
+#define STAFFETTA_RSSI_FIELD           packet[packet_len_tmp - 1]
+#define STAFFETTA_CRC_FIELD            packet[packet_len_tmp]
 
 /*------------------------- TIMINGS --------------------------------------------------*/
 
 
-#define PERIOD 			RTIMER_ARCH_SECOND 		// 1s
-#define STROBE_TIME 		PERIOD				// 1s
+#define PERIOD 			      RTIMER_ARCH_SECOND 		// 1s
+#define STROBE_TIME 		  PERIOD				// 1s
 #define STROBE_WAIT_TIME	(RTIMER_ARCH_SECOND/700) 	// 2ms
-#define ON_TIME 		(RTIMER_ARCH_SECOND/300) 	// 3ms
-#define OFF_TIME 		(PERIOD-ON_TIME)		// 995ms
-#define BACKOFF_TIME 		(ON_TIME)			// 5ms
+#define ON_TIME 		      (RTIMER_ARCH_SECOND/300) 	// 3ms
+#define OFF_TIME 		      (PERIOD-ON_TIME)		// 995ms
+#define BACKOFF_TIME 		  (ON_TIME)			// 5ms
 
+
+#define LPL_TIME        (RTIMER_ARCH_SECOND / 500) // 2ms
+#define LISTEN_TIME     (RTIMER_ARCH_SECOND / 100) // 10ms
+#define NO_TX_AFTER_RX  0
+#define TX_AFTER_RX     1
+#define BACKOFF_TIME_LPL    (RTIMER_ARCH_SECOND / 300) // 3ms
 //#define MAX_STROBE_SIZE 50
 //#define DEFAULT_STROBE_WAIT_TIME DEFAULT_ON_TIME
 //#define DEFAULT_STROBE_TIME DEFAULT_ON_TIME + DEFAULT_OFF_TIME
@@ -227,10 +237,12 @@ struct staffettamac_config {
 
 /*------------------------- FUNCTIONS --------------------------------------------------*/
 int staffetta_send_packet(void);
-uint32_t getWakeups(void);
+// uint32_t getWakeups(void);
 void sink_listen(void);
 void staffetta_print_stats(void);
 void staffetta_add_data(uint8_t);
 void staffetta_init(void);
 void staffetta_get_energy_consumption(uint32_t * rxtx_time);
+int staffetta_transmit(uint8_t stop_after_tx);
+int staffetta_listen(uint32_t timer_duration, uint8_t tx_after_rx);
 #endif /* __STAFFETTA_H__ */

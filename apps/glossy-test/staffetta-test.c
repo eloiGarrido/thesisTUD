@@ -70,6 +70,7 @@ PROCESS_THREAD(staffetta_print_stats_process, ev, data){
         counter = counter + 1;
         if (counter >= 25){
             staffetta_add_data(round_stats++);
+            printf("6|%d|%lu|%lu|%lu|%lu\n", node_energy_state, remaining_energy, harvesting_rate, acum_consumption, acum_harvest);
             acum_consumption = 0; // Reset acumulative values
             acum_harvest = 0;
             counter = 0;
@@ -98,14 +99,12 @@ PROCESS_THREAD(staffetta_test, ev, data){
 
     static struct etimer et;
     int staffetta_result;
-    uint32_t wakeups,Tw;
+    uint32_t Tw;
 
-    leds_init();
-    // leds_on(LEDS_GREEN);
+    // leds_init();
     staffetta_init();
     random_init(node_id);
     watchdog_stop();
-    // leds_off(LEDS_GREEN);
     uint32_t timer_on, timer_off;
     //#if ENERGY_HARV
     PROCESS_EXITHANDLER(energytrace_stop();)
@@ -114,12 +113,24 @@ PROCESS_THREAD(staffetta_test, ev, data){
 
     process_start(&staffetta_print_stats_process, NULL);
     while(1){
-        //Get wakeups/period from Staffetta
-        wakeups = getWakeups();
         //Compute Tw
-        Tw = ((CLOCK_SECOND*(10*BUDGET_PRECISION))/wakeups);
+#if NEW_EDC
+        if (node_energy_state == NS_LOW){
+            Tw = (CLOCK_SECOND / WAKE_UP_PERIOD);
+        } else if (node_energy_state == NS_MID) {
+            Tw = (CLOCK_SECOND / (WAKE_UP_PERIOD + 5) );
+        } else if (node_energy_state == NS_HIGH) {
+            Tw = (CLOCK_SECOND / (WAKE_UP_PERIOD + 10));
+        } else {
+            Tw = (CLOCK_SECOND / WAKE_UP_PERIOD);
+        }
+#else
+        Tw = (CLOCK_SECOND / WAKE_UP_PERIOD);
+#endif
         //Add some randomness
-        etimer_set(&et,((Tw*3)/4) + (random_rand()%(Tw/2)));
+        // etimer_set(&et,((Tw*3)/4) + (random_rand()%(Tw/2)));
+        etimer_set(&et,((Tw)/4) + (random_rand()%(Tw*3/4)));
+
         PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
         //Perform a data exchange
 
@@ -128,10 +139,11 @@ PROCESS_THREAD(staffetta_test, ev, data){
             timer_on = RTIMER_NOW();
             staffetta_result = staffetta_send_packet();
             timer_off = RTIMER_NOW();
+            // TODO Mod timers from ticks to seconds
 
-            // printf("9|%lu|%lu\n",timer_on,timer_off); //Notify when a node goes to sleep
+            printf("9|%lu|%lu\n",timer_on,timer_off); //Notify when a node goes to sleep
         } else { // Node did not have enough energy to operate
-            // printf("5\n");
+            printf("5\n");
         }
 #else
         if (node_energy_state != NS_ZERO){

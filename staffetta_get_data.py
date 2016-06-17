@@ -32,7 +32,7 @@ duration = '30min'
 age = 'slow4Age'
 # age = 'noAge'
 # simulation_name = 'sim3_11' + str(simulation) + '_' + str(duration) + '_' + '_uni'
-simulation_name = 'simple'
+simulation_name = 'new_code_orig'
 output_array = []
 
 file_path = ""
@@ -84,23 +84,23 @@ class LogConverter(object):
         # Add here function calls to output data
         self.create_structure()
         self.read_file(filename)
-        # pkts = self.organize_pkts()
+        pkts, collisions = self.organize_pkts()
         # paths = self.create_pkt_path(pkts)
         # self.output_file(paths,"paths",0)
         # self.output_file(pkts, "packets",1)
-        # pkt_delay, pkt_delay_raw = self.get_end_to_end_delay(pkts)
+        pkt_delay, pkt_delay_raw = self.get_end_to_end_delay(pkts)
         # self.output_file(pkt_delay,"delay", 0)
 
         # self.output_file(pkt_delay_raw,"delay_raw", 0)
-        self.output_pkt_seq("origSeq")
+        # self.output_pkt_seq("origSeq")
 
 
-        for i in range (1, number_of_nodes):
-            self.output_file(self.nodes[i]['edc'], "edc_"+str(i+1), 0)
-            self.output_file(self.nodes[i]['edc_id'], "edc_id_" + str(i + 1), 0)
+        # for i in range (1, number_of_nodes):
+        #     self.output_file(self.nodes[i]['edc'], "edc_"+str(i+1), 0)
+        #     self.output_file(self.nodes[i]['edc_id'], "edc_id_" + str(i + 1), 0)
 
-        # self.generate_graphs(pkt_delay)
-        self.generate_graphs()
+        self.generate_graphs(pkt_delay)
+        # self.generate_graphs()
         try:
             # shutil.copy( general_path + "COOJA.testlog", file_path )
             print('>>>> Moving File <<<<')
@@ -337,7 +337,7 @@ class LogConverter(object):
 
     def store_information(self,id,time,msg_type,msg):
         if msg_type == 2:
-            self.nodes[id-1]['num_wakeups'].append(msg[3])
+            # self.nodes[id-1]['num_wakeups'].append(msg[3])
             self.nodes[id-1]['time2'].append(time)
         elif msg_type == 3:
             self.nodes[id-1]['on_time'].append(msg[3])
@@ -379,14 +379,15 @@ class LogConverter(object):
             self.nodes[id-1]['time3'].append(time)
             self.nodes[id-1]['q_size'].append(int(msg[4]))
             self.nodes[id-1]['avg_edc'].append(int(msg[5]))
-            self.nodes[id-1]['num_wakeups'].append(msg[6])
+            # self.nodes[id-1]['num_wakeups'].append(msg[6])
             self.nodes[id-1]['time2'].append(time)
         elif msg_type == 16:
             self.nodes[id-1]['on_time'].append(msg[3])
             self.nodes[id-1]['time3'].append(time)
-            self.nodes[id-1]['num_wakeups'].append(msg[4])
+            # self.nodes[id-1]['num_wakeups'].append(msg[4])
             self.nodes[id-1]['time2'].append(time)
-            self.nodes[id-1]['q_size'].append(int(msg[5]))
+            # self.nodes[id-1]['q_size'].append(int(msg[5]))
+            self.nodes[id-1]['q_size'].append(int(msg[4]))
         elif msg_type == 17: # Node Position
             self.nodes[id-1]['xPos'] = msg[3]
             self.nodes[id-1]['yPos'] = msg[4]
@@ -416,16 +417,26 @@ class LogConverter(object):
     def organize_pkts(self):
         print ('>> Organizing packets....')
         pkts_with_origin = []
+        collisions = []
         for i in range(0, self.number_of_nodes):
             pkts_with_origin.append([])
+            collisions.append([])
         for i in range(0, self.number_of_nodes):
             for j in range(0, len(self.nodes[i]['pkt'])):
                 temp = self.nodes[i]['pkt'][j]
                 temp_t = temp.split(',')
                 idx = int ( temp_t[len(temp_t)-2] )
-                if (temp in pkts_with_origin[ idx-1 ]) == False:
-                    pkts_with_origin[ idx -1 ].append(temp)
-        return pkts_with_origin
+                if (idx != 255):
+                    try:
+                        if (temp in pkts_with_origin[ idx-1 ]) == False:
+                            pkts_with_origin[ idx -1 ].append(temp)
+                    except:
+                        print ('error')
+                else:
+                    collisions[i].append(temp_t)
+
+            print ('Collisions: ' + str(len(collisions[i])))
+        return pkts_with_origin, collisions
 
 
     def get_node_dc(self, node_id):
@@ -786,36 +797,36 @@ class LogConverter(object):
             positions[i] = (float(self.nodes[i-1]['xPos']),float(self.nodes[i-1]['yPos']))
         gen_topology(positions)
 
-    # def generate_graphs(self, pkt_delay):
-    def generate_graphs(self):
+    def generate_graphs(self, pkt_delay):
+    # def generate_graphs(self):
         print ('>> Generating graphics...')
 
 
-        # self.print_energy_levels()
-        # self.print_energy_bar()
-        # self.print_energy_total()
+        self.print_energy_levels()
+        self.print_energy_bar()
+        self.print_energy_total()
 
-        # self.print_harvesting_rate()
-        # self.print_on_time()
+        self.print_harvesting_rate()
+        self.print_on_time()
         # self.print_wakeups()
-        # try:
-        #     self.print_node_state() #Average node state
-        # except:
-        #     print ('>> ERROR on print_node_state')
-        # try:
-        #     self.printf_node_state() #graph with node state changes
-        # except:
-        #     print ('>> ERROR on printf_node_state')
-        # self.print_packet_created()
-        # self.print_delay(pkt_delay)
+        try:
+            self.print_node_state() #Average node state
+        except:
+            print ('>> ERROR on print_node_state')
+        try:
+            self.printf_node_state() #graph with node state changes
+        except:
+            print ('>> ERROR on printf_node_state')
+        self.print_packet_created()
+        self.print_delay(pkt_delay)
         # self.print_dc()
-        # self.print_drop_ratio(pkt_delay)
-        # self.print_dead_node()
-        # self.print_queue_size()
-        # self.output_results(output_array)
+        self.print_drop_ratio(pkt_delay)
+        self.print_dead_node()
+        self.print_queue_size()
+        self.output_results(output_array)
 
         self.print_rendezvous()
-        self.print_grad()
+        # self.print_grad()
         self.print_avg_edc()
         self.print_boxplot_edc()
 

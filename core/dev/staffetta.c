@@ -98,6 +98,7 @@ static uint8_t select[STAFFETTA_PKT_LEN+3];
 static uint8_t strobe_LPL[STAFFETTA_PKT_LEN+3];
 //uint16_t harvesting_rate;
 //node_energy_state_t node_energy_state;
+static uint8_t node_on;
 /* --------------------------- RADIO FUNCTIONS ---------------------- */
 
 static inline void radio_flush_tx(void) {
@@ -151,11 +152,11 @@ static void powercycle_turn_radio_on(void) {
     }
 }
 
-static void clear_radio() {
-    radio_flush_rx();
-    radio_flush_tx();
-    current_state = idle;
-}
+// static void clear_radio() {
+//     radio_flush_rx();
+//     radio_flush_tx();
+//     current_state = idle;
+// }
 
 static void stop_radio() {
     radio_flush_rx();
@@ -302,11 +303,8 @@ uint8_t find_worst_edc_entry () {
 }
 
 /*--------------------------- STAFFETTA FUNCTIONS ------------------------------------------------*/
-int staffetta_transmit(uint8_t stop_after_tx) {
+int staffetta_transmit() {
     rtimer_clock_t t0,t1,t2;
-    // uint8_t strobe[STAFFETTA_PKT_LEN+3];
-    // uint8_t strobe_ack[STAFFETTA_PKT_LEN+3];
-    // uint8_t select[STAFFETTA_PKT_LEN+3];
     int i,collisions,strobes,bytes_read;
 
    	strobe[PKT_LEN] = STAFFETTA_PKT_LEN+FOOTER_LEN;
@@ -348,12 +346,7 @@ int staffetta_transmit(uint8_t stop_after_tx) {
 				//check if the size is right
 				if (strobe_ack[PKT_LEN]>=(STAFFETTA_PKT_LEN+3)) {
 					radio_flush_rx();
-					// if(go_to_idle){
 					goto_idle();
-					// } else {
-					// 	clear_radio();
-					// }
-					//printf("goto sleep after waiting for SELECT. Wrong packet length\n");
 					return RET_FAIL_RX_BUFF;
 				}
 				//debug = strobe_ack[PKT_LEN];
@@ -439,11 +432,6 @@ int staffetta_transmit(uint8_t stop_after_tx) {
 		//Message delivered. Remove from our queue
 		pop_data();
     }
-    //turn off the radio
-    // goto_idle();
-    if (stop_after_tx) {
-    	stop_radio();
-    }
     // add the rendezvous measure to our average window
     if (collisions==0) {
 		rendezvous_time = ((RTIMER_NOW() - rendezvous_starting_time) * 10000) / RTIMER_ARCH_SECOND ;
@@ -516,7 +504,7 @@ int staffetta_transmit(uint8_t stop_after_tx) {
 	return RET_FAST_FORWARD;
 }
 
-int staffetta_listen(uint32_t timer_duration, uint8_t tx_after_rx) {
+int staffetta_listen(uint32_t timer_duration) {
     rtimer_clock_t t0,t1,t2,t3;
     int i,collisions,strobes,bytes_read;
     uint32_t rand_backup_time;
@@ -537,7 +525,7 @@ int staffetta_listen(uint32_t timer_duration, uint8_t tx_after_rx) {
     t0 = RTIMER_NOW();
     //TODO Check goto_idle usages
     // Lets Start by listening the channel in case of incoming transmission
-    while ( RTIMER_CLOCK_LT (RTIMER_NOW(),t0 + timer_duration)) { // Keep listening for the whole timer duration
+    while ( current_state == wait_to_send && RTIMER_CLOCK_LT (RTIMER_NOW(),t0 + timer_duration)) { // Keep listening for the whole timer duration
 		if (FIFO_IS_1) {
 			t2 = RTIMER_NOW ();
 			while(RTIMER_CLOCK_LT (RTIMER_NOW (), t2 + 3));
@@ -605,7 +593,6 @@ int staffetta_listen(uint32_t timer_duration, uint8_t tx_after_rx) {
 		}
     }
 
-    //TODO ADD here the collision correction method
     //send beacon ack and wait to be selected
     if(current_state==sending_ack){
 		strobe_ack[PKT_DST] = strobe[PKT_SRC];
@@ -750,27 +737,45 @@ int staffetta_listen(uint32_t timer_duration, uint8_t tx_after_rx) {
 #endif /*!FAST_FORWARD*/
       	// printf("8|%u|%u|%u|%u|%u|%lu\n",strobe[PKT_SRC],strobe[PKT_DST],strobe[PKT_SEQ],strobe[PKT_DATA],strobe[PKT_GRADIENT], avg_rendezvous);
     }
-    if (tx_after_rx == 1) {
-    	staffetta_transmit(0); //Do not sleep after TX
-    }
-
 }
 
-int staffetta_send_packet(void) {
-	int return_value;
+static uint32_t get_operation_duration(void) {
+	if (node_energy_state == NS_HIGH) {
+		return OP_DURATION_HIGH;
+	} else if (node_energy_state == NS_MID) {
+		return OP_DURATION_MID;
+	} else if (node_energy_state == NS_LOW) {	
+		return OP_DURATION_LOW;
+	} else {
+		return -1;
+	}
+} 
+
+int staffetta_main(void) {
+	int return_value = RET_NO_RX;
+	rtimer_clock_t t_all;
+	uint32_t operation_duration;
     //turn radio on
     radio_on();
-    staffetta_listen(LPL_TIME, TX_AFTER_RX);
+    staffetta_listen(LPL_TIME);
+    // Get operation duration depending on NODE_ENERGY_STATE
+    operation_duration = get_operation_duration();
+
     // Lets check if we have packets in our queue. If we do we TRANSMIT, if not, we keep on LISTENING
-    if (read_data() == 0) {
-    	// Queue is empty, we can start listening
-    	return_value = staffetta_listen(LISTEN_TIME, TX_AFTER_RX);
-    	stop_radio();
-    	return return_value;
-    } else {
-    	// We have packets in the queue, LET'S TRANSMIT
-    	return staffetta_transmit(1); // Go to sleep after TX
-    }
+    t_all = RTIMER_NOW();
+    if ( operation_duration != -1) { // If NODE_ENERGY_STATE is ZERO lets go to sleep
+	    while (RTIMER_CLOCK_LT (RTIMER_NOW(),t_all + operation_duration)) {
+		    if (read_data() == 0) {
+		    	// Queue is empty, we can start listening
+		    	return_value = staffetta_listen(LISTEN_TIME);
+		    } else {
+		    	// We have packets in the queue, LET'S TRANSMIT
+		    	return_value = staffetta_transmit(); // Go to sleep after TX
+		    }
+		}
+	}
+	stop_radio();
+	return return_value;    
 } /*END_WHILE*/
 
 
@@ -782,7 +787,7 @@ void sink_busy_wait(void) {
 }
 
 void sink_listen(void) {
-    rtimer_clock_t t0,t1,t2;
+    rtimer_clock_t t1,t2;
     uint8_t strobe[STAFFETTA_PKT_LEN+3];
     uint8_t strobe_ack[STAFFETTA_PKT_LEN+3];
     uint8_t select[STAFFETTA_PKT_LEN+3];

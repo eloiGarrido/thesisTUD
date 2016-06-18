@@ -214,10 +214,15 @@ struct staffetta_hdr {
 
 
 #define LPL_TIME        (RTIMER_ARCH_SECOND / 500) // 2ms
-#define LISTEN_TIME     (RTIMER_ARCH_SECOND / 100) // 10ms
+#define LISTEN_TIME     (RTIMER_ARCH_SECOND / 200) // 5ms
 #define NO_TX_AFTER_RX  0
 #define TX_AFTER_RX     1
 #define BACKOFF_TIME_LPL    (RTIMER_ARCH_SECOND / 300) // 3ms
+
+#define OP_DURATION_LOW   (RTIMER_ARCH_SECOND / 200) // 5ms
+#define OP_DURATION_MID   (RTIMER_ARCH_SECOND / 153) // 6.5ms
+#define OP_DURATION_HIGH  (RTIMER_ARCH_SECOND / 125) // 8ms
+
 //#define MAX_STROBE_SIZE 50
 //#define DEFAULT_STROBE_WAIT_TIME DEFAULT_ON_TIME
 //#define DEFAULT_STROBE_TIME DEFAULT_ON_TIME + DEFAULT_OFF_TIME
@@ -236,13 +241,13 @@ struct staffettamac_config {
 };
 
 /*------------------------- FUNCTIONS --------------------------------------------------*/
-int staffetta_send_packet(void);
+int staffetta_main(void);
 // uint32_t getWakeups(void);
 void sink_listen(void);
 void staffetta_print_stats(void);
 void staffetta_add_data(uint8_t);
 void staffetta_init(void);
 void staffetta_get_energy_consumption(uint32_t * rxtx_time);
-int staffetta_transmit(uint8_t stop_after_tx);
-int staffetta_listen(uint32_t timer_duration, uint8_t tx_after_rx);
+int staffetta_transmit();
+int staffetta_listen(uint32_t timer_duration);
 #endif /* __STAFFETTA_H__ */

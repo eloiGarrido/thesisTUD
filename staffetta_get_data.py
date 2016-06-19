@@ -15,12 +15,12 @@ from topology import gen_topology
 Log Converter
 convert Cooja results into statistical data and graphs
 '''
-env = 'uni'
-# env = 'home'
+# env = 'uni'
+env = 'home'
 repeated = True
 dropbox = False
-# simulation = 'orig'
-simulation = 'eh'
+simulation = 'orig'
+# simulation = 'eh'
 model = 'solar'
 # model = 'bernoulli'
 # model = 'mover'
@@ -32,7 +32,7 @@ duration = '30min'
 age = 'slow4Age'
 # age = 'noAge'
 # simulation_name = 'sim3_11' + str(simulation) + '_' + str(duration) + '_' + '_uni'
-simulation_name = 'new_code_orig'
+simulation_name = 'new_code_orig_home'
 output_array = []
 
 file_path = ""
@@ -178,7 +178,6 @@ class LogConverter(object):
         print ('>> Reading done')
 
     def format_pkt_path(self, split_packet):
-
         main_split = []
         for l in range (0, len(split_packet)):
             splited = []
@@ -192,7 +191,6 @@ class LogConverter(object):
                             seq = splited[idx][0][2]
                             if (split_packet[l][j] not in splited[idx]) and split_packet[l][j][3] == src and split_packet[l][j][2] == seq:
                                 splited[idx].append(split_packet[l][j])
-
                 main_split.append(splited[idx])
 
 
@@ -465,15 +463,15 @@ class LogConverter(object):
         plt.figure()
         dead_node_avg = 0.0
         counter = 0
-        for i in range (1, self.number_of_nodes-1):
+        for i in range (1, self.number_of_nodes):
             total_count = len(self.nodes[i]['time_on']) + int(self.nodes[i]['no_energy'])
-            plt.bar(i,self.nodes[i]['no_energy'], align='center')
+            plt.bar(i+1,self.nodes[i]['no_energy'], align='center')
             print(float(self.nodes[i]['no_energy']))
             print(float(total_count))
             print('------------')
             counter = counter + 1
             dead_node_avg += (100.0 * float(self.nodes[i]['no_energy'])) / float(total_count)
-            plt.annotate( str( (100.0 * float(self.nodes[i]['no_energy'])) / float(total_count) ) + '%', xy=(i, 0))
+            plt.annotate( str( (100.0 * float(self.nodes[i]['no_energy'])) / float(total_count) ) + '%', xy=(i+1, 0))
         # Compute average dead nodes
         dead_node_avg = dead_node_avg / counter
         # Print average
@@ -482,7 +480,7 @@ class LogConverter(object):
         string_t = 'avg_node_dead:' + str(dead_node_avg)
         output_array.append(string_t)
 
-        self.format_figure('Node dead times', 'Node', 'Occurrences', 'node_dead_times')
+        self.format_figure('Node dead times', 'Node', 'Num. Occurrences', 'node_dead_times')
 
 
     def print_delay(self,pkt_delay):
@@ -491,7 +489,8 @@ class LogConverter(object):
         avg_delay_node = []
         counter = []
         acum = 0.0
-        for i in range(0, self.number_of_nodes-1):
+        acum_counter = 0.0
+        for i in range(0, self.number_of_nodes):
             avg_delay_node.append(0.0)
             counter.append(0.0)
         for i in range(0, len(pkt_delay)):
@@ -499,25 +498,27 @@ class LogConverter(object):
             if pkt_delay[i]['delay'] == 'lost':
                 continue
             else:
-                avg_delay_node[node-2] += float(pkt_delay[i]['delay'])
-                counter[node-2] += 1.0
+                avg_delay_node[node-1] += float(pkt_delay[i]['delay'])
+                counter[node-1] += 1.0
 
-        for i in range (0, self.number_of_nodes-1):
+        for i in range (1, self.number_of_nodes):
             try:
                 avg_delay_node[i] = avg_delay_node[i] / counter[i]
-                acum += long(float(avg_delay_node[i] / (self.number_of_nodes - 1) ))
+                acum_counter = acum_counter + 1.0
+                acum += long(float(avg_delay_node[i] ))
             except:
                 print ('>> ERROR: No delay data on node ' + str(i))
                 avg_delay_node[i] = 0.0
-            plt.bar(i+1,avg_delay_node[i],align='center')
-
-        plt.axhline(int(acum), color='r')
-        plt.annotate(acum, xy=(self.number_of_nodes-2,int(acum) + 0.5))
+            # plt.bar(i+1,avg_delay_node[i],align='center')
+            plt.bar(i+1,avg_delay_node[i] / 1000000,align='center')
+        acum = acum / acum_counter
+        plt.axhline(int(acum) / 1000000, color='r')
+        plt.annotate(str(acum / 1000000) + ' sec', xy=(self.number_of_nodes-1,int(acum) / 1000000 + 0.5))
         # Add delay to output file
-        string_t = 'avg_delay:' + str(int(acum))
+        string_t = 'avg_delay:' + str(int(acum)/1000000)
         output_array.append(string_t)
 
-        self.format_figure('Node average delay','Node', 'Delay', 'node_delay')
+        self.format_figure('Average End-to-End Delay','Node', 'Delay (sec)', 'node_delay')
 
     def printf_node_state(self):
         print ('>> Printf node state...')
@@ -525,15 +526,15 @@ class LogConverter(object):
         for i in range(1, self.number_of_nodes):
             results = map(int,self.nodes[i]['node_energy_state'])
             plt.plot(results)
-        self.format_figure('Node State', 'Node', 'State', 'node_state')
+        self.format_figure('Node State Overview', 'Time', 'State', 'node_state_overview')
 
     def print_packet_created(self):
         print('>> Printing created packets...')
         plt.figure()
         for i in range(1, self.number_of_nodes):
-            plt.bar(i, len(self.nodes[i]['seq']), align='center')
+            plt.bar(i+1, len(self.nodes[i]['seq']), align='center')
 
-        self.format_figure('Packets Created', 'Node', 'Packets', 'packets_created')
+        self.format_figure('Packets Created', 'Node', 'Pkts created ', 'packets_created')
 
     def print_grad(self):
         for i in range(1, self.number_of_nodes):
@@ -559,7 +560,7 @@ class LogConverter(object):
             if pkt_delay[i]['delay'] == 'lost':
                 drop_pkt[node-1] += 1.0
 
-        for i in range(0, len(total_pkt)):
+        for i in range(1, len(total_pkt)):
             try:
                 plt.bar(i+1, ( drop_pkt[i] / total_pkt[i]),align='center' )
             except:
@@ -570,7 +571,7 @@ class LogConverter(object):
         string_t = 'drop_ratio:' + str(sum(drop_pkt) / sum(total_pkt))
         output_array.append(string_t)
 
-        self.format_figure('Node packet drop ratio', 'Node', 'Packet Dropped', 'packet_drop')
+        self.format_figure('Node PLR', 'Node', 'Packets Dropped (%)', 'packet_drop')
 
     def print_rendezvous(self):
         print ('>> Printing rendezvous time...')
@@ -598,18 +599,21 @@ class LogConverter(object):
         print ('>> Printing energy levels...')
         plt.figure()
         avg = []
+        xaxis = []
         for i in range (0, len(self.nodes[1]['remaining_energy'])):
             avg.append(0.0)
-
+        for i in range(1, self.number_of_nodes):
+            xaxis.append(i+1)
         for i in range (1, self.number_of_nodes):
             plt.plot((self.nodes[i]['remaining_energy']) )
+        # plt.xticks(xaxis)
         self.format_figure('Node Energy Overview','Time', 'Energy', 'node_energy_overview')
         return
 
     def print_energy_total(self):
         print ('>> Printing energy statistics...')
         fig, ax = plt.subplots()
-        index = np.arange(self.number_of_nodes-1)
+        index = np.arange(1,self.number_of_nodes)
         bar_width = 0.35
         opacity = 0.4
         error_config = {'ecolor': '0.3'}
@@ -646,10 +650,12 @@ class LogConverter(object):
         print ('>> Printing energy statistics...')
         plt.figure()
         energy_t = []
+        xaxis = []
         for i in range (1, self.number_of_nodes):
             energy_t.append(self.nodes[i]['remaining_energy'])
-
+            xaxis.append(i+1)
         plt.boxplot(energy_t,0,'')
+        # plt.xticks(xaxis)
         self.format_figure('Node Energy Deviation','Time', 'Energy', 'node_energy_deviation')
         return
 
@@ -668,7 +674,7 @@ class LogConverter(object):
             avg_state.append(sum_t/counter)
 
             # plt.plot(self.nodes[i]['node_energy_state'])
-        for i in range(0,self.number_of_nodes-1):
+        for i in range(1,self.number_of_nodes):
             result = map(float,self.nodes[i]['node_energy_state'])
             avg_state_t.append(result)
             # plt.bar(i+1, avg_state[i] ,align='center')
@@ -680,38 +686,47 @@ class LogConverter(object):
         # Output file
         string_t = 'node_state:' + str(avg)
         output_array.append(string_t)
-        self.format_figure('Node State','Time', 'State', 'node_state_bar')
+        self.format_figure('Node State','Node', 'State', 'node_state_bar')
         return
 
     def print_harvesting_rate(self):
         print ('>> Printing harvesting rate...')
         plt.figure()
+        xaxis = []
         for i in range (1, self.number_of_nodes):
             plt.plot(self.nodes[i]['harvesting_rate'])
-
+            xaxis.append(i+1)
+        # plt.xticks(xaxis)
         self.format_figure('Harvesting Rate','Time', 'HR', 'node_harv')
         return
 
     def print_avg_edc(self):
         print ('>> Printing average EDC...')
         plt.figure()
+        xaxis = []
         for i in range (1, self.number_of_nodes):
             plt.plot(self.nodes[i]['avg_edc'], label='node: '+str(i))
+            xaxis.append(len(self.nodes[i]['avg_edc']))
+        xaxis_t = np.arange(0, xaxis[0] / 60)
+        # plt.xticks(xaxis_t)
 
         plt.legend(loc=4)
         plt.ylim(0,256)
 
-        self.format_figure('Node Avg EDC','Time', 'Metric', 'avg_edc')
+        self.format_figure('Node Avg EDC','Time (s)', 'Gradient', 'avg_edc')
         return
 
     def print_boxplot_edc(self):
         print ('>> Printing bar EDC...')
         plt.figure()
         edc_t = []
+        ticks = []
         for i in range (1, self.number_of_nodes):
             edc_t.append(self.nodes[i]['avg_edc'])
+            ticks.append(i+1)
         plt.boxplot(edc_t,0,'')
-        self.format_figure('Node EDC','Time', 'Metric', 'bar_edc')
+        # plt.xticks(ticks)
+        self.format_figure('Node EDC','Node', 'EDC', 'bar_edc')
         return
 
 
@@ -744,6 +759,7 @@ class LogConverter(object):
         print ('>> Printing ON time...')
         plt.figure()
         avg = []
+        xaxis = []
         for i in range (0, len(self.nodes[1]['on_time'])):
             avg.append(float(self.nodes[1]['on_time'][i]) / float(self.number_of_nodes - 1))
 
@@ -755,33 +771,44 @@ class LogConverter(object):
                     continue
         for i in range (1, self.number_of_nodes):
             plt.plot(self.nodes[i]['on_time'])
+            xaxis.append(i + 1)
+        # plt.xticks(xaxis)
         plt.plot(avg,'dr', linewidth=5)
 
-        self.format_figure('Node ON Time','Time', 'ON Time', 'on_time')
+        self.format_figure('Node ON Time','Time (0.01s)', 'ON Time', 'on_time')
         return
 
     def print_queue_size(self):
         print ('>> Printing queue size...')
         plt.figure()
         q_size_t = []
+        xaxis = []
         for i in range (1, self.number_of_nodes):
             q_size_t.append(self.nodes[i]['q_size'])
-        plt.boxplot(q_size_t, 0, '')
-        self.format_figure('Queue Size', 'Node', 'Queue Size', 'queue_size')
+            xaxis.append(i+1)
+
+        plt.boxplot(q_size_t, '')
+        # plt.xticks(xaxis)
+        self.format_figure('Queue Size', 'Node', 'Packets', 'queue_size')
 
         plt.figure()
         for i in range(1, self.number_of_nodes):
-            plt.plot(self.nodes[i]['q_size'])
-        self.format_figure('Queue Size', 'Time', 'Queue Size', 'queue_size_overview')
+            plt.plot( self.nodes[i]['q_size'])
+            xaxis.append(i + 1)
+        # plt.xticks(xaxis)
+        self.format_figure('Queue Size', 'Time (0.01s)', 'Packets', 'queue_size_overview')
 
     def print_dc(self):
         print ('>> Printing DC...')
         plt.figure()
         avg_dc_array = []
+        xaxis = []
         for i in range (1, self.number_of_nodes):
             node_dc, avg_dc = self.get_node_dc(i)
             avg_dc_array.append(avg_dc)
             plt.plot(node_dc)
+            xaxis.append(i + 1)
+        # plt.xticks(xaxis)
         self.format_figure('Node DC', 'Time', 'DC (%)', 'duty_cycle')
 
         plt.figure()

@@ -123,7 +123,7 @@
 #endif /*NEW_EDC*/
 
 #define WAKE_UP_PERIOD  10
-#define WITH_COLLISION_AVOIDANCE 0
+#define WITH_COLLISION_AVOIDANCE 1
 /*-------------------------- MACROS -------------------------------------------------*/
 #define MIN(a, b) ((a) < (b)? (a) : (b))
 #define MAX(a, b) ((a) > (b)? (a) : (b))

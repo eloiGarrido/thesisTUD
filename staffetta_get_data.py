@@ -15,8 +15,8 @@ from topology import gen_topology
 Log Converter
 convert Cooja results into statistical data and graphs
 '''
-# env = 'uni'
-env = 'home'
+env = 'uni'
+# env = 'home'
 repeated = True
 dropbox = False
 simulation = 'orig'
@@ -32,7 +32,7 @@ duration = '30min'
 age = 'slow4Age'
 # age = 'noAge'
 # simulation_name = 'sim3_11' + str(simulation) + '_' + str(duration) + '_' + '_uni'
-simulation_name = 'new_code_orig_home'
+simulation_name = 'new_code_orig_uni'
 output_array = []
 
 file_path = ""

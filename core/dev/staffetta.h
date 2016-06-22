@@ -123,7 +123,7 @@
 #endif /*NEW_EDC*/
 
 #define WAKE_UP_PERIOD  10
-#define WITH_COLLISION_AVOIDANCE 1
+#define WITH_COLLISION_AVOIDANCE 0
 /*-------------------------- MACROS -------------------------------------------------*/
 #define MIN(a, b) ((a) < (b)? (a) : (b))
 #define MAX(a, b) ((a) > (b)? (a) : (b))
@@ -213,11 +213,12 @@ struct staffetta_hdr {
 #define BACKOFF_TIME 		  (ON_TIME)			// 5ms
 
 
-#define LPL_TIME        (RTIMER_ARCH_SECOND / 500) // 2ms
+#define GUARD_TIME      (RTIMER_ARCH_SECOND / 800) // 1.25ms
+#define CCA_TIME        (STROBE_WAIT_TIME * 3/2) // 2.15ms
+#define WAIT_TIME       (GUARD_TIME * 5/4)
 #define LISTEN_TIME     (RTIMER_ARCH_SECOND / 200) // 5ms
 #define NO_TX_AFTER_RX  0
 #define TX_AFTER_RX     1
-#define BACKOFF_TIME_LPL    (RTIMER_ARCH_SECOND / 300) // 3ms
 
 #define OP_DURATION_LOW   (RTIMER_ARCH_SECOND / 200) // 5ms
 #define OP_DURATION_MID   (RTIMER_ARCH_SECOND / 153) // 6.5ms

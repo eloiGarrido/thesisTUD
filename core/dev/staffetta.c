@@ -609,12 +609,12 @@ int staffetta_listen(uint32_t timer_duration) {
 #endif /*WITH_AGGREGATE*/
 #if WITH_COLLISION_AVOIDANCE
 		// //TODO Strobe prepared, init backoff period, let's listen to the channel
-	    t3 = RTIMER_NOW();
-	    rand_backup_time = random_rand()%BACKOFF_TIME_LPL;
+	    rand_backup_time = random_rand()%GUARD_TIME;
 	    //TODO Check goto_idle usages
 	    // Lets Start by listening the channel in case of incoming transmission
 	    channel_idle = 1;
-	    while ( RTIMER_CLOCK_LT (RTIMER_NOW(),t3 + rand_backup_time)) {
+	    t3 = RTIMER_NOW();
+	    while ( channel_idle == 1 && RTIMER_CLOCK_LT (RTIMER_NOW(),t3 + rand_backup_time)) {
 			if (FIFO_IS_1) {
 				//TODO channel_idle = 0 if we drop the packet because some other node is sending it
 				t2 = RTIMER_NOW ();
@@ -649,9 +649,10 @@ int staffetta_listen(uint32_t timer_duration) {
 				}
 			}
 	    }
-
-	    if (channel_idle) {
+#else
+	    channel_idle = 1;
 #endif /*WITH_COLLISION_AVOIDANCE*/
+	    if (channel_idle) {
 			//TODO Channel is idle, we can transmit
 			FASTSPI_WRITE_FIFO(strobe_ack, STAFFETTA_PKT_LEN+1);
 			FASTSPI_STROBE(CC2420_STXON);
@@ -727,9 +728,10 @@ int staffetta_listen(uint32_t timer_duration) {
 				return RET_WRONG_SELECT;
 			}	
 #endif
-#if WITH_COLLISION_AVOIDANCE
+		} else {
+			radio_flush_rx();
+			radio_flush_tx();
 		}
-#endif /*WITH_COLLISION_AVOIDANCE*/
 #if !FAST_FORWARD
 		// goto_idle(); // We don't want to go to sleep after receiving one packet, we want to use all our listening time
 		// printf("8|%u|%u|%u|%u|%u\n",strobe[PKT_SRC],strobe[PKT_DST],strobe[PKT_SEQ],strobe[PKT_DATA],strobe[PKT_GRADIENT]);
@@ -738,6 +740,262 @@ int staffetta_listen(uint32_t timer_duration) {
       	// printf("8|%u|%u|%u|%u|%u|%lu\n",strobe[PKT_SRC],strobe[PKT_DST],strobe[PKT_SEQ],strobe[PKT_DATA],strobe[PKT_GRADIENT], avg_rendezvous);
     }
 }
+
+
+int staffetta_cca() {
+    rtimer_clock_t t0,t1,t2,t3;
+    int i,collisions,strobes,bytes_read;
+    uint32_t rand_backup_time;
+    uint8_t channel_idle, wait_channel;
+    //prepare strobe_ack packet
+    strobe_ack[PKT_LEN] = STAFFETTA_PKT_LEN+FOOTER_LEN;
+    strobe_ack[PKT_SRC] = node_id;
+    strobe_ack[PKT_TYPE] = TYPE_BEACON_ACK;
+   	strobe_ack[PKT_GRADIENT] = MAX_EDC;
+    radio_flush_rx();
+    radio_flush_tx(); 
+    //start measuring
+    rendezvous_time = 0;
+    wait_channel = 0;
+    rendezvous_starting_time = RTIMER_NOW();
+    //start backoff
+    current_state = wait_to_send;
+    t0 = RTIMER_NOW();
+    // Lets Start by listening the channel in case of incoming transmission
+    while ( current_state == wait_to_send && RTIMER_CLOCK_LT (RTIMER_NOW(),t0 + CCA_TIME)) { // Keep listening for the whole timer duration
+		if (FIFO_IS_1) {
+			t2 = RTIMER_NOW ();
+			while(RTIMER_CLOCK_LT (RTIMER_NOW (), t2 + 3));
+			FASTSPI_READ_FIFO_BYTE(strobe[PKT_LEN]);
+			bytes_read = 1;
+			//check if the size is right
+			if (strobe[PKT_LEN]>=(STAFFETTA_PKT_LEN+3)) {
+				radio_flush_rx();
+				goto_idle();
+				wait_channel = 1;
+				goto WAIT_LOOP;
+				// return RET_FAIL_RX_BUFF;
+			}
+			while (bytes_read < 10) {
+				t1 = RTIMER_NOW ();
+				// wait until the FIFO pin is 1 (until one more byte is received)
+				while (!FIFO_IS_1) {
+					//TODO Check sum of all timers for proper scheduling
+					if (!RTIMER_CLOCK_LT(RTIMER_NOW(), t1 + RTIMER_ARCH_SECOND/200)) {
+						radio_flush_rx();
+						goto_idle();
+						wait_channel = 1;
+						goto WAIT_LOOP;
+						// return RET_FAIL_RX_BUFF;
+					}
+				};
+				// read another byte from the RXFIFO
+				FASTSPI_READ_FIFO_BYTE(strobe[bytes_read]);
+				bytes_read++;
+			}
+			//Check CRC
+			if (strobe[PKT_CRC] & FOOTER1_CRC_OK) {}
+			else {
+#if WITH_CRC
+				// packet is corrupted. we send a beacon ack to a non-existing node as a NACK
+				strobe_ack[PKT_DST] = 255;
+				strobe_ack[PKT_DATA] = 0;
+				strobe_ack[PKT_SEQ] = 0;
+				strobe_ack[PKT_TTL] = 0;
+				FASTSPI_WRITE_FIFO(strobe_ack, STAFFETTA_PKT_LEN+1);
+				FASTSPI_STROBE(CC2420_STXON);
+				BUSYWAIT_UNTIL(!(radio_status() & BV(CC2420_TX_ACTIVE)), RTIMER_SECOND / 10);
+				// and go to sleep
+				radio_flush_rx();
+				goto_idle();
+				wait_channel = 1;
+				goto WAIT_LOOP;
+				//Wrong CRC
+				// return RET_WRONG_CRC;
+#endif /*WITH_CRC*/
+			}
+			//PRINTF("rx: %u %u %u %u %u %u %u %u\n",strobe[0],strobe[1],strobe[2],strobe[3],strobe[4],strobe[5],strobe[6],strobe[7]);
+			//strobe received, process it
+
+#if ORW_GRADIENT
+			if(strobe[PKT_GRADIENT] < avg_edc){
+				radio_flush_rx();
+				goto_idle();
+				wait_channel = 1;
+				goto WAIT_LOOP;
+				//sender is closer to the sink than me
+				// return RET_WRONG_GRADIENT;
+			}
+#endif /*ORW_GRADIENT*/
+			if (strobe[PKT_TYPE] == TYPE_BEACON){
+				current_state = sending_ack;
+			}else{
+				radio_flush_rx();
+				goto_idle();
+				wait_channel = 1;
+				goto WAIT_LOOP;
+				//expected beacon, got type strobe[PKT_TYPE]
+				// return RET_WRONG_TYPE;
+			}
+		}
+		// Busy wait while channel is used or GUARD duration
+		WAIT_LOOP:t3 = RTIMER_NOW();
+		while (wait_channel && ( !FIFO_IS_1  || RTIMER_CLOCK_LT (RTIMER_NOW(),t3 + WAIT_TIME) )) {} 
+		wait_channel = 0;
+    }
+
+    //send beacon ack and wait to be selected
+    if(current_state==sending_ack){
+		strobe_ack[PKT_DST] = strobe[PKT_SRC];
+		strobe_ack[PKT_DATA] = strobe[PKT_DATA];
+		strobe_ack[PKT_SEQ] = strobe[PKT_SEQ];
+		strobe_ack[PKT_TTL] = strobe[PKT_TTL];
+        strobe_ack[PKT_SRC] = node_id;
+#if ORW_GRADIENT
+		strobe_ack[PKT_GRADIENT] = (uint8_t)(MIN(avg_edc,MAX_EDC));
+#endif /*ORW_GRADIENT*/
+#if WITH_AGGREGATE
+		aggregateValue = MAX(aggregateValue,strobe[PKT_GRADIENT]);
+		strobe_ack[PKT_GRADIENT] = aggregateValue;
+#endif /*WITH_AGGREGATE*/
+#if WITH_COLLISION_AVOIDANCE
+		// Strobe prepared, init backoff period, let's listen to the channel
+		strobe_LPL[PKT_DST] = 255;
+		strobe_LPL[PKT_DATA] = 255;
+		strobe_LPL[PKT_SEQ] = 255;
+		strobe_LPL[PKT_SRC] = 255;
+
+	    rand_backup_time = random_rand()%GUARD_TIME;
+	    // Lets Start by listening the channel in case of incoming transmission
+	    channel_idle = 1;
+	    t3 = RTIMER_NOW();
+	    while (channel_idle == 1 && RTIMER_CLOCK_LT (RTIMER_NOW(),t3 + rand_backup_time)) {
+			if (FIFO_IS_1) {
+				//TODO channel_idle = 0 if we drop the packet because some other node is sending it
+				t2 = RTIMER_NOW ();
+				while(RTIMER_CLOCK_LT (RTIMER_NOW (), t2 + 3));
+				FASTSPI_READ_FIFO_BYTE(strobe_LPL[PKT_LEN]);
+				bytes_read = 1;
+				//check if the size is right
+				if (strobe_LPL[PKT_LEN]>=(STAFFETTA_PKT_LEN+3)) {
+					radio_flush_rx();
+					goto_idle();
+					return RET_FAIL_RX_BUFF;
+				}
+				while (bytes_read < 10) {
+					t1 = RTIMER_NOW ();
+					// wait until the FIFO pin is 1 (until one more byte is received)
+					while (!FIFO_IS_1) {
+						if (!RTIMER_CLOCK_LT(RTIMER_NOW(), t1 + RTIMER_ARCH_SECOND/200)) {
+							radio_flush_rx();
+							goto_idle();
+							return RET_FAIL_RX_BUFF;
+						}
+					};
+					// read another byte from the RXFIFO
+					FASTSPI_READ_FIFO_BYTE(strobe_LPL[bytes_read]);
+					bytes_read++;
+				}
+				//strobe received, process it
+				if ( strobe_LPL[PKT_DST] == strobe_ack[PKT_DST] && strobe_LPL[PKT_DATA] == strobe_ack[PKT_DATA] && strobe_LPL[PKT_SEQ] == strobe_ack[PKT_SEQ] ) {
+					// Is the same packet, drop it and go to sleep
+					channel_idle = 0;
+
+				}
+			}
+	    }
+#else
+	    channel_idle = 1;
+#endif /*WITH_COLLISION_AVOIDANCE*/
+	    if (channel_idle) {
+			//TODO Channel is idle, we can transmit
+			FASTSPI_WRITE_FIFO(strobe_ack, STAFFETTA_PKT_LEN+1);
+			FASTSPI_STROBE(CC2420_STXON);
+			//We wait until transmission has ended
+			BUSYWAIT_UNTIL(!(radio_status() & BV(CC2420_TX_ACTIVE)), RTIMER_SECOND / 10);
+			//wait for the select packet
+#if WITH_SELECT
+			current_state = wait_select;
+			radio_flush_rx();
+			t1 = RTIMER_NOW ();
+			while (current_state == wait_select && RTIMER_CLOCK_LT (RTIMER_NOW(),t1 + STROBE_WAIT_TIME)) {
+				if (FIFO_IS_1) {
+					t2 = RTIMER_NOW (); while(RTIMER_CLOCK_LT (RTIMER_NOW (), t2 + 3));
+					FASTSPI_READ_FIFO_BYTE(select[PKT_LEN]);
+					bytes_read = 1;
+					//check if the size is right
+					if (select[PKT_LEN]>=(STAFFETTA_PKT_LEN+3)) {
+						radio_flush_rx();
+						goto_idle();
+						//printf("goto sleep after waiting for SELECT. Wrong packet length\n");
+						return RET_FAIL_RX_BUFF;
+					}
+					while (bytes_read < 10) {
+						t2 = RTIMER_NOW ();
+						// wait until the FIFO pin is 1 (until one more byte is received)
+						while (!FIFO_IS_1) {
+							if (!RTIMER_CLOCK_LT(RTIMER_NOW(), t2 + RTIMER_ARCH_SECOND/200)) {
+								radio_flush_rx();
+								goto_idle();
+								//goto sleep after waiting for SELECT's byte bytes_read from radio
+								return RET_FAIL_RX_BUFF;
+							}
+						};
+						// read another byte from the RXFIFO
+						FASTSPI_READ_FIFO_BYTE(select[bytes_read]);
+						bytes_read++;
+					}
+					//Check CRC
+					if (select[PKT_CRC] & FOOTER1_CRC_OK) {}
+					else {
+#if WITH_CRC
+						radio_flush_rx();
+						goto_idle();
+						//PRINTF("Wrong CRC\n");
+						return RET_WRONG_CRC;
+#endif /*WITH_CRC*/
+					}
+					//change state to idle to signal that a message was received
+					current_state = select_received;
+				}
+			}
+			//Save received data
+			if((current_state==select_received)&&(select[PKT_DST]!=node_id)){
+				//if we received a select and it is not for us, trash the packet.
+			}else{
+				//otherwise save the packet
+				add_data(strobe[PKT_DATA], strobe[PKT_TTL]+1, strobe[PKT_SEQ]);
+			}
+#else 
+			if(channel_idle){
+				add_data(strobe[PKT_DATA], strobe[PKT_TTL]+1, strobe[PKT_SEQ]);
+			}
+#endif /*WITH_SELECT*/
+			//Give time to the radio to finish sending the data
+			t2 = RTIMER_NOW (); while(RTIMER_CLOCK_LT (RTIMER_NOW (), t2 + RTIMER_ARCH_SECOND/1000));
+			//Fast-forward
+			radio_flush_rx();
+			radio_flush_tx();
+			//we fast forward only if we successfully received a select message (state = idle)
+#if WITH_SELECT
+			if(current_state != select_received){
+				goto_idle();
+				return RET_WRONG_SELECT;
+			}	
+#endif
+		} else {
+			radio_flush_rx();
+			radio_flush_tx();
+		}
+#if !FAST_FORWARD
+		// goto_idle(); // We don't want to go to sleep after receiving one packet, we want to use all our listening time
+		// printf("8|%u|%u|%u|%u|%u\n",strobe[PKT_SRC],strobe[PKT_DST],strobe[PKT_SEQ],strobe[PKT_DATA],strobe[PKT_GRADIENT]);
+		return RET_NO_RX;
+#endif /*!FAST_FORWARD*/
+      	// printf("8|%u|%u|%u|%u|%u|%lu\n",strobe[PKT_SRC],strobe[PKT_DST],strobe[PKT_SEQ],strobe[PKT_DATA],strobe[PKT_GRADIENT], avg_rendezvous);
+    }
+}
+
 
 static uint32_t get_operation_duration(void) {
 	if (node_energy_state == NS_HIGH) {
@@ -753,27 +1011,49 @@ static uint32_t get_operation_duration(void) {
 
 int staffetta_main(void) {
 	int return_value = RET_NO_RX;
-	rtimer_clock_t t_all;
+	rtimer_clock_t t_operation;
 	uint32_t operation_duration;
-    //turn radio on
-    radio_on();
-    staffetta_listen(LPL_TIME);
-    // Get operation duration depending on NODE_ENERGY_STATE
-    operation_duration = get_operation_duration();
+	uint8_t cca = 0;
 
+    //turn radio on
+    
+    // staffetta_listen(LPL_TIME);
+    // Get operation duration depending on NODE_ENERGY_STATE
+#if DYN_DC
+    operation_duration = get_operation_duration();
+#else
+    operation_duration = OP_DURATION_LOW;
+#endif /*DYN_DC*/
+
+    // Wake up, start the timer and CCA
+    radio_on();
+    t_operation = RTIMER_NOW();
+    while (operation_duration != -1 && RTIMER_CLOCK_LT (RTIMER_NOW(),t_operation + operation_duration)) {
+    	if (cca == 0) {
+    		return_value = staffetta_cca(); //TODO Change to staffetta_cca();
+    		cca = 1;
+    	} else {
+    		if (read_data() == 0) {
+    			return_value = staffetta_listen(LISTEN_TIME); // Queue is empty, we can start listening
+    		} else {
+    			return_value = staffetta_transmit(); // We have packets in the queue, LET'S TRANSMIT
+    		}
+			cca = 0;	
+    	}
+    }
     // Lets check if we have packets in our queue. If we do we TRANSMIT, if not, we keep on LISTENING
-    t_all = RTIMER_NOW();
-    if ( operation_duration != -1) { // If NODE_ENERGY_STATE is ZERO lets go to sleep
-	    while (RTIMER_CLOCK_LT (RTIMER_NOW(),t_all + operation_duration)) {
-		    if (read_data() == 0) {
-		    	// Queue is empty, we can start listening
-		    	return_value = staffetta_listen(LISTEN_TIME);
-		    } else {
-		    	// We have packets in the queue, LET'S TRANSMIT
-		    	return_value = staffetta_transmit(); // Go to sleep after TX
-		    }
-		}
-	}
+ //    t_all = RTIMER_NOW();
+ //    if ( operation_duration != -1) { // If NODE_ENERGY_STATE is ZERO lets go to sleep
+	//     while (RTIMER_CLOCK_LT (RTIMER_NOW(),t_all + operation_duration)) {
+	// 	    if (read_data() == 0) {
+	// 	    	// Queue is empty, we can start listening
+	// 	    	return_value = staffetta_listen(LISTEN_TIME);
+	// 	    } else {
+	// 	    	// We have packets in the queue, LET'S TRANSMIT
+	// 	    	return_value = staffetta_transmit(); // Go to sleep after TX
+	// 	    }
+	// 	}
+	// }
 	stop_radio();
 	return return_value;    
 } /*END_WHILE*/

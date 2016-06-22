@@ -23,6 +23,8 @@ PROCESS_THREAD(staffetta_print_stats_process, ev, data){
     round_stats = PAKETS_PER_NODE;
     loop_stats = node_id;
     static uint8_t counter = 0;
+    static uint8_t data_counter = 0;
+    static uint8_t gen_data;
     //etimer_set(&et,random_rand()%(CLOCK_SECOND*5));
 #if ADAPTIVE_PACKET_CREATION
     static uint8_t counter = 0;
@@ -63,21 +65,27 @@ PROCESS_THREAD(staffetta_print_stats_process, ev, data){
     }
 #else
     // etimer_set(&et,CLOCK_SECOND*25+(random_rand()%(CLOCK_SECOND*10)));
+    gen_data = random_rand()%5 + 12;
     etimer_set(&et,CLOCK_SECOND*1+(random_rand()%(CLOCK_SECOND*10)));
     PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
     while(1) {
         staffetta_print_stats();
         counter = counter + 1;
-        if (counter >= 25){
-            staffetta_add_data(round_stats++);
+        if (counter >= 2){
             printf("6|%d|%lu|%lu|%lu|%lu\n", node_energy_state, remaining_energy, harvesting_rate, acum_consumption, acum_harvest);
             acum_consumption = 0; // Reset acumulative values
             acum_harvest = 0;
             counter = 0;
         }
+        data_counter++;
+        if (data_counter >= gen_data) {
+            staffetta_add_data(round_stats++);
+            gen_data = random_rand()%5 + 12;
+            data_counter = 0;
+        }
         // staffetta_add_data(round_stats++);
 
-        etimer_set(&et,CLOCK_SECOND*1);
+        etimer_set(&et,CLOCK_SECOND*5);
 
 
 

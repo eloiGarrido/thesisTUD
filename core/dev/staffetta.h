@@ -78,7 +78,8 @@
 
 //TODO implement all the options
 
-#define PAKETS_PER_NODE 	6
+// #define PAKETS_PER_NODE 	6
+#define PAKETS_PER_NODE   3
 #define WITH_CRC 		      1
 #define IS_SINK 		      (node_id == 1)
 //#define IS_SINK 		    (node_id < 4) // Mobile sink on flocklab
@@ -100,13 +101,14 @@
 #define RSSI_FILTER 		  0 // filter strobes with RSSI lower that a threshold
 #define RSSI_THRESHOLD 		-90
 #define WITH_SINK_DELAY 	1 // add a delay to the beacon ack of nodes that are not a sink (sink is always the first to answer to beacons)
-#define DATA_SIZE 		    100 // size of the packet queue
+// #define DATA_SIZE 		    100 // size of the packet queue
+#define DATA_SIZE         50 // size of the packet queue
 
 #define WITH_AGGREGATE		0
 #define RENDEZ_TIME       10000
 
 #define ENERGY_HARV       1 //Enable dynamic budget depending on Energy Harvesting capabilities
-#define NEW_EDC           0
+#define NEW_EDC           1
 #define AGEING            0 //EDC vector ages depending on rendezvous value
 // #define EDC_WITH_RV         0
 #define STAFFETTA_ENERGEST  1
@@ -122,8 +124,9 @@
 #define MAX_EDC   255
 #endif /*NEW_EDC*/
 
+#define PKTS_PER_NODE  3
 #define WAKE_UP_PERIOD  10
-#define WITH_COLLISION_AVOIDANCE 0
+#define WITH_COLLISION_AVOIDANCE 1
 /*-------------------------- MACROS -------------------------------------------------*/
 #define MIN(a, b) ((a) < (b)? (a) : (b))
 #define MAX(a, b) ((a) > (b)? (a) : (b))
@@ -206,7 +209,8 @@ struct staffetta_hdr {
 
 
 #define PERIOD 			      RTIMER_ARCH_SECOND 		// 1s
-#define STROBE_TIME 		  PERIOD				// 1s
+// #define STROBE_TIME 		  PERIOD				// 1s
+#define STROBE_TIME       (RTIMER_ARCH_SECOND / 350) // 2.85ms
 #define STROBE_WAIT_TIME	(RTIMER_ARCH_SECOND/700) 	// 2ms
 #define ON_TIME 		      (RTIMER_ARCH_SECOND/300) 	// 3ms
 #define OFF_TIME 		      (PERIOD-ON_TIME)		// 995ms

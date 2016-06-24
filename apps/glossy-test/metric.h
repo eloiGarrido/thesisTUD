@@ -13,7 +13,7 @@
 
 #define SCALE_FACTOR 100
 #define HYSTERESIS 1
-#define FIX_NODE_STATE 1
+#define FIX_NODE_STATE 0
 // #define NS_ENERGY_LOW	4100 	//4.1mJ * 1000 (Floating Point)
 // #define NS_ENERGY_MID	10971	//10.971mJ * 1000 (Floating Point)
 // #define NS_ENERGY_HIGH	24610	//24.61mJ * 1000 (Floating Point)
@@ -78,7 +78,7 @@ uint32_t get_harvesting_rate(void);
 
 #define SCALE_FACTOR 100
 #define HYSTERESIS 1
-
+#define FIX_NODE_STATE 0
 // #define NS_ENERGY_LOW	4100 	//4.1mJ * 1000 (Floating Point)
 // #define NS_ENERGY_MID	10971	//10.971mJ * 1000 (Floating Point)
 // #define NS_ENERGY_HIGH	24610	//24.61mJ * 1000 (Floating Point)

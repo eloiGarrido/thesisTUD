@@ -32,7 +32,7 @@ duration = '30min'
 age = 'slow4Age'
 # age = 'noAge'
 # simulation_name = 'sim3_11' + str(simulation) + '_' + str(duration) + '_' + '_uni'
-simulation_name = 'new_code_orig_uni'
+simulation_name = 'new_code_orig_uni_v2'
 output_array = []
 
 file_path = ""
@@ -710,7 +710,7 @@ class LogConverter(object):
         xaxis_t = np.arange(0, xaxis[0] / 60)
         # plt.xticks(xaxis_t)
 
-        plt.legend(loc=4)
+        plt.legend(loc=2)
         plt.ylim(0,256)
 
         self.format_figure('Node Avg EDC','Time (s)', 'Gradient', 'avg_edc')

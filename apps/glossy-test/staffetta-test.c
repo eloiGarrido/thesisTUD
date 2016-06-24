@@ -65,7 +65,7 @@ PROCESS_THREAD(staffetta_print_stats_process, ev, data){
     }
 #else
     // etimer_set(&et,CLOCK_SECOND*25+(random_rand()%(CLOCK_SECOND*10)));
-    gen_data = random_rand()%5 + 12;
+    gen_data = random_rand()%12 + 12;
     etimer_set(&et,CLOCK_SECOND*1+(random_rand()%(CLOCK_SECOND*10)));
     PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
     while(1) {
@@ -80,7 +80,7 @@ PROCESS_THREAD(staffetta_print_stats_process, ev, data){
         data_counter++;
         if (data_counter >= gen_data) {
             staffetta_add_data(round_stats++);
-            gen_data = random_rand()%5 + 12;
+            gen_data = random_rand()%12 + 12;
             data_counter = 0;
         }
         // staffetta_add_data(round_stats++);

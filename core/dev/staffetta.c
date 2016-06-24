@@ -252,6 +252,78 @@ static uint8_t pop_data(){
     q_size--;
     return _data;
 }
+// TODO Check that the selective delete is not causing a segmentation fault
+static uint8_t delete_selected_data(int idx) {
+	uint8_t move_finished = 0;
+	uint8_t _data,_seq;
+    int _unique;
+	int idx_t;
+	
+	if (read_idx == write_idx) return 0; 
+	//Clear data
+    _data = data[idx];
+    _seq = seq[idx];
+    _unique = (_data-1)*100 + _seq;
+    clear_bitmap(_unique);
+    q_size--;
+	//Move all data backwards
+	move_finished = 0;
+    idx_t = idx;
+	while (move_finished != 1) {
+		if ((idx_t+1)%DATA_SIZE == write_idx){
+			if(write_idx == 0) {
+				write_idx = DATA_SIZE-1;
+			} else {
+				write_idx--;
+			}
+			move_finished = 1;
+		} else {
+			data[(idx_t)%DATA_SIZE] = data[(idx_t+1)%DATA_SIZE];
+			seq[(idx_t)%DATA_SIZE] = seq[(idx_t+1)%DATA_SIZE];
+			ttl[(idx_t)%DATA_SIZE] = ttl[(idx_t+1)%DATA_SIZE];
+		}
+		idx_t++;
+	}
+
+}
+
+static int find_data_idx(uint8_t _data, uint8_t _seq) {
+	int i;
+	int index = -1;
+	int found = 0;
+	if (read_idx == write_idx) return 0; // error if queue is empty
+	// for (i=0; i<write_idx; i++) {
+	i = read_idx;
+	found = 0;
+	while (found == 0){
+		if (data[i%DATA_SIZE] == _data && seq[i%DATA_SIZE] == _seq) {
+			index = i%DATA_SIZE;
+			found = 1;
+		}
+		if (i%DATA_SIZE == write_idx){
+			found = 1;
+		}
+		i++;
+	}
+	return index;
+}
+
+static uint8_t find_packet_with_same_source(uint8_t _data, uint8_t _seq) {
+    int next_idx, _unique;
+    int idx, counter=0;
+    for (idx=0; idx<_seq;idx++) {
+	    _unique = (_data-1)*100 + (idx);
+    	if(get_bitmap(_unique)) {
+    		counter++;
+    	} 
+    }
+    if (counter >= PKTS_PER_NODE){
+    	return 0;
+    } else {
+    	return 1;
+    }
+
+}
 
 #if AGEING
 static inline uint32_t ageing_ratio(uint32_t rv_time) {
@@ -509,6 +581,7 @@ int staffetta_listen(uint32_t timer_duration) {
     int i,collisions,strobes,bytes_read;
     uint32_t rand_backup_time;
     uint8_t channel_idle;
+    int idx;
     //prepare strobe_ack packet
     strobe_ack[PKT_LEN] = STAFFETTA_PKT_LEN+FOOTER_LEN;
     strobe_ack[PKT_SRC] = node_id;
@@ -709,10 +782,20 @@ int staffetta_listen(uint32_t timer_duration) {
 				//if we received a select and it is not for us, trash the packet.
 			}else{
 				//otherwise save the packet
+				if (strobe[PKT_SEQ]!= 0 && find_packet_with_same_source(strobe[PKT_DATA], strobe[PKT_SEQ]) == 0){
+					idx = find_data_idx(strobe[PKT_DATA], strobe[PKT_SEQ]);
+					if(idx!=-1){delete_selected_data(idx);}
+					// printf("20|%d|%d\n",strobe[PKT_DATA], strobe[PKT_SEQ]-1 );
+				}
 				add_data(strobe[PKT_DATA], strobe[PKT_TTL]+1, strobe[PKT_SEQ]);
 			}
 #else 
 			if(channel_idle){
+				if (strobe[PKT_SEQ]!= 0 && find_packet_with_same_source(strobe[PKT_DATA], strobe[PKT_SEQ]) == 0){
+					idx = find_data_idx(strobe[PKT_DATA], strobe[PKT_SEQ]);
+					if(idx!=-1)delete_selected_data(idx);
+					// printf("20|%d|%d\n",strobe[PKT_DATA], strobe[PKT_SEQ]-1 );
+				}
 				add_data(strobe[PKT_DATA], strobe[PKT_TTL]+1, strobe[PKT_SEQ]);
 			}
 #endif /*WITH_SELECT*/
@@ -747,6 +830,7 @@ int staffetta_cca() {
     int i,collisions,strobes,bytes_read;
     uint32_t rand_backup_time;
     uint8_t channel_idle, wait_channel;
+    int idx;
     //prepare strobe_ack packet
     strobe_ack[PKT_LEN] = STAFFETTA_PKT_LEN+FOOTER_LEN;
     strobe_ack[PKT_SRC] = node_id;
@@ -763,6 +847,7 @@ int staffetta_cca() {
     t0 = RTIMER_NOW();
     // Lets Start by listening the channel in case of incoming transmission
     while ( current_state == wait_to_send && RTIMER_CLOCK_LT (RTIMER_NOW(),t0 + CCA_TIME)) { // Keep listening for the whole timer duration
+		wait_channel = 0;
 		if (FIFO_IS_1) {
 			t2 = RTIMER_NOW ();
 			while(RTIMER_CLOCK_LT (RTIMER_NOW (), t2 + 3));
@@ -839,9 +924,13 @@ int staffetta_cca() {
 			}
 		}
 		// Busy wait while channel is used or GUARD duration
-		WAIT_LOOP:t3 = RTIMER_NOW();
-		while (wait_channel && ( !FIFO_IS_1  || RTIMER_CLOCK_LT (RTIMER_NOW(),t3 + WAIT_TIME) )) {} 
-		wait_channel = 0;
+		
+		WAIT_LOOP:if(wait_channel){
+			t3 = RTIMER_NOW();
+			while (  FIFO_IS_1 && RTIMER_CLOCK_LT (RTIMER_NOW(),t3 + WAIT_TIME) ) {} 
+			radio_flush_rx();
+			wait_channel = 0;
+		}
     }
 
     //send beacon ack and wait to be selected
@@ -964,10 +1053,20 @@ int staffetta_cca() {
 				//if we received a select and it is not for us, trash the packet.
 			}else{
 				//otherwise save the packet
+				if (strobe[PKT_SEQ]!= 0 && find_packet_with_same_source(strobe[PKT_DATA], strobe[PKT_SEQ]) == 0){
+					idx = find_data_idx(strobe[PKT_DATA], strobe[PKT_SEQ]);
+					if(idx!=-1)delete_selected_data(idx);
+					// printf("20|%d|%d\n",strobe[PKT_DATA], strobe[PKT_SEQ]-1 );
+				}
 				add_data(strobe[PKT_DATA], strobe[PKT_TTL]+1, strobe[PKT_SEQ]);
 			}
 #else 
 			if(channel_idle){
+				if (strobe[PKT_SEQ]!= 0 && find_packet_with_same_source(strobe[PKT_DATA], strobe[PKT_SEQ]) == 0){
+					idx = find_data_idx(strobe[PKT_DATA], strobe[PKT_SEQ]);
+					if(idx!=-1)delete_selected_data(idx);
+					// printf("20|%d|%d\n",strobe[PKT_DATA], strobe[PKT_SEQ]-1 );
+				}
 				add_data(strobe[PKT_DATA], strobe[PKT_TTL]+1, strobe[PKT_SEQ]);
 			}
 #endif /*WITH_SELECT*/
@@ -999,11 +1098,11 @@ int staffetta_cca() {
 
 static uint32_t get_operation_duration(void) {
 	if (node_energy_state == NS_HIGH) {
-		return OP_DURATION_HIGH;
+		return OP_DURATION_HIGH*2;
 	} else if (node_energy_state == NS_MID) {
-		return OP_DURATION_MID;
+		return OP_DURATION_MID*2;
 	} else if (node_energy_state == NS_LOW) {	
-		return OP_DURATION_LOW;
+		return OP_DURATION_LOW*2;
 	} else {
 		return -1;
 	}
@@ -1022,7 +1121,7 @@ int staffetta_main(void) {
 #if DYN_DC
     operation_duration = get_operation_duration();
 #else
-    operation_duration = OP_DURATION_LOW;
+    operation_duration = OP_DURATION_LOW * 2;
 #endif /*DYN_DC*/
 
     // Wake up, start the timer and CCA
@@ -1030,7 +1129,7 @@ int staffetta_main(void) {
     t_operation = RTIMER_NOW();
     while (operation_duration != -1 && RTIMER_CLOCK_LT (RTIMER_NOW(),t_operation + operation_duration)) {
     	if (cca == 0) {
-    		return_value = staffetta_cca(); //TODO Change to staffetta_cca();
+    		return_value = staffetta_cca();
     		cca = 1;
     	} else {
     		if (read_data() == 0) {
@@ -1041,19 +1140,6 @@ int staffetta_main(void) {
 			cca = 0;	
     	}
     }
-    // Lets check if we have packets in our queue. If we do we TRANSMIT, if not, we keep on LISTENING
- //    t_all = RTIMER_NOW();
- //    if ( operation_duration != -1) { // If NODE_ENERGY_STATE is ZERO lets go to sleep
-	//     while (RTIMER_CLOCK_LT (RTIMER_NOW(),t_all + operation_duration)) {
-	// 	    if (read_data() == 0) {
-	// 	    	// Queue is empty, we can start listening
-	// 	    	return_value = staffetta_listen(LISTEN_TIME);
-	// 	    } else {
-	// 	    	// We have packets in the queue, LET'S TRANSMIT
-	// 	    	return_value = staffetta_transmit(); // Go to sleep after TX
-	// 	    }
-	// 	}
-	// }
 	stop_radio();
 	return return_value;    
 } /*END_WHILE*/
@@ -1232,9 +1318,15 @@ void staffetta_get_energy_consumption(uint32_t *rxtx_time) {
 #endif /*STAFFETTA_ENERGEST*/
 
 void staffetta_add_data(uint8_t _seq){
+	int idx;
+	if (_seq != 0 && find_packet_with_same_source(node_id, _seq) == 0){
+		idx = find_data_idx(node_id, _seq);
+		delete_selected_data(idx);
+		// printf("20|%d|%d\n",node_id, _seq-1 );
+	}
     if (add_data(node_id,0,_seq) == 1 ){
-        printf("4|%d\n",_seq);
-    }
+    	printf("4|%d\n",_seq);
+	}
 }
 
 void staffetta_init(void) {

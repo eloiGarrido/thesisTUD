@@ -380,9 +380,10 @@ PROCESS_THREAD(energytrace_process, ev, data)
 	static node_class_t node_class; //EGB
 	uint32_t rxtx_time;
 	uint32_t energy_rxtx;
+	// uint32_t energy_array[ENERGY_SIZE] = {0};
 	uint32_t rd = 0;
     uint8_t tx_level;
-
+    int array_counter=0;
 
 
 	// remaining_energy = ENERGY_MAX_CAPACITY_SOLAR / 4;
@@ -550,6 +551,16 @@ PROCESS_THREAD(energytrace_process, ev, data)
     // energy_rxtx = voltage * tx_current_consumption(tx_level) * rxtx_time / 1000 / 10;
 		energy_rxtx = voltage * tx_current_consumption(tx_level) * rxtx_time / 1000 / 10; //SCALE_FACTOR
 		energy_rxtx = energy_rxtx * SCALE_FACTOR;
+
+		// energy_array[array_counter] = energy_rxtx;
+		// array_counter++;
+		// if (array_counter >= ENERGY_SIZE) {
+		// 	array_counter = 0;
+		// 	// printf("21|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu\n", energy_array[0],energy_array[1],energy_array[2],energy_array[3],energy_array[4],energy_array[5],energy_array[6],energy_array[7],energy_array[8],energy_array[9], energy_array[10],energy_array[11],energy_array[12],energy_array[13],energy_array[14],energy_array[15],energy_array[16],energy_array[17],energy_array[18],energy_array[19], energy_array[20],energy_array[21],energy_array[22],energy_array[23],energy_array[24],energy_array[25],energy_array[26],energy_array[27],energy_array[28],energy_array[29], energy_array[30],energy_array[31],energy_array[32],energy_array[33],energy_array[34],energy_array[35],energy_array[36],energy_array[37],energy_array[38],energy_array[39], energy_array[40],energy_array[41],energy_array[42],energy_array[43],energy_array[44],energy_array[45],energy_array[46],energy_array[47],energy_array[48],energy_array[49]);
+		// 	// printf("21|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu\n", energy_array[0],energy_array[1],energy_array[2],energy_array[3],energy_array[4],energy_array[5],energy_array[6],energy_array[7],energy_array[8],energy_array[9]);
+		
+		// }
+		
 		if (remaining_energy > energy_rxtx)
 		{
 	    acum_consumption += energy_rxtx;
@@ -557,7 +568,7 @@ PROCESS_THREAD(energytrace_process, ev, data)
 		}
 		else
 		{
-      acum_consumption += remaining_energy;
+      		acum_consumption += remaining_energy;
 			remaining_energy = 0;
 		}
 #else
@@ -570,9 +581,6 @@ PROCESS_THREAD(energytrace_process, ev, data)
 			remaining_energy = 0;
 		}
 #endif /*STAFFETTA_ENERGEST*/
-
-
-
     compute_node_state();
     compute_node_duty_cycle();
     compute_harvesting_rate();

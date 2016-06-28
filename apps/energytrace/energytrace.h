@@ -11,7 +11,7 @@
 #include "../../core/sys/clock.h"
 
 #define SHOW_ENERGY_INFO 	1
-
+#define ENERGY_SIZE 		10
 #define STAFFETTA_ENERGEST 	1
 #define COFFEE_FILE_SYSTEM
 #define SCALE_FACTOR 100

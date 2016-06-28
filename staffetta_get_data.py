@@ -32,7 +32,7 @@ duration = '30min'
 age = 'slow4Age'
 # age = 'noAge'
 # simulation_name = 'sim3_11' + str(simulation) + '_' + str(duration) + '_' + '_uni'
-simulation_name = 'new_code_orig_uni_v2'
+simulation_name = 'V3'
 output_array = []
 
 file_path = ""
@@ -118,7 +118,7 @@ class LogConverter(object):
         Create data structure,  array of dictionaries containing all node information
         '''
         for i in range (0, self.number_of_nodes):
-            self.nodes.append({'id':i, 'node_state': [],'q_size':[],'edc': [],'grad':[], 'edc_id': [], 'no_energy': 0, 'time5': [], 'xPos' : 0, 'yPos' : 0, 'accum_harvest':[], 'accum_consumption' :[],'rv_time':[], 'time2':[], 'time3':[], 'time4':[], 'time6':[], 'time_on': [], 'time_off': [], 'abs_time_off': [], 'pkt':[], 'num_wakeups':[], 'on_time': [], 'avg_edc':[], 'seq':[], 'node_energy_state':[], 'remaining_energy':[], 'harvesting_rate':[]})
+            self.nodes.append({'id':i, 'node_state': [],'q_size':[],'energy_array':[],'edc': [],'grad':[], 'edc_id': [], 'no_energy': 0, 'time5': [], 'xPos' : 0, 'yPos' : 0, 'accum_harvest':[], 'accum_consumption' :[],'rv_time':[], 'time2':[], 'time3':[], 'time4':[], 'time6':[], 'time_on': [], 'time_off': [], 'abs_time_off': [], 'pkt':[], 'num_wakeups':[], 'on_time': [], 'avg_edc':[], 'seq':[], 'node_energy_state':[], 'remaining_energy':[], 'harvesting_rate':[]})
 
 #--------------------------- Output Functions ---------------------------#
     def output_energy_values(self, filename):
@@ -393,6 +393,9 @@ class LogConverter(object):
             self.nodes[id-1]['edc'].append(msg[3])
         elif msg_type == 19:
             self.nodes[id - 1]['edc_id'].append(msg[3])
+        elif msg_type == 21:
+            self.nodes[id - 1]['energy_array'].append(msg)
+
     def parse(self, line):
         '''
         Parse each line
@@ -705,12 +708,12 @@ class LogConverter(object):
         plt.figure()
         xaxis = []
         for i in range (1, self.number_of_nodes):
-            plt.plot(self.nodes[i]['avg_edc'], label='node: '+str(i))
+            plt.plot(self.nodes[i]['avg_edc'], label='node '+str(i+1))
             xaxis.append(len(self.nodes[i]['avg_edc']))
-        xaxis_t = np.arange(0, xaxis[0] / 60)
+        # xaxis_t = np.arange(0, xaxis[0] / 60)
         # plt.xticks(xaxis_t)
 
-        plt.legend(loc=2)
+        plt.legend(loc=1)
         plt.ylim(0,256)
 
         self.format_figure('Node Avg EDC','Time (s)', 'Gradient', 'avg_edc')
@@ -858,7 +861,7 @@ class LogConverter(object):
         self.print_boxplot_edc()
 
         # self.generate_topology()
-        plt.show()
+        # plt.show()
         return
 
 #--------------------------- Main Function ---------------------------#

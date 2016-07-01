@@ -213,10 +213,8 @@ static int add_data(uint8_t _data, uint8_t _ttl, uint8_t _seq){
     if(get_bitmap(_unique)) return 0; // if the message is already in the queue, do not add it again
     set_bitmap(_unique);
     next_idx = (write_idx+1)%DATA_SIZE;
-    // error if queue is full
-    if (next_idx == read_idx) return 0;
-    // do not add 0 data
-    if (_data == 0) return 0;
+    if (next_idx == read_idx) return 0; // error if queue is full
+    if (_data == 0) return 0; // do not add 0 data
     data[write_idx] = _data;
     ttl[write_idx] = _ttl;
     seq[write_idx] = _seq;
@@ -252,7 +250,7 @@ static uint8_t pop_data(){
     q_size--;
     return _data;
 }
-// TODO Check that the selective delete is not causing a segmentation fault
+
 static uint8_t delete_selected_data(int idx) {
 	uint8_t move_finished = 0;
 	uint8_t _data,_seq;
@@ -292,7 +290,6 @@ static int find_data_idx(uint8_t _data, uint8_t _seq) {
 	int index = -1;
 	int found = 0;
 	if (read_idx == write_idx) return 0; // error if queue is empty
-	// for (i=0; i<write_idx; i++) {
 	i = read_idx;
 	found = 0;
 	while (found == 0){
@@ -317,7 +314,7 @@ static uint8_t find_packet_with_same_source(uint8_t _data, uint8_t _seq) {
     		counter++;
     	} 
     }
-    if (counter >= PKTS_PER_NODE){
+    if (counter >= PKTS_PER_NODE) {
     	return 0;
     } else {
     	return 1;
@@ -352,13 +349,13 @@ static void age_edc(){
         	} else {
 	        	edc[age_idx] = MAX_EDC;
 	      	}
-			// edc[age_idx] = MIN(edc[age_idx]++, MAX_EDC);
 		} else {
 			edc_age_counter[age_idx]--;
 		}
 	}
 }
 #endif /*AGEING*/
+
 uint8_t find_worst_edc_entry () {
   uint8_t i;
   uint8_t idx = MAX_EDC;
@@ -408,7 +405,7 @@ int staffetta_transmit() {
 		FASTSPI_WRITE_FIFO(strobe, STAFFETTA_PKT_LEN+1);
 		FASTSPI_STROBE(CC2420_STXON);
 		//We wait until transmission has ended
-		BUSYWAIT_UNTIL(!(radio_status() & BV(CC2420_TX_ACTIVE)), RTIMER_SECOND / 10);
+		BUSYWAIT_UNTIL(!(radio_status() & BV(CC2420_TX_ACTIVE)), RTIMER_SECOND / 100);
 		t1 = RTIMER_NOW ();
 		while (current_state == wait_beacon_ack && RTIMER_CLOCK_LT (RTIMER_NOW(),t1 + STROBE_WAIT_TIME)) {
 			if(FIFO_IS_1){
@@ -427,7 +424,7 @@ int staffetta_transmit() {
 					t2 = RTIMER_NOW ();
 					// wait until the FIFO pin is 1 (until one more byte is received)
 					while (!FIFO_IS_1) {
-						if (!RTIMER_CLOCK_LT(RTIMER_NOW(), t2 + RTIMER_ARCH_SECOND/200)) {
+						if (!RTIMER_CLOCK_LT(RTIMER_NOW(), t2 + GUARD_TIME)) {
 							radio_flush_rx();
 							goto_idle();
 							//printf("goto sleep after waiting for BEACON's byte %u from radio\n",bytes_read);
@@ -456,7 +453,7 @@ int staffetta_transmit() {
 					FASTSPI_WRITE_FIFO(select, STAFFETTA_PKT_LEN+1);
 					FASTSPI_STROBE(CC2420_STXON);
 					//We wait until transmission has ended
-					BUSYWAIT_UNTIL(!(radio_status() & BV(CC2420_TX_ACTIVE)), RTIMER_SECOND / 10);
+					BUSYWAIT_UNTIL(!(radio_status() & BV(CC2420_TX_ACTIVE)), RTIMER_SECOND / 100);
 #endif /*WITH_SELECT*/
 					radio_flush_rx();
 					goto_idle();
@@ -495,7 +492,7 @@ int staffetta_transmit() {
 		FASTSPI_WRITE_FIFO(select, STAFFETTA_PKT_LEN+1);
 		FASTSPI_STROBE(CC2420_STXON);
 		//We wait until transmission has ended
-		BUSYWAIT_UNTIL(!(radio_status() & BV(CC2420_TX_ACTIVE)), RTIMER_SECOND / 10);
+		BUSYWAIT_UNTIL(!(radio_status() & BV(CC2420_TX_ACTIVE)), RTIMER_SECOND / 100);
 #endif /*WITH_SELECT*/
 
 #if WITH_AGGREGATE
@@ -615,7 +612,7 @@ int staffetta_listen(uint32_t timer_duration) {
 				// wait until the FIFO pin is 1 (until one more byte is received)
 				while (!FIFO_IS_1) {
 					//TODO Check sum of all timers for proper scheduling
-					if (!RTIMER_CLOCK_LT(RTIMER_NOW(), t1 + RTIMER_ARCH_SECOND/200)) {
+					if (!RTIMER_CLOCK_LT(RTIMER_NOW(), t1 + GUARD_TIME)) {
 						radio_flush_rx();
 						goto_idle();
 						return RET_FAIL_RX_BUFF;
@@ -636,7 +633,7 @@ int staffetta_listen(uint32_t timer_duration) {
 				strobe_ack[PKT_TTL] = 0;
 				FASTSPI_WRITE_FIFO(strobe_ack, STAFFETTA_PKT_LEN+1);
 				FASTSPI_STROBE(CC2420_STXON);
-				BUSYWAIT_UNTIL(!(radio_status() & BV(CC2420_TX_ACTIVE)), RTIMER_SECOND / 10);
+				BUSYWAIT_UNTIL(!(radio_status() & BV(CC2420_TX_ACTIVE)), RTIMER_SECOND / 100);
 				// and go to sleep
 				radio_flush_rx();
 				goto_idle();
@@ -704,7 +701,7 @@ int staffetta_listen(uint32_t timer_duration) {
 					t1 = RTIMER_NOW ();
 					// wait until the FIFO pin is 1 (until one more byte is received)
 					while (!FIFO_IS_1) {
-						if (!RTIMER_CLOCK_LT(RTIMER_NOW(), t1 + RTIMER_ARCH_SECOND/200)) {
+						if (!RTIMER_CLOCK_LT(RTIMER_NOW(), t1 + GUARD_TIME)) {
 							radio_flush_rx();
 							goto_idle();
 							return RET_FAIL_RX_BUFF;
@@ -730,7 +727,7 @@ int staffetta_listen(uint32_t timer_duration) {
 			FASTSPI_WRITE_FIFO(strobe_ack, STAFFETTA_PKT_LEN+1);
 			FASTSPI_STROBE(CC2420_STXON);
 			//We wait until transmission has ended
-			BUSYWAIT_UNTIL(!(radio_status() & BV(CC2420_TX_ACTIVE)), RTIMER_SECOND / 10);
+			BUSYWAIT_UNTIL(!(radio_status() & BV(CC2420_TX_ACTIVE)), RTIMER_SECOND / 100);
 			//wait for the select packet
 #if WITH_SELECT
 			current_state = wait_select;
@@ -752,7 +749,7 @@ int staffetta_listen(uint32_t timer_duration) {
 						t2 = RTIMER_NOW ();
 						// wait until the FIFO pin is 1 (until one more byte is received)
 						while (!FIFO_IS_1) {
-							if (!RTIMER_CLOCK_LT(RTIMER_NOW(), t2 + RTIMER_ARCH_SECOND/200)) {
+							if (!RTIMER_CLOCK_LT(RTIMER_NOW(), t2 + GUARD_TIME)) {
 								radio_flush_rx();
 								goto_idle();
 								//goto sleep after waiting for SELECT's byte bytes_read from radio
@@ -866,7 +863,7 @@ int staffetta_cca() {
 				// wait until the FIFO pin is 1 (until one more byte is received)
 				while (!FIFO_IS_1) {
 					//TODO Check sum of all timers for proper scheduling
-					if (!RTIMER_CLOCK_LT(RTIMER_NOW(), t1 + RTIMER_ARCH_SECOND/200)) {
+					if (!RTIMER_CLOCK_LT(RTIMER_NOW(), t1 + GUARD_TIME)) {
 						radio_flush_rx();
 						goto_idle();
 						wait_channel = 1;
@@ -889,7 +886,7 @@ int staffetta_cca() {
 				strobe_ack[PKT_TTL] = 0;
 				FASTSPI_WRITE_FIFO(strobe_ack, STAFFETTA_PKT_LEN+1);
 				FASTSPI_STROBE(CC2420_STXON);
-				BUSYWAIT_UNTIL(!(radio_status() & BV(CC2420_TX_ACTIVE)), RTIMER_SECOND / 10);
+				BUSYWAIT_UNTIL(!(radio_status() & BV(CC2420_TX_ACTIVE)), RTIMER_SECOND / 100);
 				// and go to sleep
 				radio_flush_rx();
 				goto_idle();
@@ -960,7 +957,6 @@ int staffetta_cca() {
 	    t3 = RTIMER_NOW();
 	    while (channel_idle == 1 && RTIMER_CLOCK_LT (RTIMER_NOW(),t3 + rand_backup_time)) {
 			if (FIFO_IS_1) {
-				//TODO channel_idle = 0 if we drop the packet because some other node is sending it
 				t2 = RTIMER_NOW ();
 				while(RTIMER_CLOCK_LT (RTIMER_NOW (), t2 + 3));
 				FASTSPI_READ_FIFO_BYTE(strobe_LPL[PKT_LEN]);
@@ -975,7 +971,7 @@ int staffetta_cca() {
 					t1 = RTIMER_NOW ();
 					// wait until the FIFO pin is 1 (until one more byte is received)
 					while (!FIFO_IS_1) {
-						if (!RTIMER_CLOCK_LT(RTIMER_NOW(), t1 + RTIMER_ARCH_SECOND/200)) {
+						if (!RTIMER_CLOCK_LT(RTIMER_NOW(), t1 + GUARD_TIME)) {
 							radio_flush_rx();
 							goto_idle();
 							return RET_FAIL_RX_BUFF;
@@ -997,11 +993,11 @@ int staffetta_cca() {
 	    channel_idle = 1;
 #endif /*WITH_COLLISION_AVOIDANCE*/
 	    if (channel_idle) {
-			//TODO Channel is idle, we can transmit
+			// Channel is idle, we can transmit
 			FASTSPI_WRITE_FIFO(strobe_ack, STAFFETTA_PKT_LEN+1);
 			FASTSPI_STROBE(CC2420_STXON);
 			//We wait until transmission has ended
-			BUSYWAIT_UNTIL(!(radio_status() & BV(CC2420_TX_ACTIVE)), RTIMER_SECOND / 10);
+			BUSYWAIT_UNTIL(!(radio_status() & BV(CC2420_TX_ACTIVE)), RTIMER_SECOND / 100);
 			//wait for the select packet
 #if WITH_SELECT
 			current_state = wait_select;
@@ -1023,7 +1019,7 @@ int staffetta_cca() {
 						t2 = RTIMER_NOW ();
 						// wait until the FIFO pin is 1 (until one more byte is received)
 						while (!FIFO_IS_1) {
-							if (!RTIMER_CLOCK_LT(RTIMER_NOW(), t2 + RTIMER_ARCH_SECOND/200)) {
+							if (!RTIMER_CLOCK_LT(RTIMER_NOW(), t2 + GUARD_TIME)) {
 								radio_flush_rx();
 								goto_idle();
 								//goto sleep after waiting for SELECT's byte bytes_read from radio
@@ -1096,34 +1092,30 @@ int staffetta_cca() {
 }
 
 
-static uint32_t get_operation_duration(void) {
-	if (node_energy_state == NS_HIGH) {
-		return OP_DURATION_HIGH*2;
-	} else if (node_energy_state == NS_MID) {
-		return OP_DURATION_MID*2;
-	} else if (node_energy_state == NS_LOW) {	
-		return OP_DURATION_LOW*2;
-	} else {
-		return -1;
-	}
+static uint32_t get_operation_duration(uint32_t * t_ext) {
+	uint32_t operation_time = 0;
+	uint32_t timer_extension = 0;
+
+	timer_extension = get_op_extension(); 
+	operation_time = MIN(OP_DURATION_MAX, timer_extension * (RTIMER_ARCH_SECOND / 1000));
+	t_ext = MIN(10 , timer_extension);
+	return operation_time;
 } 
 
-int staffetta_main(void) {
+int staffetta_main(uint32_t * t_op) {
 	int return_value = RET_NO_RX;
 	rtimer_clock_t t_operation;
 	uint32_t operation_duration;
 	uint8_t cca = 0;
 
     //turn radio on
-    
-    // staffetta_listen(LPL_TIME);
     // Get operation duration depending on NODE_ENERGY_STATE
 #if DYN_DC
-    operation_duration = get_operation_duration();
+    operation_duration = get_operation_duration(&t_op);
 #else
-    operation_duration = OP_DURATION_LOW * 2;
+    operation_duration = OP_DURATION_MIN;
+    t_op = 10;
 #endif /*DYN_DC*/
-
     // Wake up, start the timer and CCA
     radio_on();
     t_operation = RTIMER_NOW();
@@ -1225,7 +1217,7 @@ void sink_listen(void) {
 
 				FASTSPI_WRITE_FIFO(strobe_ack, STAFFETTA_PKT_LEN+1);
 				FASTSPI_STROBE(CC2420_STXON);
-				BUSYWAIT_UNTIL(!(radio_status() & BV(CC2420_TX_ACTIVE)), RTIMER_SECOND / 10);
+				BUSYWAIT_UNTIL(!(radio_status() & BV(CC2420_TX_ACTIVE)), RTIMER_SECOND / 100);
 				radio_flush_rx();
 				current_state=idle;
 				//Wrong CRC
@@ -1260,7 +1252,7 @@ void sink_listen(void) {
             FASTSPI_WRITE_FIFO(strobe_ack, STAFFETTA_PKT_LEN+1);
             FASTSPI_STROBE(CC2420_STXON);
             //We wait until transmission has ended
-            BUSYWAIT_UNTIL(!(radio_status() & BV(CC2420_TX_ACTIVE)), RTIMER_SECOND / 10);
+            BUSYWAIT_UNTIL(!(radio_status() & BV(CC2420_TX_ACTIVE)), RTIMER_SECOND / 100);
             radio_flush_rx();
             current_state=idle;
             //SINK output

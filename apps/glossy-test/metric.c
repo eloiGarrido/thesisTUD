@@ -89,22 +89,22 @@ void compute_node_state(void){
     switch (node_energy_state)
     {
         case NS_HIGH:
-            if ( remaining_energy > ( (uint32_t)NS_ENERGY_HIGH - 20000 ) ){ node_energy_state = NS_HIGH; }
-            else if ( remaining_energy > ( (uint32_t)NS_ENERGY_MID - 20000) ){ node_energy_state = NS_MID; }
+            if ( remaining_energy > ( (uint32_t)NS_ENERGY_HIGH - 100 ) ){ node_energy_state = NS_HIGH; }
+            else if ( remaining_energy > ( (uint32_t)NS_ENERGY_MID - 100) ){ node_energy_state = NS_MID; }
             else if ( remaining_energy > (uint32_t)NS_ENERGY_LOW){ node_energy_state = NS_LOW; }
             else { node_energy_state = NS_ZERO; }
             break;
 
         case NS_MID:
-            if ( remaining_energy > ( (uint32_t)NS_ENERGY_HIGH + 40000 )) { node_energy_state = NS_HIGH; }
-            else if ( remaining_energy > ( (uint32_t)NS_ENERGY_MID - 20000)) { node_energy_state = NS_MID; }
+            if ( remaining_energy > ( (uint32_t)NS_ENERGY_HIGH + 100 )) { node_energy_state = NS_HIGH; }
+            else if ( remaining_energy > ( (uint32_t)NS_ENERGY_MID - 100)) { node_energy_state = NS_MID; }
             else if ( remaining_energy > (uint32_t)NS_ENERGY_LOW) { node_energy_state = NS_LOW; }
             else { node_energy_state = NS_ZERO; }
             break;
 
         case NS_LOW:
-            if ( remaining_energy > ( (uint32_t)NS_ENERGY_HIGH + 40000 ) ){ node_energy_state = NS_HIGH; }
-            else if ( remaining_energy > ( (uint32_t)NS_ENERGY_MID + 20000) ){ node_energy_state = NS_MID; }
+            if ( remaining_energy > ( (uint32_t)NS_ENERGY_HIGH + 100 ) ){ node_energy_state = NS_HIGH; }
+            else if ( remaining_energy > ( (uint32_t)NS_ENERGY_MID + 100) ){ node_energy_state = NS_MID; }
             else if ( remaining_energy > (uint32_t)NS_ENERGY_LOW){ node_energy_state = NS_LOW; }
             else { node_energy_state = NS_ZERO; }
             break;

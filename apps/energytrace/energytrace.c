@@ -34,7 +34,9 @@
  * \file
  *         Energytrace: periodically print out energy consumption
  * \author
- *         Xin Wang
+ *         	Xin Wang
+ * \modifications
+ *			Eloi Garrido
  */
 
 #include "../../core/contiki.h"
@@ -50,11 +52,7 @@
 #include <string.h>
 #include "../../core/sys/compower.h"
 #include "../../core/lib/random.h"
-//#include "rimeaddr.h"
-//#include "net/rime/rime.h"
-// #ifdef MODEL_SOLAR
 #include "math.h"
-// #endif /*MODEL_SOLAR*/
 #include "../../platform/sky/node-id.h"
 #include "../../core/dev/staffetta.h"
 /* ------------- coffee file system--------------------- */
@@ -164,21 +162,18 @@ int fd_read_solar;
 static uint16_t last_hr = 0;
 static uint32_t time_hr = 0;
 static int time_thld = 0;
-uint8_t context_trigger(void)
-{
+uint8_t context_trigger(void) {
 	uint16_t hr;
 	uint32_t time_now, time_diff;
 
 	time_now = RTIMER_NOW();
-	// time_now = clock_time();
 	time_diff = (time_now - time_hr) / TMOTE_ARCH_SECOND;
-	if (time_diff > 5){
+	if (time_diff > 5) {
 		time_thld = 1;
 	}
 	hr = get_harvesting_rate();
 	// hr = hr / 100;
-	if ( (abs( hr - last_hr) > hr_threshold) && time_thld == 1 )
-	{
+	if ( (abs( hr - last_hr) > hr_threshold) && time_thld == 1 ) {
 		time_hr = time_now;
 		last_hr = hr;
 		time_thld = 0;
@@ -191,15 +186,13 @@ uint8_t context_trigger(void)
 
 #ifdef COFFEE_FILE_SYSTEM
 #define MESSAGE_SIZE 30
-void clean_message(char message[MESSAGE_SIZE])
-{
+void clean_message(char message[MESSAGE_SIZE]) {
   uint8_t idx;
   for (idx=0; idx<MESSAGE_SIZE; idx++){message[idx] = '\0';}
 }
 
 
-int read_lines(char message[MESSAGE_SIZE], uint16_t lines, uint8_t solarNoMover)
-{
+int read_lines(char message[MESSAGE_SIZE], uint16_t lines, uint8_t solarNoMover) {
   char char_buffer[2] = "\0\0";
   char string_buffer[MESSAGE_SIZE];
   uint8_t idx=0;
@@ -210,87 +203,57 @@ int read_lines(char message[MESSAGE_SIZE], uint16_t lines, uint8_t solarNoMover)
   clean_message(string_buffer);
   clean_message(message);
 
-// #ifdef MODEL_SOLAR
-//   if (solarNoMover == 1){fd_read = fd_read_solar;}
-// #endif
-//
-// #ifdef MODEL_MOVER
-//   if (solarNoMover == 0){fd_read = fd_read_mover;}
-// #endif
-
-  if(fd_read != -1)
-  {
-    do
-    {
-      bytes_read = cfs_read(fd_read_solar, char_buffer, sizeof(char));
-      if (bytes_read > 0)
-      {
-        string_buffer[idx] = char_buffer[0];
-        idx += 1;
-        if ( char_buffer[0] == '\n')
-        {
-          lines_read += 1;
-        }
-      }
-      else
-      {
-        return 0;
-      }
-    }while (lines_read < lines);
-    strncpy(message, string_buffer, idx);
-  }
-  else
-  {
-    printf("ERROR: read_lines.\n");
-  }
+	if(fd_read != -1) {
+	    do {
+	    	bytes_read = cfs_read(fd_read_solar, char_buffer, sizeof(char));
+	      	if (bytes_read > 0) {
+	        	string_buffer[idx] = char_buffer[0];
+	        	idx += 1;
+	        	if ( char_buffer[0] == '\n') {
+	          		lines_read += 1;
+	        	}
+	      	} else {
+	        	return 0;
+	      	}
+	    } while (lines_read < lines);
+	    strncpy(message, string_buffer, idx);
+	} else {
+	    printf("ERROR: read_lines.\n");
+	}
   return bytes_read;
 }
-
 
 #endif /*COFFEE_FILE_SYSTEM*/
 
 
 #ifdef MODEL_SOLAR
-uint8_t init_solar_file()
-{
+uint8_t init_solar_file() {
 	int rnd;
 	rnd = random_rand() % 1500;
-//    cfs_coffee_format();
 	fd_read_solar = cfs_open("cfs_file.txt", CFS_READ);
-	// fd_read_solar = cfs_open("cfs_file_x100.txt", CFS_READ);
-  	if(fd_read_solar != -1)
-	{
+  	if(fd_read_solar != -1) {
 		cfs_seek(fd_read_solar, rnd, CFS_SEEK_SET);
 		return 1;
-	}
-	else
-	{
+	} else {
 		return 0;
 	}
 }
 
-uint32_t get_solar_energy(void)
-{
+uint32_t get_solar_energy(void) {
 	int bytes_read = 0;
 	char message[MESSAGE_SIZE];
 	uint32_t result;
 	bytes_read = read_lines( message, 1, 1 );
-	if (bytes_read > 0)
-	{
+	if (bytes_read > 0) {
 		result = atoi(message); //TODO add mult fator to deal with floating point
 		return result;
-	}
-	else
-	{
+	} else {
 		cfs_seek(fd_read_solar, 0, CFS_SEEK_SET); //Return pointer to start of file
 		bytes_read = read_lines( message, 1, 1 );
-		if (bytes_read > 0)
-		{
+		if (bytes_read > 0) {
 			result = atoi(message);
 			return result;
-		}
-		else
-		{
+		} else {
 			return -1;
 		}
 
@@ -300,41 +263,30 @@ uint32_t get_solar_energy(void)
 
 
 #ifdef MODEL_MOVER
-uint8_t init_mover_file()
-{
+uint8_t init_mover_file() {
 	fd_read_mover = cfs_open("energyShoeTrace.txt", CFS_READ);
-  	if(fd_read_mover != -1)
-	{
+  	if(fd_read_mover != -1) {
 		return 1;
-	}
-	else
-	{
+	} else {
 		return 0;
 	}
 }
 
-uint32_t get_mover_energy(void)
-{
+uint32_t get_mover_energy(void) {
   	int bytes_read = 0;
   	char message[MESSAGE_SIZE];
   	uint32_t result;
 	bytes_read = read_lines( message, 1 ,0 );
-	if (bytes_read > 0)
-	{
+	if (bytes_read > 0) {
 		result = atoi(message); //TODO add mult fator to deal with floating point
 		return result;
-	}
-	else
-	{
+	} else {
 		cfs_seek(fd_read_mover, 0, CFS_SEEK_SET); //Return pointer to start of file
 		bytes_read = read_lines( message, 1, 0 );
-		if (bytes_read > 0)
-		{
+		if (bytes_read > 0) {
 			result = atoi(message);
 			return result;
-		}
-		else
-		{
+		} else {
 			return -1;
 		}
 
@@ -345,8 +297,7 @@ uint32_t get_mover_energy(void)
  * TX current consumption (mA)
  * values are multiplied by 10 (e.g. 174 should be 17.4mA)
  */
-inline long tx_current_consumption(uint8_t tx_level)
-{
+inline long tx_current_consumption(uint8_t tx_level) {
 	if (tx_level > 27) {
 		return 174;
 	} else if (tx_level <= 27 && tx_level > 23) {
@@ -373,8 +324,7 @@ PROCESS(energytrace_process, "Periodic energy output");
 
 
 /*---------------------------------------------------------------------------*/
-PROCESS_THREAD(energytrace_process, ev, data)
-{
+PROCESS_THREAD(energytrace_process, ev, data) {
 	static struct etimer periodic;
 	clock_time_t *period;
 	static node_class_t node_class; //EGB
@@ -404,14 +354,12 @@ PROCESS_THREAD(energytrace_process, ev, data)
 
 	if ( node_id % MOVER_PERCENTAGE == 0) {
 		node_class = NODE_MOVER;
-		if (init_mover_file() == 0)
-		{
+		if (init_mover_file() == 0) {
 			printf(">> ERROR on mover file opening\n");
 		}
 	} else {
 		node_class = NODE_SOLAR;
-        if (init_solar_file() == 0)
-		{
+        if (init_solar_file() == 0) {
 			printf(">> ERROR on solar file opening\n");
 		}
 	}
@@ -419,8 +367,7 @@ PROCESS_THREAD(energytrace_process, ev, data)
 
 	node_class = NODE_SOLAR;
 #ifdef MODEL_SOLAR
-    if (init_solar_file() == 0)
-    {
+    if (init_solar_file() == 0) {
         printf(">> ERROR on solar file opening\n");
     }
 #endif /*MODEL_SOLAR*/
@@ -445,7 +392,8 @@ PROCESS_THREAD(energytrace_process, ev, data)
 	etimer_set(&periodic, *period);
 
 	while (1) {
-		clock_delay(10000);
+		// clock_delay(10000);
+		clock_delay(10);
 		PROCESS_WAIT_UNTIL(etimer_expired(&periodic));
 		etimer_reset(&periodic);
 
@@ -461,8 +409,7 @@ PROCESS_THREAD(energytrace_process, ev, data)
 		// }
 
 
-		if (node_class == NODE_SOLAR)
-		{
+		if (node_class == NODE_SOLAR) {
 #ifdef MODEL_SOLAR
 //			rd = solar_energy_input(1); //TODO Validate
 			rd = 0;
@@ -484,21 +431,15 @@ PROCESS_THREAD(energytrace_process, ev, data)
 			harvesting_array_index++;
 			if (harvesting_array_index > 9){ harvesting_array_index = 0;}
 
-			// if ((uint32_t)ENERGY_MAX_CAPACITY_SOLAR - remaining_energy < (uint32_t)rd )
-			if ( (remaining_energy + rd) > (uint32_t)ENERGY_MAX_CAPACITY_SOLAR )
-			{
+			if ( (remaining_energy + rd) > (uint32_t)ENERGY_MAX_CAPACITY_SOLAR ) {
       	acum_harvest += ((uint32_t)ENERGY_MAX_CAPACITY_SOLAR - remaining_energy);
 				remaining_energy = (uint32_t)ENERGY_MAX_CAPACITY_SOLAR;
-			}
-			else
-			{
+			} else {
 				remaining_energy += rd;
 				acum_harvest += rd;
 			}
-
-		}
-		else if (node_class == NODE_MOVER) // TODO Add stored mover values and test
-		{
+		} else if (node_class == NODE_MOVER) {// TODO Add stored mover values and test
+		
 #ifdef MODEL_MOVER
 			rd = get_mover_energy();
 #else
@@ -514,23 +455,16 @@ PROCESS_THREAD(energytrace_process, ev, data)
 			if (harvesting_array_index > 9){ harvesting_array_index = 0;}
 
 			// if ((uint32_t)ENERGY_MAX_CAPACITY_MOVER - remaining_energy < (uint32_t)rd )
-			if ( (remaining_energy + rd) > (uint32_t)ENERGY_MAX_CAPACITY_MOVER )
-			{
+			if ( (remaining_energy + rd) > (uint32_t)ENERGY_MAX_CAPACITY_MOVER ) {
 //				acum_harvest += (uint32_t)ENERGY_MAX_CAPACITY_MOVER - (remaining_energy + (uint32_t)rd);
         acum_harvest +=  ((uint32_t)ENERGY_MAX_CAPACITY_MOVER - remaining_energy);
 				remaining_energy = (uint32_t)ENERGY_MAX_CAPACITY_MOVER;
-
-			}
-			else
-			{
+			} else {
 				remaining_energy = remaining_energy + rd;
 				acum_harvest += rd;
 			}
 		}
-		else
-		{
-
-		}
+		else {}
 
 #ifdef MODEL_BERNOULLI
 
@@ -548,7 +482,6 @@ PROCESS_THREAD(energytrace_process, ev, data)
 		staffetta_get_energy_consumption(&rxtx_time);
 
 		tx_level = cc2420_get_txpower();
-    // energy_rxtx = voltage * tx_current_consumption(tx_level) * rxtx_time / 1000 / 10;
 		energy_rxtx = voltage * tx_current_consumption(tx_level) * rxtx_time / 1000 / 10; //SCALE_FACTOR
 		energy_rxtx = energy_rxtx * SCALE_FACTOR;
 
@@ -558,7 +491,6 @@ PROCESS_THREAD(energytrace_process, ev, data)
 		// 	array_counter = 0;
 		// 	// printf("21|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu\n", energy_array[0],energy_array[1],energy_array[2],energy_array[3],energy_array[4],energy_array[5],energy_array[6],energy_array[7],energy_array[8],energy_array[9], energy_array[10],energy_array[11],energy_array[12],energy_array[13],energy_array[14],energy_array[15],energy_array[16],energy_array[17],energy_array[18],energy_array[19], energy_array[20],energy_array[21],energy_array[22],energy_array[23],energy_array[24],energy_array[25],energy_array[26],energy_array[27],energy_array[28],energy_array[29], energy_array[30],energy_array[31],energy_array[32],energy_array[33],energy_array[34],energy_array[35],energy_array[36],energy_array[37],energy_array[38],energy_array[39], energy_array[40],energy_array[41],energy_array[42],energy_array[43],energy_array[44],energy_array[45],energy_array[46],energy_array[47],energy_array[48],energy_array[49]);
 		// 	// printf("21|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu\n", energy_array[0],energy_array[1],energy_array[2],energy_array[3],energy_array[4],energy_array[5],energy_array[6],energy_array[7],energy_array[8],energy_array[9]);
-		
 		// }
 		
 		if (remaining_energy > energy_rxtx)
@@ -594,126 +526,14 @@ PROCESS_THREAD(energytrace_process, ev, data)
 	PROCESS_END();
 }
 
-//TODO Reimplement original Bernoulli harvest method
-
-
-
-// void
-// energytrace_print(char *str)
-// {
-// 	static uint32_t last_cpu, last_lpm, last_transmit, last_listen;
-//
-// 	uint32_t cpu, lpm, transmit, listen;
-// 	uint32_t all_cpu, all_lpm, all_transmit, all_listen;
-//
-//
-// 	uint8_t tx_level;
-// 	long tx_energy, rx_energy;
-// 	static uint32_t all_tx_consumed, all_rx_consumed;
-//
-// 	static uint32_t seqno;
-//
-// 	energest_flush();
-//
-// 	all_cpu = energest_type_time(ENERGEST_TYPE_CPU);
-// 	all_lpm = energest_type_time(ENERGEST_TYPE_LPM);
-// 	all_transmit = energest_type_time(ENERGEST_TYPE_TRANSMIT);
-// 	all_listen = energest_type_time(ENERGEST_TYPE_LISTEN);
-//
-// 	cpu = all_cpu - last_cpu;
-// 	lpm = all_lpm - last_lpm;
-//
-// 	/* tx and rx  (in ticks) */
-// 	if (remaining_energy > 0) {
-// 		transmit = all_transmit - last_transmit;
-// 		listen = all_listen - last_listen;
-// 	} else {
-// 		transmit = 0;
-// 		listen = 0;
-// 	}
-//
-//
-// 	tx_level = cc2420_get_txpower();
-//
-// 	/* Energy (uJ) = v (V) * current (mA) * time (us) / 1000 */
-// 	/* divide by 10 means scale down current value (eliminating the `dot') */
-// 	long tx_time_us = 1000 * ((1000 * transmit) / TMOTE_ARCH_SECOND);
-// 	long rx_time_us = 1000 * ((1000 * listen) / TMOTE_ARCH_SECOND);
-// 	// long tx_time_us = 1000 * transmit / TMOTE_ARCH_SECOND;
-// 	// long rx_time_us = 1000 * listen / TMOTE_ARCH_SECOND;
-// 	tx_energy = voltage * tx_current_consumption(tx_level) * tx_time_us / 1000 / 10;
-// 	rx_energy = voltage * rx_current_consumption * rx_time_us / 1000 / 10;
-//
-// 	// printf("tx_energy %ld, rx_energy %ld\n",tx_energy,rx_energy );
-// 	if ( (uint32_t)tx_energy >= remaining_energy)
-// 	{
-// 		remaining_energy = 0;
-// 	}
-// 	else
-// 	{
-// 		remaining_energy = remaining_energy - (uint32_t)tx_energy;
-// 	}
-//
-// 	if ( (uint32_t)rx_energy >= remaining_energy)
-// 	{
-// 		remaining_energy = 0;
-// 	}
-// 	else
-// 	{
-// 		remaining_energy = remaining_energy - (uint32_t)rx_energy;
-// 	}
-//
-//
-// 	// remaining_energy = MAX(remaining_energy - tx_energy, 0);
-// 	// remaining_energy = MAX(remaining_energy - rx_energy, 0);
-//
-// 	all_tx_consumed += tx_energy;
-// 	all_rx_consumed += rx_energy;
-// 	// printf("DEBUG: tx_time_us: %lu, voltage: %lu, tx_current: %lu, tx_energy: %lu\n", tx_time_us, voltage, tx_current_consumption(tx_level), tx_energy);
-//
-// #if SHOW_ENERGY_INFO
-// 	// printf("INFO: energy, level: %d, remaining_energy(uJ): %u, transmit(us): %lu, listen(us): %lu, tx_energy(uJ): %lu, rx_energy(uJ): %lu, all_tx_consumed(uJ): %ld, all_rx_consumed(uJ): %lu,  harvest_state: %d\n",
-// 	      //  tx_level,
-// 	      //  remaining_energy,
-// 	      //  tx_time_us,
-// 	      //  rx_time_us,
-// 	      //  tx_energy,
-// 	      //  rx_energy,
-// 	      //  all_tx_consumed,
-// 	      //  all_rx_consumed,
-// 	      //  harvest_state
-// 	      // );
-//
-// #endif
-//
-// 	last_cpu = energest_type_time(ENERGEST_TYPE_CPU);
-// 	last_lpm = energest_type_time(ENERGEST_TYPE_LPM);
-// 	last_transmit = energest_type_time(ENERGEST_TYPE_TRANSMIT);
-// 	last_listen = energest_type_time(ENERGEST_TYPE_LISTEN);
-//
-// 	seqno++;
-// }
-
-// PROCESS_THREAD(energytrace_process_print, ev, data)
-// {
-// 	static struct etimer periodic2;
-// 	clock_time_t *period2;
-//
-// 	PROCESS_BEGIN();
-// 	period2 = data;
-//
-// 	if (period2 == NULL) {
-// 		PROCESS_EXIT();
-// 	}
-// 	etimer_set(&periodic2, *period2);
-//
-// 	while (1) {
-// 		PROCESS_WAIT_UNTIL(etimer_expired(&periodic2));
-// 		etimer_reset(&periodic2);
-// //		energytrace_print("");
-// 	}
-// 	PROCESS_END();
-// }
+uint32_t get_op_extension(void) {
+	uint32_t operation_extension = 0;
+	
+	operation_extension = ((remaining_energy - NS_ENERGY_LOW)*1000) % 75; // Add scaling factor 100 to deal with floating point
+	operation_extension = operation_extension / 1000; 	// Remove floating point
+	operation_extension = operation_extension + 10; 	// Add base 10ms operation time
+	return operation_extension; // Returns operation time in ms
+}
 
 void
 energytrace_start(void)

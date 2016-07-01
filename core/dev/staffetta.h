@@ -207,36 +207,15 @@ struct staffetta_hdr {
 
 /*------------------------- TIMINGS --------------------------------------------------*/
 
+#define STROBE_TIME       (RTIMER_ARCH_SECOND / 585)  // 1.7ms
+#define STROBE_WAIT_TIME	(RTIMER_ARCH_SECOND / 952) 	// 1.05ms
+#define GUARD_TIME        (RTIMER_ARCH_SECOND / 1176) // 850us
+#define CCA_TIME          (STROBE_WAIT_TIME * 3/2)    // 1.57ms
+#define WAIT_TIME         (GUARD_TIME * 5/4)          // 1.06ms
+#define LISTEN_TIME       STROBE_TIME
 
-#define PERIOD 			      RTIMER_ARCH_SECOND 		// 1s
-// #define STROBE_TIME 		  PERIOD				// 1s
-#define STROBE_TIME       (RTIMER_ARCH_SECOND / 350) // 2.85ms
-#define STROBE_WAIT_TIME	(RTIMER_ARCH_SECOND/700) 	// 2ms
-#define ON_TIME 		      (RTIMER_ARCH_SECOND/300) 	// 3ms
-#define OFF_TIME 		      (PERIOD-ON_TIME)		// 995ms
-#define BACKOFF_TIME 		  (ON_TIME)			// 5ms
-
-
-#define GUARD_TIME      (RTIMER_ARCH_SECOND / 800) // 1.25ms
-#define CCA_TIME        (STROBE_WAIT_TIME * 3/2) // 2.15ms
-#define WAIT_TIME       (GUARD_TIME * 5/4)
-#define LISTEN_TIME     (RTIMER_ARCH_SECOND / 200) // 5ms
-#define NO_TX_AFTER_RX  0
-#define TX_AFTER_RX     1
-
-#define OP_DURATION_LOW   (RTIMER_ARCH_SECOND / 200) // 5ms
-#define OP_DURATION_MID   (RTIMER_ARCH_SECOND / 153) // 6.5ms
-#define OP_DURATION_HIGH  (RTIMER_ARCH_SECOND / 125) // 8ms
-
-//#define MAX_STROBE_SIZE 50
-//#define DEFAULT_STROBE_WAIT_TIME DEFAULT_ON_TIME
-//#define DEFAULT_STROBE_TIME DEFAULT_ON_TIME + DEFAULT_OFF_TIME
-//#define SELECT_WAITING_TIME (DEFAULT_ON_TIME * 5)
-//
-//#if DEFAULT_PERIOD == 0
-//#undef DEFAULT_PERIOD
-//#define DEFAULT_PERIOD 1
-//#endif
+#define OP_DURATION_MIN   (RTIMER_ARCH_SECOND / 100)    // 10ms
+#define OP_DURATION_MAX   (RTIMER_ARCH_SECOND / 5)      // 200ms
 
 struct staffettamac_config {
   rtimer_clock_t on_time;
@@ -246,7 +225,7 @@ struct staffettamac_config {
 };
 
 /*------------------------- FUNCTIONS --------------------------------------------------*/
-int staffetta_main(void);
+int staffetta_main(uint32_t * t_op);
 // uint32_t getWakeups(void);
 void sink_listen(void);
 void staffetta_print_stats(void);

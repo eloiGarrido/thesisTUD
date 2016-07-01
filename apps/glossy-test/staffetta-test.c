@@ -99,7 +99,7 @@ static uint32_t get_next_wakeup(uint32_t sleep_reference){
     old_Tw = Tw;
     time_counter++;
     Tw = (RTIMER_ARCH_SECOND / 1000) * Tw;
-    return Tw;
+    return MIN(Tw, 0);
 }
 
 PROCESS_THREAD(staffetta_test, ev, data){
@@ -121,26 +121,11 @@ PROCESS_THREAD(staffetta_test, ev, data){
 
     process_start(&staffetta_print_stats_process, NULL);
     while(1){
-        //Compute Tw
-// #if NEW_EDC
-//         if (node_energy_state == NS_LOW){
-//             Tw = (CLOCK_SECOND / WAKE_UP_PERIOD);
-//         } else if (node_energy_state == NS_MID) {
-//             Tw = (CLOCK_SECOND / (WAKE_UP_PERIOD + 5) );
-//         } else if (node_energy_state == NS_HIGH) {
-//             Tw = (CLOCK_SECOND / (WAKE_UP_PERIOD + 10));
-//         } else {
-//             Tw = (CLOCK_SECOND / WAKE_UP_PERIOD);
-//         }
-// #else
-//         Tw = (CLOCK_SECOND / WAKE_UP_PERIOD);
-// #endif
 
         Tw = get_next_wakeup(sleep_reference);
-
-        // etimer_set(&et,((Tw)/4) + (random_rand()%(Tw*3/4)));
+        printf("22|%lu|%lu\n",Tw, sleep_reference );
+        
         etimer_set(&et,Tw);
-
         PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
         //Perform a data exchange
 

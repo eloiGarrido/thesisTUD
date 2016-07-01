@@ -445,8 +445,6 @@ PROCESS_THREAD(energytrace_process, ev, data) {
 #else
 			rd = random_rand() % 100;
 			rd = rd * 2 * ENERGY_HARVEST_STEP_MOVER;
-			// rd = rd / 100;
-			// rd = rd * SCALE_FACTOR;
 
 #endif /*MODEL_MOVER*/
 

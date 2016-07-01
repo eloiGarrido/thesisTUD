@@ -13,7 +13,7 @@
 
 #define SCALE_FACTOR 100
 #define HYSTERESIS 0
-#define FIX_NODE_STATE 1
+#define FIX_NODE_STATE 0
 /*
  * NS_ENERGY_LOW needs 750uJ to operate at a rate of 1% over a period of 1 second
  * NS_ENERGY_MID needs 3750uJ to operate at a rate of 5% over a period of 1 second

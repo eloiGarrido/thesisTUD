@@ -119,7 +119,7 @@ class LogConverter(object):
         '''
         for i in range(0, self.number_of_nodes):
             self.nodes.append(
-                {'id': i, 'node_state': [], 'q_size': [], 'energy_array': [], 'edc': [], 'grad': [], 'edc_id': [],
+                {'id': i, 'node_state': [],'Tw':[],'sleep_ref':[], 'q_size': [], 'energy_array': [], 'edc': [], 'grad': [], 'edc_id': [],
                  'no_energy': 0, 'time5': [], 'xPos': 0, 'yPos': 0, 'accum_harvest': [], 'accum_consumption': [],
                  'rv_time': [], 'time2': [], 'time3': [], 'time4': [], 'time6': [], 'time_on': [], 'time_off': [],
                  'abs_time_off': [], 'pkt': [], 'num_wakeups': [], 'on_time': [], 'avg_edc': [], 'seq': [],
@@ -394,6 +394,10 @@ class LogConverter(object):
             self.nodes[id - 1]['edc_id'].append(msg[3])
         elif msg_type == 21:
             self.nodes[id - 1]['energy_array'].append(msg)
+        elif msg_type == 22:
+            self.nodes[id - 1]['Tw'].append(msg[3])
+            self.nodes[id - 1]['sleep_ref'].append(msg[4])
+
 
     def parse(self, line):
         '''
@@ -856,7 +860,7 @@ class LogConverter(object):
         self.print_boxplot_edc()
 
         # self.generate_topology()
-        # plt.show()
+        plt.show()
         return
 
 

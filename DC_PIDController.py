@@ -1,5 +1,5 @@
-import pypid
 
+import sys
 
 class PID:
     """
@@ -84,11 +84,19 @@ class PID:
 #         self.PIDController = PID(kp,ki,kd,tf)
 #         self.PIDController.setPoint(set_point)
 
-kp = 3
-ki = 1
-kd = 1
-tf = 1
-DC_goal = 50
-PIDController = PID(kp,ki,kd,tf)
-PIDController.setPoint(DC_goal)
 
+if __name__ == '__main__':
+    if len(sys.argv) < 1:
+        print('Usage: python log_converter.py <LOG_FILENAME>')
+        print(len(sys.argv))
+        exit(1)
+
+    kp = 1
+    ki = 1
+    kd = 1
+    tf = 1
+    E_SP = 3000
+    PIDController = PID(kp, ki, kd, tf)
+    PIDController.setPoint(E_SP)
+    result = PIDController.update(int(sys.argv[1]))
+    print (result)

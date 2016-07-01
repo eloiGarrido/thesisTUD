@@ -75,10 +75,6 @@
 
 
 /*------------------------- OPTIONS --------------------------------------------------*/
-
-//TODO implement all the options
-
-// #define PAKETS_PER_NODE 	6
 #define PAKETS_PER_NODE   3
 #define WITH_CRC 		      1
 #define IS_SINK 		      (node_id == 1)
@@ -209,9 +205,10 @@ struct staffetta_hdr {
 
 #define STROBE_TIME       (RTIMER_ARCH_SECOND / 585)  // 1.7ms
 #define STROBE_WAIT_TIME	(RTIMER_ARCH_SECOND / 952) 	// 1.05ms
-#define GUARD_TIME        (RTIMER_ARCH_SECOND / 1176) // 850us
-#define CCA_TIME          (STROBE_WAIT_TIME * 3/2)    // 1.57ms
-#define WAIT_TIME         (GUARD_TIME * 5/4)          // 1.06ms
+// #define GUARD_TIME        (RTIMER_ARCH_SECOND / 1176) // 850us
+#define GUARD_TIME        (RTIMER_ARCH_SECOND / 2000) // 500us
+#define CCA_TIME          STROBE_TIME    
+#define WAIT_TIME         STROBE_WAIT_TIME         
 #define LISTEN_TIME       STROBE_TIME
 
 #define OP_DURATION_MIN   (RTIMER_ARCH_SECOND / 100)    // 10ms

@@ -79,6 +79,7 @@ PROCESS_THREAD(staffetta_print_stats_process, ev, data){
         data_counter++;
         if (data_counter >= gen_data) {
             staffetta_add_data(round_stats++);
+            // gen_data = random_rand()%12 + 6;
             gen_data = random_rand()%12 + 12;
             data_counter = 0;
         }
@@ -124,7 +125,7 @@ PROCESS_THREAD(staffetta_test, ev, data){
 
         Tw = get_next_wakeup(sleep_reference);
         printf("22|%lu|%lu\n",Tw, sleep_reference );
-        
+
         etimer_set(&et,Tw);
         PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
         //Perform a data exchange

@@ -109,11 +109,11 @@ void compute_node_state(void){
             break;
     }
 #else
-	if (remaining_energy >= (uint32_t)NS_ENERGY_HIGH) {
+	if (remaining_energy > (uint32_t)NS_ENERGY_HIGH) {
 		node_energy_state = NS_HIGH;
-	} else if (remaining_energy >= (uint32_t)NS_ENERGY_MID){
+	} else if (remaining_energy > (uint32_t)NS_ENERGY_MID){
 		node_energy_state = NS_MID;
-	} else if ( (uint32_t)remaining_energy >= (uint32_t)NS_ENERGY_LOW){
+	} else if ( (uint32_t)remaining_energy > (uint32_t)NS_ENERGY_LOW){
 		node_energy_state = NS_LOW;
 	} else {
 		node_energy_state = NS_ZERO;

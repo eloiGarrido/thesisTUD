@@ -6,6 +6,7 @@ __author__ = 'egarrido'
 import sys
 import matplotlib.pyplot as plt
 import os
+from os import walk
 import shutil
 import numpy as np
 import scipy
@@ -16,10 +17,11 @@ from topology import gen_topology
 Log Converter
 convert Cooja results into statistical data and graphs
 '''
-env = 'uni'
-# env = 'home'
-repeated = True
+# env = 'uni'
+env = 'home'
+repeated = False
 dropbox = False
+media = True
 simulation = 'orig'
 # simulation = 'eh'
 model = 'solar'
@@ -36,54 +38,26 @@ age = 'slow4Age'
 simulation_name = 'V3'
 output_array = []
 
-file_path = ""
-if env == 'uni':
-    if repeated == True:
-        general_path = "/home/egarrido/"
-    elif (dropbox == True):
-        general_path = "/home/egarrido/Dropbox/thesisTUDelft/21_05_sim1_16n/"
-    else:
-        general_path = "/home/egarrido/contiki/tools/cooja/build/"
-
-    if simulation == 'orig':
-        file_path = "/home/egarrido/staffetta_sensys2015/eh_staffetta/results/original/" + simulation_name
-    elif simulation == 'eh':
-        file_path = "/home/egarrido/staffetta_sensys2015/eh_staffetta/results/eh_staffetta/" + simulation_name
-
-elif env == 'home':
-    if repeated == True:
-        general_path = "/home/jester/"
-    else:
-        general_path = "/home/jester/contiki/tools/cooja/build/"
-
-    if simulation == 'orig':
-        file_path = "/home/jester/thesisTUDelft/eh_staffetta/results/original/" + simulation_name
-    elif simulation == 'eh':
-        file_path = "/home/jester/thesisTUDelft/eh_staffetta/results/eh_staffetta/" + simulation_name
-
-not_created = 0
-idx = 0
-while not_created == 0:
-    if os.path.isdir(file_path):
-        file_path += "_" + str(idx)
-    try:
-        os.mkdir(file_path)
-        file_path += "/"
-        not_created = 1
-    except:
-        file_path = file_path.rstrip('_' + str(idx))
-        idx += 1
 
 
 class LogConverter(object):
-    def __init__(self, filename, number_of_nodes, simulation_duration):
+    general_path = ""
+    file_path = ""
+
+    def __init__(self, filename, number_of_nodes, simulation_duration, output_name):
         simulation = filename
         self.nodes = []
+        output_array = []
         self.number_of_nodes = number_of_nodes
         self.simulation_duration = int(simulation_duration) * 60 * 1000 * 1000  # Simulation duration in ns
         # Add here function calls to output data
         self.create_structure()
+        self.simulation_parameters(output_name)
         self.read_file(filename)
+        self.output_name = output_name
+        # LogConverter.general_path = ""
+        # LogConverter.file_path = ""
+
         pkts, collisions = self.organize_pkts()
         # paths = self.create_pkt_path(pkts)
         # self.output_file(paths,"paths",0)
@@ -104,14 +78,57 @@ class LogConverter(object):
         try:
             # shutil.copy( general_path + "COOJA.testlog", file_path )
             print('>>>> Moving File <<<<')
-            print(general_path)
+            print(LogConverter.general_path)
             print(filename)
-            print(file_path)
+            print(LogConverter.file_path)
             # Copy simulation file into folder
             # shutil.copy( general_path + filename, file_path )
 
         except:
             print('>> Error when moving COOJA.testlog')
+
+    def simulation_parameters(self, output_name):
+        LogConverter.file_path = ""
+        if env == 'uni':
+            if repeated == True:
+                LogConverter.general_path = "/home/egarrido/"
+            elif media == True:
+                LogConverter.general_path = "/media/egarrido/UUI/"
+            elif (dropbox == True):
+                LogConverter.general_path = "/home/egarrido/Dropbox/thesisTUDelft/21_05_sim1_16n/"
+            else:
+                LogConverter.general_path = "/home/egarrido/contiki/tools/cooja/build/"
+
+            if simulation == 'orig':
+                LogConverter.file_path = "/home/egarrido/staffetta_sensys2015/eh_staffetta/results/original/" + output_name
+            elif simulation == 'eh':
+                LogConverter.file_path = "/home/egarrido/staffetta_sensys2015/eh_staffetta/results/eh_staffetta/" + output_name
+
+        elif env == 'home':
+            if repeated == True:
+                LogConverter.general_path = "/home/jester/"
+            elif media == True:
+                LogConverter.general_path = "/media/jester/UUI/sim2/"
+            else:
+                LogConverter.general_path = "/home/jester/contiki/tools/cooja/build/"
+
+            if simulation == 'orig':
+                LogConverter.file_path = "/home/jester/thesisTUDelft/eh_staffetta/results/original/" + output_name
+            elif simulation == 'eh':
+                LogConverter.file_path = "/home/jester/thesisTUDelft/eh_staffetta/results/eh_staffetta/" + output_name
+
+        not_created = 0
+        idx = 0
+        while not_created == 0:
+            if os.path.isdir(LogConverter.file_path):
+                LogConverter.file_path += "_" + str(idx)
+            try:
+                os.mkdir(LogConverter.file_path)
+                LogConverter.file_path += "/"
+                not_created = 1
+            except:
+                LogConverter.file_path = LogConverter.file_path.rstrip('_' + str(idx))
+                idx += 1
 
     def create_structure(self):
         '''
@@ -135,7 +152,7 @@ class LogConverter(object):
 
     def output_results(self, information):
         print(information)
-        txt_name = file_path + "results_out.txt"
+        txt_name = LogConverter.file_path + self.output_name + "_out.txt"
         with open(txt_name, 'w') as fp_out:
             for i in range(0, len(information)):
                 fp_out.write(str(information[i]) + "\n")
@@ -144,12 +161,12 @@ class LogConverter(object):
     def output_file(self, element, filename, num):
         if num == 1:
             for i in range(0, len(element)):
-                txt_name = file_path + str(filename) + str(i) + ".txt"
+                txt_name = LogConverter.file_path + str(filename) + str(i) + ".txt"
                 with open(txt_name, 'w') as fp:
                     fp.write(str(element[i]) + "\n")
                 fp.close()
         elif num == 0:
-            txt_name = file_path + str(filename) + ".txt"
+            txt_name = LogConverter.file_path + str(filename) + ".txt"
             with open(txt_name, 'w') as fp:
                 for i in range(0, len(element)):
                     fp.write(str(element[i]) + "\n")
@@ -157,7 +174,7 @@ class LogConverter(object):
 
     def output_pkt_seq(self, filename):
         print('>> Writing packet sequence file...')
-        txt_name = file_path + str(filename) + ".txt"
+        txt_name = LogConverter.file_path + str(filename) + ".txt"
 
         with open(txt_name, 'w') as fp:
             for i in range(0, self.number_of_nodes - 1):
@@ -166,7 +183,7 @@ class LogConverter(object):
 
     def output_sink_file(self, filename):
         print('>> Writing sink file...')
-        txt_name = file_path + str(filename)
+        txt_name = LogConverter.file_path + str(filename)
         with open(txt_name, 'w') as fp:
             # TODO fix this output for the sink
             fp.write(str(self.nodes[0]['seq']) + "\n")
@@ -175,7 +192,7 @@ class LogConverter(object):
     # --------------------------- Read and Store Functions ---------------------------#
 
     def read_file(self, filename):
-        file_name = general_path + filename
+        file_name = LogConverter.general_path + filename
         print('>> Reading file: ' + file_name + '...')
         f = open(file_name, 'r')
         for line in f:
@@ -517,7 +534,7 @@ class LogConverter(object):
         plt.axhline(int(acum) / 1000000, color='r')
         plt.annotate(str(acum / 1000000) + ' sec', xy=(self.number_of_nodes - 1, int(acum) / 1000000 + 0.5))
         # Add delay to output file
-        string_t = 'avg_delay:' + str(int(acum) / 1000000)
+        string_t = 'avg_delay:' + str(float(acum) / 1000000.0)
         output_array.append(string_t)
 
         self.format_figure('Average End-to-End Delay', 'Node', 'Delay (sec)', 'node_delay')
@@ -595,7 +612,7 @@ class LogConverter(object):
         plt.xlabel(xlab)
         plt.ylabel(ylab)
         plt.draw()
-        plt.savefig(file_path + filename + '.eps', format='eps')
+        plt.savefig(LogConverter.file_path + filename + '.eps', format='eps')
 
     # --------------------- ENERGY GRAPHS ---------------------------------------- #
     def print_energy_levels(self):
@@ -646,7 +663,7 @@ class LogConverter(object):
 
         plt.tight_layout()
         plt.draw()
-        plt.savefig(file_path + 'node_energy_total.eps', format='eps')
+        plt.savefig(LogConverter.file_path + 'node_energy_total.eps', format='eps')
         return
 
     def print_energy_bar(self):
@@ -860,7 +877,7 @@ class LogConverter(object):
         self.print_boxplot_edc()
 
         # self.generate_topology()
-        plt.show()
+        # plt.show()
         return
 
 
@@ -869,8 +886,18 @@ if __name__ == '__main__':
     '''
     Main function call, pass file name + number of nodes.
     '''
-    if len(sys.argv) < 2:
-        print('Usage: python log_converter.py <LOG_FILENAME>')
-        print(len(sys.argv))
-        exit(1)
-    adapter = LogConverter(sys.argv[1], int(sys.argv[2]), int(sys.argv[3]))
+    # if len(sys.argv) < 2:
+    #     print('Usage: python log_converter.py <LOG_FILENAME>')
+    #     print(len(sys.argv))
+    #     exit(1)
+    f = []
+    for (dirpath, dirnames, filenames) in walk("/media/jester/UUI/sim2/"):
+        f.extend(filenames)
+        break
+    for file in f:
+        name = file.split('_')
+        minutes = int(name[2].replace('min',''))
+        nodes = int(name[1])
+        out = file.replace('.log', '')
+        adapter = LogConverter(file, nodes, minutes, out)
+    # adapter = LogConverter(sys.argv[1], int(sys.argv[2]), int(sys.argv[3]), sys.argv[4])

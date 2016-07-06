@@ -1,17 +1,22 @@
 
 import sys
 
+derivator_counter = 0;
 class PID:
     """
     Discrete PID control
     """
+    
 
     def __init__(self, P=2.0, I=0.0, D=1.0, Derivator=0, Integrator=0, Integrator_max=500, Integrator_min=-500):
 
         self.Kp = P
         self.Ki = I
         self.Kd = D
+        self.Derivator_array = [0,0,0,0,0]
         self.Derivator = Derivator
+        # self.Derivator = Derivator
+
         self.Integrator = Integrator
         self.Integrator_max = Integrator_max
         self.Integrator_min = Integrator_min
@@ -19,7 +24,7 @@ class PID:
         self.set_point = 0.0
         self.error = 0.0
 
-    def update(self, current_value):
+    def update(self, current_value, hr):
         """
         Calculate PID output value for given reference input and feedback
         """
@@ -29,6 +34,9 @@ class PID:
         self.P_value = self.Kp * self.error
         self.D_value = self.Kd * (self.error - self.Derivator)
         self.Derivator = self.error
+        self.D_value = self.Kd * (sum(self.Derivator_array)/5 - hr)
+        self.Derivator_array[derivator_counter % 5] = hr
+
 
         self.Integrator = self.Integrator + self.error
 
@@ -86,7 +94,7 @@ class PID:
 
 
 if __name__ == '__main__':
-    if len(sys.argv) < 1:
+    if len(sys.argv) < 2:
         print('Usage: python log_converter.py <LOG_FILENAME>')
         print(len(sys.argv))
         exit(1)
@@ -98,5 +106,5 @@ if __name__ == '__main__':
     E_SP = 3000
     PIDController = PID(kp, ki, kd, tf)
     PIDController.setPoint(E_SP)
-    result = PIDController.update(int(sys.argv[1]))
+    result = PIDController.update(int(sys.argv[1]), int(sys.argv[2]))
     print (result)

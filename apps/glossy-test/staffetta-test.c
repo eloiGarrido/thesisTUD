@@ -141,11 +141,7 @@ PROCESS_THREAD(staffetta_test, ev, data){
         if (node_energy_state != NS_ZERO){
             timer_on = RTIMER_NOW();
             staffetta_result = staffetta_main();
-            // printf("sleep_reference|%lu\n",sleep_reference );
-
             timer_off = RTIMER_NOW();
-            // TODO Mod timers from ticks to seconds
-
             printf("9|%lu|%lu\n",timer_on,timer_off); //Notify when a node goes to sleep
         } else { // Node did not have enough energy to operate
             printf("5\n");
@@ -153,13 +149,11 @@ PROCESS_THREAD(staffetta_test, ev, data){
 #else
         if (node_energy_state != NS_ZERO){
             timer_on = RTIMER_NOW();
-            staffetta_result = staffetta_main(&sleep_reference);
+            staffetta_result = staffetta_main();
             timer_off = RTIMER_NOW();
-
-            // printf("9|%lu|%lu\n",timer_on,timer_off); //Notify when a node goes to sleep
-
+            printf("9|%lu|%lu\n",timer_on,timer_off); //Notify when a node goes to sleep
         } else { // Node did not have enough energy to operate
-            // printf("5\n");
+            printf("5\n");
         }
 #endif /*ENERGY_HARV*/
     }

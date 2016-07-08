@@ -364,7 +364,7 @@ class LogConverter(object):
             self.nodes[id - 1]['no_energy'] += 1
             self.nodes[id - 1]['time5'].append(time)
         elif msg_type == 6:
-            self.nodes[id - 1]['node_energy_state'].append(msg[3])
+            self.nodes[id - 1]['node_energy_state'].append(int(msg[3]))
             self.nodes[id - 1]['remaining_energy'].append(int(msg[4]))
             self.nodes[id - 1]['harvesting_rate'].append(msg[5])
             self.nodes[id - 1]['accum_consumption'].append(float(msg[6]))
@@ -543,8 +543,8 @@ class LogConverter(object):
         print('>> Printf node state...')
         plt.figure()
         for i in range(1, self.number_of_nodes):
-            results = map(int, self.nodes[i]['node_energy_state'])
-            plt.plot(results)
+            # results = map(int, self.nodes[i]['node_energy_state'])
+            plt.plot(self.nodes[i]['node_energy_state'])
         self.format_figure('Node State Overview', 'Time', 'State', 'node_state_overview')
 
     def print_packet_created(self):
@@ -641,7 +641,7 @@ class LogConverter(object):
         node_acum_harv = []
         node_acum_cons = []
         for i in range(1, self.number_of_nodes):
-            node_acum_harv.append((sum(self.nodes[i]['accum_harvest'])) / 1000 + 18)  # Initial energy add as harvested
+            node_acum_harv.append((sum(self.nodes[i]['accum_harvest'])) / 1000)  # Initial energy add as harvested
             node_acum_cons.append((sum(self.nodes[i]['accum_consumption'])) / 1000)
 
         rects1 = plt.bar(index, node_acum_harv, bar_width,
@@ -696,7 +696,7 @@ class LogConverter(object):
             # plt.plot(self.nodes[i]['node_energy_state'])
         for i in range(1, self.number_of_nodes):
             result = map(float, self.nodes[i]['node_energy_state'])
-            avg_state_t.append(result)
+            avg_state_t.append(self.nodes[i]['node_energy_state'])
             # plt.bar(i+1, avg_state[i] ,align='center')
         plt.boxplot(avg_state_t, 0, '')
         plt.ylim(-0.2, 3.2)
@@ -855,14 +855,14 @@ class LogConverter(object):
         self.print_harvesting_rate()
         self.print_on_time()
         # self.print_wakeups()
-        try:
-            self.print_node_state()  # Average node state
-        except:
-            print('>> ERROR on print_node_state')
-        try:
-            self.printf_node_state()  # graph with node state changes
-        except:
-            print('>> ERROR on printf_node_state')
+        # try:
+        self.print_node_state()  # Average node state
+        # except:
+        #     print('>> ERROR on print_node_state')
+        # try:
+        self.printf_node_state()  # graph with node state changes
+        # except:
+        #     print('>> ERROR on printf_node_state')
         self.print_packet_created()
         self.print_delay(pkt_delay)
         # self.print_dc()

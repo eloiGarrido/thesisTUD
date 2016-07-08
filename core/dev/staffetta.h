@@ -108,7 +108,7 @@
 #define AGEING            0 //EDC vector ages depending on rendezvous value
 // #define EDC_WITH_RV         0
 #define STAFFETTA_ENERGEST  1
-#define ELAPSED_TIME        1
+#define ELAPSED_TIME        0
 
 #define ADAPTIVE_PACKET_CREATION  0
 #define RANDOM_PACKET_CREATION    0

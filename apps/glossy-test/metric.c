@@ -54,16 +54,6 @@ static int phi[3] = {100, 1, -B_goal};
 /*---------------------------------------------------------------------------*/
 /* FUNCTIONS */
 void compute_node_duty_cycle(void){
-
-    // if(node_energy_state == NS_HIGH){
-    //     node_duty_cycle = DC_HIGH;
-    // }else if (node_energy_state == NS_MID){
-    //     node_duty_cycle = DC_MID;
-    // }else if (node_energy_state == NS_LOW){
-    //     node_duty_cycle = DC_LOW;
-    // }else{
-    //     node_duty_cycle = DC_ZERO;
-    // }
     node_duty_cycle = rho;
 }
 
@@ -124,9 +114,10 @@ uint32_t get_duty_cycle(void){
         rho--;
         energy_needed = rho * 10 * 7 + rho * 5; // rho * 7.5 * SCALE_FACTOR 
     }
+    if (remaining_energy < 75) rho = 0;
     return rho;
 #else
-    return node_duty_cycle;
+    return 1;
 #endif
 }
 

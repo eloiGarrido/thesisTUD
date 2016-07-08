@@ -100,6 +100,7 @@ static uint8_t strobe_LPL[STAFFETTA_PKT_LEN+3];
 //node_energy_state_t node_energy_state;
 static uint8_t node_on;
 uint32_t sleep_t;
+static uint32_t last_rxtx;
 /* --------------------------- RADIO FUNCTIONS ---------------------- */
 
 static inline void radio_flush_tx(void) {
@@ -502,7 +503,8 @@ int staffetta_transmit(uint32_t operation_duration) {
 #if ORW_GRADIENT
 			// if the neighbor has a better EDC, add it to the average
 #if NEW_EDC
-	  	if ((rendezvous_time<RENDEZ_TIME) && (avg_edc > strobe_ack[PKT_GRADIENT]) && (node_id != strobe_ack[PKT_SRC])) {
+	  	// if ((rendezvous_time<RENDEZ_TIME) && (avg_edc > strobe_ack[PKT_GRADIENT]) && (node_id != strobe_ack[PKT_SRC])) {
+	  	if ((avg_edc > strobe_ack[PKT_GRADIENT]) && (node_id != strobe_ack[PKT_SRC])) {
 	    	edc_idx = find_worst_edc_entry();
 	     	edc[edc_idx] = strobe_ack[PKT_GRADIENT];
 	     	edc_id[edc_idx] = strobe_ack[PKT_SRC];
@@ -1111,8 +1113,6 @@ int staffetta_main() {
     operation_duration = get_operation_duration();
     // t_op = node_duty_cycle;
     sleep_t = node_duty_cycle;
-    // operation_duration = get_operation_duration(&t_op);
-    // printf("OPERATION|%lu|t_op:%lu\n",operation_duration,(uint32_t) t_op);
     // Wake up, start the timer and CCA
     radio_on();
     t_operation = RTIMER_NOW();
@@ -1287,17 +1287,20 @@ void staffetta_get_energy_consumption(uint32_t *rxtx_time) {
     elapsed_time = clock_time() * 1000 / CLOCK_SECOND;
     *rxtx_time = (on_time*1000) / elapsed_time;
     if (!(IS_SINK)){
-  		// printf("16|%ld|%d\n",(on_time*1000)/elapsed_time, q_size);
+  		printf("16|%ld|%d\n",(on_time*1000)/elapsed_time, q_size);
 	}
 
 #else
-    static uint32_t last_rxtx;
     uint32_t all_rxtx, rxtx_time_t;
     all_rxtx = energest_type_time(ENERGEST_TYPE_TRANSMIT) + energest_type_time(ENERGEST_TYPE_LISTEN);
     rxtx_time_t = all_rxtx - last_rxtx;
-    *rxtx_time = 1000 * ( (rxtx_time_t * 1000) / TMOTE_ARCH_SECOND);
+    // *rxtx_time = 1000 * ( (rxtx_time_t * 1000) / TMOTE_ARCH_SECOND);
+    *rxtx_time = (rxtx_time_t) / 32;
+    // printf("all_rxtx:%lu|last_rxtx:%lu\n",all_rxtx,last_rxtx );
     if (!(IS_SINK)){
-      	// printf("16|%ld\n",*rxtx_time);
+    	if(*rxtx_time != 0){
+      		printf("16|%lu|%d|%lu\n",*rxtx_time, q_size, rxtx_time_t);
+      	}
     }
     last_rxtx = energest_type_time(ENERGEST_TYPE_LISTEN) + energest_type_time(ENERGEST_TYPE_TRANSMIT);
 

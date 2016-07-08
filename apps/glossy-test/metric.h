@@ -21,9 +21,14 @@
  * NS_ENERGY_LOW needs 7500uJ to operate at a rate of 10% over a period of 1 second
  */
  //TOOD Increased the mid and high values
+// #define NS_ENERGY_LOW	75 		//750uJ * SCAKE_FACTOR (Floating Point)
+// #define NS_ENERGY_MID	375		//3750uJ * SCAKE_FACTOR (Floating Point) * 10
+// #define NS_ENERGY_HIGH 	750		//7500uJ * SCAKE_FACTOR (Floating Point)
+
 #define NS_ENERGY_LOW	75 		//750uJ * SCAKE_FACTOR (Floating Point)
-#define NS_ENERGY_MID	375		//3750uJ * SCAKE_FACTOR (Floating Point) * 10
-#define NS_ENERGY_HIGH 	750		//7500uJ * SCAKE_FACTOR (Floating Point)
+#define NS_ENERGY_MID	750		//3750uJ * SCAKE_FACTOR (Floating Point) * 10
+#define NS_ENERGY_HIGH 	1500	
+
 
 #define DC_ZERO 0
 #define DC_LOW 	5 	// Duty Cycle 0.5% * 10

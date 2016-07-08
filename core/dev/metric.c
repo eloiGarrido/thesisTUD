@@ -32,41 +32,102 @@
 
 /*
  * \file
- *			Metric: Contain the functions that allow the duty cycle and metric computations and support processes.
+ *          Metric: Contain the functions that allow the duty cycle and metric computations and support processes.
  * \author
- * 			Eloi Garrido Barrabés
+ *          Eloi Garrido BarrabÃ©s
  */
-//#include "contiki.h"
 #include "contiki.h"
 #include "metric.h"
-#include "../energytrace/energytrace.h"
+#include "../apps/energytrace/energytrace.h"
 #include <stdio.h>
 /*---------------------------------------------------------------------------*/
 /* DEFINES */
 /*---------------------------------------------------------------------------*/
 /* VARIABLES AND CONSTANTS */
-int node_duty_cycle;
+uint32_t node_duty_cycle;
 node_energy_state_t node_energy_state = NS_ZERO;
 uint32_t harvesting_rate = 0;
-
+int B = 100;
+static int theta[3] = {2,-1,1};
+static int rho = 1, u = 1, u_avg = 1;
+static int phi[3] = {100, 1, -B_goal};
 /*---------------------------------------------------------------------------*/
 /* FUNCTIONS */
 void compute_node_duty_cycle(void){
 
-	if(node_energy_state == NS_HIGH){
-		node_duty_cycle = DC_HIGH;
-	}else if (node_energy_state == NS_MID){
-		node_duty_cycle = DC_MID;
-	}else if (node_energy_state == NS_LOW){
-		node_duty_cycle = DC_LOW;
-	}else{
-		node_duty_cycle = DC_ZERO;
-	}
-
+    // if(node_energy_state == NS_HIGH){
+    //     node_duty_cycle = DC_HIGH;
+    // }else if (node_energy_state == NS_MID){
+    //     node_duty_cycle = DC_MID;
+    // }else if (node_energy_state == NS_LOW){
+    //     node_duty_cycle = DC_LOW;
+    // }else{
+    //     node_duty_cycle = DC_ZERO;
+    // }
+    node_duty_cycle = rho;
 }
 
-uint8_t get_duty_cycle(void){
-	return node_duty_cycle;
+uint32_t get_duty_cycle(void){
+#if ADAPTIVE_DC
+    int val_t, val2_t;
+    int phi_t[3];
+    int mu = 1;
+    uint32_t energy_needed;
+
+    B = (remaining_energy * 100) / ENERGY_MAX_CAPACITY_SOLAR;
+
+    // -------------------------------- //
+    // theta = theta + ((mu / (sum(phi * phi)))* phi * (B - sum(phi * theta)))
+    // -------------------------------- //
+    // printf("OPERATION|energy:%lu|max:%lu|operation:%lu\n",remaining_energy * 100, ENERGY_MAX_CAPACITY_SOLAR,(remaining_energy * 100) / ENERGY_MAX_CAPACITY_SOLAR );
+    // printf("OPERATION|B:%d|phi:%d|phi:%d|phi:%d|energy:%lu\n",B, phi[0], phi[1], phi[2],remaining_energy);
+    val_t = (1000 * mu / (phi[0] * phi[0] + phi[1] * phi[1] + phi[2] * phi[2]));
+    phi_t[0] = val_t * phi[0]; 
+    phi_t[1] = val_t * phi[1]; 
+    phi_t[2] = val_t * phi[2]; 
+    // printf("OPERATION|val_t:%d|phi_t:%d|phi_t:%d|phi_t:%d|op:%d\n",val_t, phi_t[0], phi_t[1], phi_t[2],(phi[0] * phi[0] + phi[1] * phi[1] + phi[2] * phi[2]));
+    val2_t = B - (phi[0] * theta[0] + phi[1] * theta[1] + phi[2] * theta[2]);
+    phi_t[0] = (phi_t[0] * val2_t) / 100; // Remove x1000 of mu
+    phi_t[1] = (phi_t[1] * val2_t) / 100;
+    phi_t[2] = (phi_t[2] * val2_t) / 100;
+    // printf("OPERATION|val2_t:%d|phi_t:%d|phi_t:%d|phi_t:%d\n",val2_t, phi_t[0], phi_t[1], phi_t[2]);
+    theta[0] = theta[0] + phi_t[0];
+    theta[1] = theta[1] + phi_t[1];
+    theta[2] = theta[2] + phi_t[2];
+    // printf("OPERATION|theta:%d|theta:%d|theta:%d\n", theta[0], theta[1], theta[2]);
+    // -------------------------------- //
+    // u = (B_goal - theta[0]*B + theta[2]*B_goal) / theta[1]
+    // -------------------------------- //
+    u = (B_goal - theta[0]*B + theta[2]*B_goal) / theta[1];
+    u = MIN(DC_MAX, u);
+    u = MAX(DC_0, u);
+    // -------------------------------- //
+    // phi = np.array([B, u, -B_goal])
+    // -------------------------------- //
+    phi[0] = B;
+    phi[1] = u;
+    phi[2] = -B_goal;
+    // printf("OPERATION|phi:%d|phi:%d|phi:%d\n",phi[0], phi[1], phi[2]);
+    // -------------------------------- //
+    // u_avg = Alpha*u + (1-Alpha)*u_avg
+    // -------------------------------- //    
+    u_avg = (ALPHA*u + (100-ALPHA)*u_avg) / 100;
+    // -------------------------------- //
+    // rho = Beta*u + (1-Beta)*u_avg
+    // -------------------------------- // 
+    rho = (BETA*u + (100-BETA)*u_avg) / 100;
+    // printf("OPERATION|u:%d|u_avg:%d|rho:%lu\n",u, u_avg, (uint32_t) rho);
+    
+    // Check that we have enough energy to operate at rho DC
+    energy_needed = rho * 10 * 7 + rho * 5; // rho * 7.5 * SCALE_FACTOR 
+    while (energy_needed > remaining_energy && rho > 1) {
+        rho--;
+        energy_needed = rho * 10 * 7 + rho * 5; // rho * 7.5 * SCALE_FACTOR 
+    }
+    return rho;
+#else
+    return node_duty_cycle;
+#endif
 }
 
 void compute_node_state(void){
@@ -77,22 +138,22 @@ void compute_node_state(void){
     switch (node_energy_state)
     {
         case NS_HIGH:
-            if ( remaining_energy > ( (uint32_t)NS_ENERGY_HIGH - 200*SCALE_FACTOR ) ){ node_energy_state = NS_HIGH; }
-            else if ( remaining_energy > ( (uint32_t)NS_ENERGY_MID - 200*SCALE_FACTOR) ){ node_energy_state = NS_MID; }
+            if ( remaining_energy > ( (uint32_t)NS_ENERGY_HIGH - 100 ) ){ node_energy_state = NS_HIGH; }
+            else if ( remaining_energy > ( (uint32_t)NS_ENERGY_MID - 100) ){ node_energy_state = NS_MID; }
             else if ( remaining_energy > (uint32_t)NS_ENERGY_LOW){ node_energy_state = NS_LOW; }
             else { node_energy_state = NS_ZERO; }
             break;
 
         case NS_MID:
-            if ( remaining_energy > ( (uint32_t)NS_ENERGY_HIGH + 400*SCALE_FACTOR )) { node_energy_state = NS_HIGH; }
-            else if ( remaining_energy > ( (uint32_t)NS_ENERGY_MID - 200*SCALE_FACTOR)) { node_energy_state = NS_MID; }
+            if ( remaining_energy > ( (uint32_t)NS_ENERGY_HIGH + 100 )) { node_energy_state = NS_HIGH; }
+            else if ( remaining_energy > ( (uint32_t)NS_ENERGY_MID - 100)) { node_energy_state = NS_MID; }
             else if ( remaining_energy > (uint32_t)NS_ENERGY_LOW) { node_energy_state = NS_LOW; }
             else { node_energy_state = NS_ZERO; }
             break;
 
         case NS_LOW:
-            if ( remaining_energy > ( (uint32_t)NS_ENERGY_HIGH + 400*SCALE_FACTOR ) ){ node_energy_state = NS_HIGH; }
-            else if ( remaining_energy > ( (uint32_t)NS_ENERGY_MID + 200*SCALE_FACTOR) ){ node_energy_state = NS_MID; }
+            if ( remaining_energy > ( (uint32_t)NS_ENERGY_HIGH + 100 ) ){ node_energy_state = NS_HIGH; }
+            else if ( remaining_energy > ( (uint32_t)NS_ENERGY_MID + 100) ){ node_energy_state = NS_MID; }
             else if ( remaining_energy > (uint32_t)NS_ENERGY_LOW){ node_energy_state = NS_LOW; }
             else { node_energy_state = NS_ZERO; }
             break;
@@ -110,34 +171,35 @@ void compute_node_state(void){
             break;
     }
 #else
-	if (remaining_energy > (uint32_t)NS_ENERGY_HIGH) {
-		node_energy_state = NS_HIGH;
-	} else if (remaining_energy > (uint32_t)NS_ENERGY_MID){
-		node_energy_state = NS_MID;
-	} else if ( (uint32_t)remaining_energy > (uint32_t)NS_ENERGY_LOW){
-		node_energy_state = NS_LOW;
-	} else {
-		node_energy_state = NS_ZERO;
-	}
+    if (remaining_energy > (uint32_t)NS_ENERGY_HIGH) {
+        node_energy_state = NS_HIGH;
+    } else if (remaining_energy > (uint32_t)NS_ENERGY_MID){
+        node_energy_state = NS_MID;
+    } else if ( (uint32_t)remaining_energy > (uint32_t)NS_ENERGY_LOW){
+        node_energy_state = NS_LOW;
+    } else {
+        node_energy_state = NS_ZERO;
+    }
 #endif /*HYSTERESIS*/
+
 #endif /*FIX_NODE_STATE*/
 }
 
 node_energy_state_t get_node_state(void){
-	return node_energy_state;
+    return node_energy_state;
 }
 
 void compute_harvesting_rate(void){
-	int indx;
-	uint32_t acum = 0;
-	for (indx = 0; indx < 10; indx++){
-		acum += harvesting_rate_array[indx];
-	}
-	if (acum < 10){ harvesting_rate = 0;}
-	else{harvesting_rate = acum / 10;}
+    int indx;
+    uint32_t acum = 0;
+    for (indx = 0; indx < 10; indx++){
+        acum += harvesting_rate_array[indx];
+    }
+    if (acum < 10){ harvesting_rate = 0;}
+    else{harvesting_rate = acum / 10;}
 
 }
 
 uint32_t get_harvesting_rate(void){
-	return harvesting_rate;
+    return harvesting_rate;
 }

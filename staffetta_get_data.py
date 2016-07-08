@@ -17,8 +17,8 @@ from topology import gen_topology
 Log Converter
 convert Cooja results into statistical data and graphs
 '''
-# env = 'uni'
-env = 'home'
+env = 'uni'
+# env = 'home'
 repeated = False
 dropbox = False
 media = True
@@ -93,7 +93,7 @@ class LogConverter(object):
             if repeated == True:
                 LogConverter.general_path = "/home/egarrido/"
             elif media == True:
-                LogConverter.general_path = "/media/egarrido/UUI/"
+                LogConverter.general_path = "/media/egarrido/data/simulations/8_7_16/"
             elif (dropbox == True):
                 LogConverter.general_path = "/home/egarrido/Dropbox/thesisTUDelft/21_05_sim1_16n/"
             else:
@@ -891,7 +891,8 @@ if __name__ == '__main__':
     #     print(len(sys.argv))
     #     exit(1)
     f = []
-    for (dirpath, dirnames, filenames) in walk("/media/jester/UUI/sim2/"):
+    # for (dirpath, dirnames, filenames) in walk("/media/jester/UUI/sim2/"):
+    for (dirpath, dirnames, filenames) in walk("/media/egarrido/data/simulations/8_7_16/"):
         f.extend(filenames)
         break
     for file in f:

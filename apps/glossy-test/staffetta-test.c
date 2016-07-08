@@ -5,7 +5,7 @@
 
 static uint8_t round_stats;
 static int loop_stats;
-static uint32_t sleep_reference = 0;
+uint32_t sleep_reference = 0;
 static uint32_t time_counter = 0;
 static uint32_t old_Tw = 0;
 
@@ -96,11 +96,16 @@ static uint32_t get_next_wakeup(uint32_t sleep_reference){
     uint32_t random_increment;
     uint32_t Tw;
     random_increment = random_rand()%1000; // Get randomized wakeup point in ms
-    Tw = (1000 * time_counter) + random_increment - (old_Tw + sleep_reference);
-    old_Tw = Tw;
+    // printf("old_Tw:%lu|sleep:%lu,rand:%lu|time_counter:%lu\n",old_Tw,(node_duty_cycle*10),random_increment, time_counter);
+    Tw = (1000 * time_counter) + random_increment + (node_duty_cycle*10) - (old_Tw);
+    // printf("Tw:%lu\n",Tw );
+    old_Tw = (1000 * time_counter) + random_increment;
     time_counter++;
-    Tw = (RTIMER_ARCH_SECOND / 1000) * Tw;
-    return MIN(Tw, 0);
+    // Tw = (RTIMER_ARCH_SECOND / 1000) * Tw;
+    // printf("RTIMER_ARCH_SECOND:%lu|Tw:%lu\n", (uint32_t)(RTIMER_ARCH_SECOND/1000),Tw );
+    // Tw = (RTIMER_ARCH_SECOND / 1000) * (uint32_t) Tw;
+    // printf("Tw:%lu\n", Tw);
+    return (uint32_t) Tw;
 }
 
 PROCESS_THREAD(staffetta_test, ev, data){
@@ -123,17 +128,21 @@ PROCESS_THREAD(staffetta_test, ev, data){
     process_start(&staffetta_print_stats_process, NULL);
     while(1){
 
-        Tw = get_next_wakeup(sleep_reference);
-        printf("22|%lu|%lu\n",Tw, sleep_reference );
-
+        Tw = get_next_wakeup(sleep_t);
+        // printf("22|%lu|%lu\n",Tw, sleep_t );
+        Tw = (CLOCK_SECOND * Tw) / 1000;
+        // etimer_set(&et,Tw);
         etimer_set(&et,Tw);
         PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
+        // printf("second\n");
         //Perform a data exchange
 
 #if ENERGY_HARV
         if (node_energy_state != NS_ZERO){
             timer_on = RTIMER_NOW();
-            staffetta_result = staffetta_main(&sleep_reference);
+            staffetta_result = staffetta_main();
+            // printf("sleep_reference|%lu\n",sleep_reference );
+
             timer_off = RTIMER_NOW();
             // TODO Mod timers from ticks to seconds
 

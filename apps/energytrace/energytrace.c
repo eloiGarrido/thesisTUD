@@ -411,9 +411,8 @@ PROCESS_THREAD(energytrace_process, ev, data) {
 
 		if (node_class == NODE_SOLAR) {
 #ifdef MODEL_SOLAR
-//			rd = solar_energy_input(1); //TODO Validate
 			rd = 0;
-    	rd = get_solar_energy();
+    		rd = get_solar_energy();
 
 #else
 #if FIXED_ENERGY_STEP
@@ -432,7 +431,7 @@ PROCESS_THREAD(energytrace_process, ev, data) {
 			if (harvesting_array_index > 9){ harvesting_array_index = 0;}
 
 			if ( (remaining_energy + rd) > (uint32_t)ENERGY_MAX_CAPACITY_SOLAR ) {
-      	acum_harvest += ((uint32_t)ENERGY_MAX_CAPACITY_SOLAR - remaining_energy);
+      			acum_harvest += ((uint32_t)ENERGY_MAX_CAPACITY_SOLAR - remaining_energy);
 				remaining_energy = (uint32_t)ENERGY_MAX_CAPACITY_SOLAR;
 			} else {
 				remaining_energy += rd;
@@ -455,7 +454,7 @@ PROCESS_THREAD(energytrace_process, ev, data) {
 			// if ((uint32_t)ENERGY_MAX_CAPACITY_MOVER - remaining_energy < (uint32_t)rd )
 			if ( (remaining_energy + rd) > (uint32_t)ENERGY_MAX_CAPACITY_MOVER ) {
 //				acum_harvest += (uint32_t)ENERGY_MAX_CAPACITY_MOVER - (remaining_energy + (uint32_t)rd);
-        acum_harvest +=  ((uint32_t)ENERGY_MAX_CAPACITY_MOVER - remaining_energy);
+        		acum_harvest +=  ((uint32_t)ENERGY_MAX_CAPACITY_MOVER - remaining_energy);
 				remaining_energy = (uint32_t)ENERGY_MAX_CAPACITY_MOVER;
 			} else {
 				remaining_energy = remaining_energy + rd;
@@ -480,20 +479,12 @@ PROCESS_THREAD(energytrace_process, ev, data) {
 		staffetta_get_energy_consumption(&rxtx_time);
 
 		tx_level = cc2420_get_txpower();
-		energy_rxtx = voltage * tx_current_consumption(tx_level) * rxtx_time / 1000 / 10; //SCALE_FACTOR
-		energy_rxtx = energy_rxtx * SCALE_FACTOR;
-
-		// energy_array[array_counter] = energy_rxtx;
-		// array_counter++;
-		// if (array_counter >= ENERGY_SIZE) {
-		// 	array_counter = 0;
-		// 	// printf("21|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu\n", energy_array[0],energy_array[1],energy_array[2],energy_array[3],energy_array[4],energy_array[5],energy_array[6],energy_array[7],energy_array[8],energy_array[9], energy_array[10],energy_array[11],energy_array[12],energy_array[13],energy_array[14],energy_array[15],energy_array[16],energy_array[17],energy_array[18],energy_array[19], energy_array[20],energy_array[21],energy_array[22],energy_array[23],energy_array[24],energy_array[25],energy_array[26],energy_array[27],energy_array[28],energy_array[29], energy_array[30],energy_array[31],energy_array[32],energy_array[33],energy_array[34],energy_array[35],energy_array[36],energy_array[37],energy_array[38],energy_array[39], energy_array[40],energy_array[41],energy_array[42],energy_array[43],energy_array[44],energy_array[45],energy_array[46],energy_array[47],energy_array[48],energy_array[49]);
-		// 	// printf("21|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu|%lu\n", energy_array[0],energy_array[1],energy_array[2],energy_array[3],energy_array[4],energy_array[5],energy_array[6],energy_array[7],energy_array[8],energy_array[9]);
-		// }
-		
+		energy_rxtx = ((voltage * tx_current_consumption(tx_level) * rxtx_time) * SCALE_FACTOR / 1000) / 10; //SCALE_FACTOR
+		// energy_rxtx = energy_rxtx * SCALE_FACTOR;
+		// printf("current_consumption(tx_level):%lu|rxtx_time:%lu|energy_rxtx:%lu\n",tx_current_consumption(tx_level), rxtx_time, energy_rxtx);
 		if (remaining_energy > energy_rxtx)
 		{
-	    acum_consumption += energy_rxtx;
+	    	acum_consumption += energy_rxtx;
 			remaining_energy -= energy_rxtx;
 		}
 		else

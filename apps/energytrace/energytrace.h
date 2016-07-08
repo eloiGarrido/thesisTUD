@@ -37,11 +37,13 @@
 #define TX_CURRENT 17700
 #define TMOTE_VOLTAGE 3
 // #define SCALE_FACTOR 1000
+
+ 
 /*---------------------------------------------------------------------------*/
 #define ENERGY_UPPER_THRESHOLD 1500
 #define ENERGY_LOWER_THRESHOLD 600
 // #define ENERGY_INITIAL 1838*SCALE_FACTOR
-#define ENERGY_INITIAL 18380
+
 /* maximum enrgy (uJ) */
 #define ENERGY_MAX_CAPACITY 3675*SCALE_FACTOR
 
@@ -51,9 +53,11 @@
 /* the energy (uJ) which is consumed per second (to simulate node activity) */
 #define ENERGY_CONSUMES_PER_SECOND 500*SCALE_FACTOR
 /*---------------------------------------------------------------------------*/
-
-#define ENERGY_MAX_CAPACITY_SOLAR  544500
-#define ENERGY_MAX_CAPACITY_MOVER  85000	//0.5 * 1mF * 3.3v^2	-> in uJ
+// F = 2*E / V^2
+// 5F* 3^2 / 2 = 22.5W -> 22500 * SCALE_FACTOR -> 2250000
+#define ENERGY_MAX_CAPACITY_SOLAR  2250000
+#define ENERGY_MAX_CAPACITY_MOVER  1125000	
+#define ENERGY_INITIAL ENERGY_MAX_CAPACITY_SOLAR
 
 #define ENERGY_HARVEST_STEP_SOLAR 	100*SCALE_FACTOR		//Average solar harvest amount
 #define ENERGY_HARVEST_STEP_MOVER	70*SCALE_FACTOR		//Average mover harvest amount

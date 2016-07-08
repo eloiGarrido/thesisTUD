@@ -113,7 +113,7 @@
 #define ADAPTIVE_PACKET_CREATION  0
 #define RANDOM_PACKET_CREATION    0
 // #define SCALE_FACTOR 100
-#define DYN_DC 		0 // Staffetta adaptative wakeups
+#define DYN_DC 		1 // Staffetta adaptative wakeups
 #if NEW_EDC
 #define MAX_EDC   100
 #else
@@ -221,8 +221,10 @@ struct staffettamac_config {
   rtimer_clock_t strobe_wait_time;
 };
 
+
+extern uint32_t sleep_t;
 /*------------------------- FUNCTIONS --------------------------------------------------*/
-int staffetta_main(uint32_t * t_op);
+int staffetta_main();
 // uint32_t getWakeups(void);
 void sink_listen(void);
 void staffetta_print_stats(void);

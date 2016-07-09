@@ -17,8 +17,8 @@ from topology import gen_topology
 Log Converter
 convert Cooja results into statistical data and graphs
 '''
-env = 'uni'
-# env = 'home'
+# env = 'uni'
+env = 'home'
 repeated = False
 dropbox = False
 media = True
@@ -108,7 +108,7 @@ class LogConverter(object):
             if repeated == True:
                 LogConverter.general_path = "/home/jester/"
             elif media == True:
-                LogConverter.general_path = "/media/jester/UUI/sim2/"
+                LogConverter.general_path = "/media/jester/UUI/simulations/090716/"
             else:
                 LogConverter.general_path = "/home/jester/contiki/tools/cooja/build/"
 
@@ -892,13 +892,15 @@ if __name__ == '__main__':
     #     exit(1)
     f = []
     # for (dirpath, dirnames, filenames) in walk("/media/jester/UUI/sim2/"):
-    for (dirpath, dirnames, filenames) in walk("/media/egarrido/data/simulations/8_7_16/"):
+    for (dirpath, dirnames, filenames) in walk("/media/jester/UUI/simulations/090716/"):
         f.extend(filenames)
         break
     for file in f:
-        name = file.split('_')
+        name = file.replace('.log', '').split('_')
         minutes = int(name[2].replace('min',''))
         nodes = int(name[1])
         out = file.replace('.log', '')
+        # out = name
+
         adapter = LogConverter(file, nodes, minutes, out)
     # adapter = LogConverter(sys.argv[1], int(sys.argv[2]), int(sys.argv[3]), sys.argv[4])

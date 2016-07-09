@@ -461,9 +461,8 @@ PROCESS_THREAD(energytrace_process, ev, data) {
 		staffetta_get_energy_consumption(&rxtx_time);
 
 		tx_level = cc2420_get_txpower();
-		energy_rxtx = (voltage * tx_current_consumption(tx_level) * rxtx_time) * SCALE_FACTOR; 
-
-		// printf("current_consumption(tx_level):%lu|rxtx_time:%lu|energy_rxtx:%lu\n",tx_current_consumption(tx_level), rxtx_time, energy_rxtx);
+		energy_rxtx = (voltage * tx_current_consumption(tx_level) * rxtx_time) / 10; //* SCALE_FACTOR / 1000
+		// if (energy_rxtx != 0) printf("remaining_energy:%lu|rd:%lu|energy_rxtx:%lu\n",remaining_energy, rd, energy_rxtx);
 		if (remaining_energy > energy_rxtx) {
 	    	acum_consumption += energy_rxtx;
 			remaining_energy -= energy_rxtx;

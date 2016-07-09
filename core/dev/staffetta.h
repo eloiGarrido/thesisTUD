@@ -105,7 +105,7 @@
 
 #define ENERGY_HARV       1 //Enable dynamic budget depending on Energy Harvesting capabilities
 #define NEW_EDC           1
-#define AGEING            0 //EDC vector ages depending on rendezvous value
+#define AGEING            1 //EDC vector ages depending on rendezvous value
 // #define EDC_WITH_RV         0
 #define STAFFETTA_ENERGEST  1
 #define ELAPSED_TIME        0
@@ -114,11 +114,8 @@
 #define RANDOM_PACKET_CREATION    0
 // #define SCALE_FACTOR 100
 #define DYN_DC 		1 // Staffetta adaptative wakeups
-#if NEW_EDC
-#define MAX_EDC   100
-#else
 #define MAX_EDC   255
-#endif /*NEW_EDC*/
+
 
 #define PKTS_PER_NODE  3
 #define WAKE_UP_PERIOD  10

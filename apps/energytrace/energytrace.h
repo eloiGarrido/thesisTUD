@@ -14,7 +14,8 @@
 #define ENERGY_SIZE 		10
 #define STAFFETTA_ENERGEST 	1
 #define COFFEE_FILE_SYSTEM
-#define SCALE_FACTOR 100
+#define SCALE_FACTOR 		100
+#define LOW_ENERGY 			1
 // #define FIXED_ENERGY_STEP  	1
 
 /* choose energy harvesting model */
@@ -55,15 +56,20 @@
 /*---------------------------------------------------------------------------*/
 // F = 2*E / V^2
 // 5F* 3^2 / 2 = 22.5W -> 22500 * SCALE_FACTOR -> 2250000
+
 #define ENERGY_MAX_CAPACITY_SOLAR  2250000
 #define ENERGY_MAX_CAPACITY_MOVER  1125000	
 // #define ENERGY_INITIAL ENERGY_MAX_CAPACITY_SOLAR
+#if LOW_ENERGY
+#define ENERGY_INITIAL 225
+#else
 #define ENERGY_INITIAL ENERGY_MAX_CAPACITY_SOLAR
+#endif
 
 #define ENERGY_HARVEST_STEP_SOLAR 	100*SCALE_FACTOR		//Average solar harvest amount
 #define ENERGY_HARVEST_STEP_MOVER	70*SCALE_FACTOR		//Average mover harvest amount
 #define ENERGY_CONSUMES_PER_MS 		85*SCALE_FACTOR		//Energy consumed per in uJ
-
+#define CPU_CURRENT 20 //20uA
 
 /*---------------------------------------------------------------------------*/
 void energytrace_start(void);

@@ -227,7 +227,7 @@ void sink_listen(void);
 void staffetta_print_stats(void);
 void staffetta_add_data(uint8_t);
 void staffetta_init(void);
-void staffetta_get_energy_consumption(uint32_t * rxtx_time);
+void staffetta_get_energy_consumption(uint32_t * rxtx_time, uint32_t * cpu_time);
 int staffetta_transmit();
 int staffetta_listen(uint32_t timer_duration);
 #endif /* __STAFFETTA_H__ */

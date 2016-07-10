@@ -329,7 +329,10 @@ PROCESS_THREAD(energytrace_process, ev, data) {
 	clock_time_t *period;
 	static node_class_t node_class; //EGB
 	uint32_t rxtx_time;
+	uint32_t cpu_time;
 	uint32_t energy_rxtx;
+	uint32_t energy_cpu;
+	uint32_t total_energy;
 	// uint32_t energy_array[ENERGY_SIZE] = {0};
 	uint32_t rd = 0;
     uint8_t tx_level;
@@ -397,6 +400,7 @@ PROCESS_THREAD(energytrace_process, ev, data) {
 #ifdef MODEL_SOLAR
 			rd = 0;
     		rd = get_solar_energy();
+    		rd = rd / 2;
 
 #else
 #if FIXED_ENERGY_STEP
@@ -413,9 +417,10 @@ PROCESS_THREAD(energytrace_process, ev, data) {
 			harvesting_array_index++;
 			if (harvesting_array_index > 9){ harvesting_array_index = 0;}
 
-			if ( (remaining_energy + rd) > (uint32_t)ENERGY_MAX_CAPACITY_SOLAR ) {
+			if ( (uint32_t)(remaining_energy + rd) > (uint32_t)ENERGY_MAX_CAPACITY_SOLAR ) {
       			acum_harvest += ((uint32_t)ENERGY_MAX_CAPACITY_SOLAR - remaining_energy);
 				remaining_energy = (uint32_t)ENERGY_MAX_CAPACITY_SOLAR;
+				printf("HEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEERE\n");
 			} else {
 				remaining_energy += rd;
 				acum_harvest += rd;
@@ -456,16 +461,31 @@ PROCESS_THREAD(energytrace_process, ev, data) {
 		// if (prob2 <= energy_consumes_prob) {
 #if STAFFETTA_ENERGEST
 		rxtx_time = 0;
+		cpu_time = 0;
 		energy_rxtx = 0;
+		energy_cpu = 0;
+		total_energy = 0;
 		// printf("CLOCK_SECOND:%lu\n",CLOCK_SECOND );
-		staffetta_get_energy_consumption(&rxtx_time);
+		staffetta_get_energy_consumption(&rxtx_time, &cpu_time);
 
 		tx_level = cc2420_get_txpower();
+		energy_cpu = (voltage * CPU_CURRENT * cpu_time) / 10000;
 		energy_rxtx = (voltage * tx_current_consumption(tx_level) * rxtx_time) / 10; //* SCALE_FACTOR / 1000
 		// if (energy_rxtx != 0) printf("remaining_energy:%lu|rd:%lu|energy_rxtx:%lu\n",remaining_energy, rd, energy_rxtx);
-		if (remaining_energy > energy_rxtx) {
-	    	acum_consumption += energy_rxtx;
-			remaining_energy -= energy_rxtx;
+		
+		total_energy = energy_rxtx + energy_cpu;
+
+		// if (remaining_energy > energy_rxtx) {
+	 //    	acum_consumption += energy_rxtx;
+		// 	remaining_energy -= energy_rxtx;
+		// } else {
+  //     		acum_consumption += remaining_energy;
+		// 	remaining_energy = 0;
+		// }
+
+		if (remaining_energy > total_energy) {
+	    	acum_consumption += total_energy;
+			remaining_energy -= total_energy;
 		} else {
       		acum_consumption += remaining_energy;
 			remaining_energy = 0;

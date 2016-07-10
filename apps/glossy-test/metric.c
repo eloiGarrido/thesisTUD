@@ -47,10 +47,17 @@
 uint32_t node_duty_cycle;
 node_energy_state_t node_energy_state = NS_ZERO;
 uint32_t harvesting_rate = 0;
+#if LOW_ENERGY
+int B = 1;
+static int phi[3] = {1, 1, -B_goal};
+#else
 int B = 100;
+static int phi[3] = {100, 1, -B_goal};
+#endif
+
 static int theta[3] = {2,-1,1};
 static int rho = 1, u = 1, u_avg = 1;
-static int phi[3] = {100, 1, -B_goal};
+
 /*---------------------------------------------------------------------------*/
 /* FUNCTIONS */
 void compute_node_duty_cycle(void){

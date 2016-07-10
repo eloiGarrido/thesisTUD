@@ -101,6 +101,7 @@ static uint8_t strobe_LPL[STAFFETTA_PKT_LEN+3];
 static uint8_t node_on;
 uint32_t sleep_t;
 static uint32_t last_rxtx;
+static uint32_t last_cpu;
 /* --------------------------- RADIO FUNCTIONS ---------------------- */
 
 static inline void radio_flush_tx(void) {
@@ -1287,7 +1288,7 @@ void staffetta_print_stats(void){
 }
 
 #if STAFFETTA_ENERGEST
-void staffetta_get_energy_consumption(uint32_t *rxtx_time) {
+void staffetta_get_energy_consumption(uint32_t *rxtx_time, uint32_t *cpu_time) {
 #if ELAPSED_TIME
     uint32_t on_time,elapsed_time;
     on_time = ( (energest_type_time(ENERGEST_TYPE_TRANSMIT) + energest_type_time(ENERGEST_TYPE_LISTEN) ) * 1000) / RTIMER_ARCH_SECOND;
@@ -1298,17 +1299,23 @@ void staffetta_get_energy_consumption(uint32_t *rxtx_time) {
 	}
 
 #else
-    uint32_t all_rxtx, rxtx_time_t;
+    uint32_t all_rxtx, rxtx_time_t, all_cpu, cpu_time_t;
     all_rxtx = energest_type_time(ENERGEST_TYPE_TRANSMIT) + energest_type_time(ENERGEST_TYPE_LISTEN);
+    all_cpu = energest_type_time(ENERGEST_TYPE_CPU);
+    
     rxtx_time_t = all_rxtx - last_rxtx;
+    cpu_time_t = all_cpu - last_cpu;
+
+    *cpu_time  = (cpu_time_t  * 1000) / RTIMER_ARCH_SECOND;
     *rxtx_time = (rxtx_time_t * 1000) / RTIMER_ARCH_SECOND;
     // printf("all_rxtx:%lu|last_rxtx:%lu\n",all_rxtx,last_rxtx );
     if (!(IS_SINK)){
     	if(*rxtx_time != 0){
-      		printf("16|%lu|%d|%lu\n",*rxtx_time, q_size, rxtx_time_t);
+      		printf("16|%lu|%d|%lu|\n",*rxtx_time, q_size, *cpu_time);
       	}
     }
     last_rxtx = energest_type_time(ENERGEST_TYPE_LISTEN) + energest_type_time(ENERGEST_TYPE_TRANSMIT);
+    last_cpu = energest_type_time(ENERGEST_TYPE_CPU);
 
 #endif /*ELAPSED_TIME*/
 

@@ -903,4 +903,5 @@ if __name__ == '__main__':
         # out = name
 
         adapter = LogConverter(file, nodes, minutes, out)
+        adapter = None      
     # adapter = LogConverter(sys.argv[1], int(sys.argv[2]), int(sys.argv[3]), sys.argv[4])

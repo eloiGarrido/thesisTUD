@@ -104,6 +104,7 @@ typedef enum {
 
 void energytrace_print(char *str);
 uint32_t get_op_extension(void);
+uint32_t get_remaining_energy(void);
 
 extern uint32_t acum_consumption;
 extern uint32_t acum_harvest;

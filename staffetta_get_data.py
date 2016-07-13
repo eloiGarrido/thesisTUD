@@ -139,8 +139,8 @@ class LogConverter(object):
                 {'id': i, 'node_state': [],'Tw':[],'sleep_ref':[], 'q_size': [], 'energy_array': [], 'edc': [], 'grad': [], 'edc_id': [],
                  'no_energy': 0, 'time5': [], 'xPos': 0, 'yPos': 0, 'accum_harvest': [], 'accum_consumption': [],
                  'rv_time': [], 'time2': [], 'time3': [], 'time4': [], 'time6': [], 'time_on': [], 'time_off': [],
-                 'abs_time_off': [], 'pkt': [], 'num_wakeups': [], 'on_time': [], 'avg_edc': [], 'seq': [],
-                 'node_energy_state': [], 'remaining_energy': [], 'harvesting_rate': []})
+                 'duplicate':[], 'abs_time_off': [], 'pkt': [], 'num_wakeups': [], 'on_time': [], 'avg_edc': [], 'seq': [],
+                 'energy_trace': [], 'node_energy_state': [], 'remaining_energy': [], 'harvesting_rate': []})
 
             # --------------------------- Output Functions ---------------------------#
 
@@ -375,7 +375,8 @@ class LogConverter(object):
         elif msg_type == 8:  # Packet path (Node)
             self.nodes[id - 1]['pkt'].append(msg[3] + ',' + msg[4] + ',' + msg[5] + ',' + msg[6] + ',' + str(time))
             self.nodes[id - 1]['grad'].append(float(msg[7]))
-            self.nodes[id - 1]['rv_time'].append(float(msg[8]))
+            # self.nodes[id - 1]['rv_time'].append(float(msg[8]))
+            self.nodes[id - 1]['energy_trace'].append(float(msg[8]))
         elif msg_type == 9:  # Node goes OFF
             self.nodes[id - 1]['time_on'].append(float(msg[3]))
             self.nodes[id - 1]['time_off'].append(float(msg[4]))
@@ -414,6 +415,8 @@ class LogConverter(object):
         elif msg_type == 22:
             self.nodes[id - 1]['Tw'].append(msg[3])
             self.nodes[id - 1]['sleep_ref'].append(msg[4])
+        elif msg_type == 23:
+            self.nodes[id - 1]['duplicates'].append(msg[3])
 
 
     def parse(self, line):

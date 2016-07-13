@@ -76,14 +76,16 @@ PROCESS_THREAD(staffetta_print_stats_process, ev, data){
             acum_harvest = 0;
             counter = 0;
         }
+#if DYN_DC
         data_counter++;
         if (data_counter >= gen_data) {
             staffetta_add_data(round_stats++);
-            // gen_data = random_rand()%12 + 6;
             gen_data = random_rand()%12 + 12;
             data_counter = 0;
         }
-
+#else //For the original ORW we generate packets periodically every 5 seconds to "maintain" the link quality
+        staffetta_add_data(round_stats++);
+#endif
         etimer_set(&et,CLOCK_SECOND*5);
         PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
     }
@@ -96,15 +98,9 @@ static uint32_t get_next_wakeup(uint32_t sleep_reference){
     uint32_t random_increment;
     uint32_t Tw;
     random_increment = random_rand()%1000; // Get randomized wakeup point in ms
-    // printf("old_Tw:%lu|sleep:%lu,rand:%lu|time_counter:%lu\n",old_Tw,(node_duty_cycle*10),random_increment, time_counter);
     Tw = (1000 * time_counter) + random_increment + (node_duty_cycle*10) - (old_Tw);
-    // printf("Tw:%lu\n",Tw );
     old_Tw = (1000 * time_counter) + random_increment;
     time_counter++;
-    // Tw = (RTIMER_ARCH_SECOND / 1000) * Tw;
-    // printf("RTIMER_ARCH_SECOND:%lu|Tw:%lu\n", (uint32_t)(RTIMER_ARCH_SECOND/1000),Tw );
-    // Tw = (RTIMER_ARCH_SECOND / 1000) * (uint32_t) Tw;
-    // printf("Tw:%lu\n", Tw);
     return (uint32_t) Tw;
 }
 

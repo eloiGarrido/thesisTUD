@@ -96,6 +96,12 @@ static uint8_t strobe[STAFFETTA_PKT_LEN+3];
 static uint8_t strobe_ack[STAFFETTA_PKT_LEN+3];
 static uint8_t select[STAFFETTA_PKT_LEN+3];
 static uint8_t strobe_LPL[STAFFETTA_PKT_LEN+3];
+
+
+static uint8_t saved_strobes[10][5];
+static uint32_t saved_energy[10];
+static uint8_t saved_duplicate_drop = 0;
+static int saved_idx = 0;
 //uint16_t harvesting_rate;
 //node_energy_state_t node_energy_state;
 static uint8_t node_on;
@@ -182,6 +188,33 @@ static void goto_idle() {
 
 
 /*--------------------------- DATA FUNCTIONS ------------------------------------------------*/
+
+static void clear_saved_data(void) {
+	int i;
+	for (i=0; i<10; i++) {
+		saved_strobes[i][0] = 0;
+		saved_strobes[i][1] = 0;
+		saved_strobes[i][2] = 0;
+		saved_strobes[i][3] = 0;
+		saved_strobes[i][4] = 0;
+		saved_energy[i] = 0;
+	}
+	saved_duplicate_drop = 0;
+	saved_idx = 0;
+}
+
+static void save_packet_data(uint8_t pkt_data[STAFFETTA_PKT_LEN+3]) {
+	saved_strobes[saved_idx][0] = pkt_data[PKT_SRC];
+	saved_strobes[saved_idx][1] = pkt_data[PKT_DST];
+	saved_strobes[saved_idx][2] = pkt_data[PKT_SEQ];
+	saved_strobes[saved_idx][3] = pkt_data[PKT_DATA];
+	saved_strobes[saved_idx][4] = pkt_data[PKT_GRADIENT];
+
+	saved_energy[saved_idx] = get_remaining_energy();
+
+	saved_idx = (saved_idx + 1) % 10;
+}
+
 static void set_bitmap(int idx){
     unique_bitmap[idx / 8] |= 1 << (idx % 8);
 }
@@ -539,17 +572,7 @@ int staffetta_transmit(uint32_t operation_duration) {
   		avg_edc = MIN( (6 / node_energy_state) + (edc_sum / AVG_EDC_SIZE ), MAX_EDC);
 #else
 	 	if ( avg_edc > strobe_ack[PKT_GRADIENT] && rendezvous_time < (uint32_t)RENDEZ_TIME ) {
-	  //   	edc_idx = find_worst_edc_entry();
-		 //    edc[edc_idx] =  strobe_ack[PKT_GRADIENT];
-		 //    edc_idx = (edc_idx+1)%AVG_EDC_SIZE;
-	  //   	if (edc_idx != MAX_EDC) {
-	  //    		edc[edc_idx] = strobe_ack[PKT_GRADIENT];
-	  //    		edc_id[edc_idx] = strobe_ack[PKT_SRC];
-	  //    	}
-			// edc_sum = 0;
-			// for (i=0;i<AVG_EDC_SIZE;i++) {
-			//     edc_sum += edc[i];
-			// }
+
     		edc[edc_idx] =  strobe_ack[PKT_GRADIENT];
 		    edc_idx = (edc_idx+1)%AVG_EDC_SIZE;
 		    edc_sum = 0;
@@ -570,9 +593,9 @@ int staffetta_transmit(uint32_t operation_duration) {
 	}
 	radio_flush_rx();
 	goto_idle();
-	// printf("18|%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu\n",edc[0],edc[1],edc[2],edc[3],edc[4],edc[5],edc[6],edc[7],edc[8],edc[9] );
-	// printf("19|%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu\n",edc_id[0],edc_id[1],edc_id[2],edc_id[3],edc_id[4],edc_id[5],edc_id[6],edc_id[7],edc_id[8],edc_id[9] );
 	// printf("8|%u|%u|%u|%u|%u|%lu\n",strobe_ack[PKT_SRC],strobe_ack[PKT_DST],strobe_ack[PKT_SEQ],strobe_ack[PKT_DATA],strobe_ack[PKT_GRADIENT], avg_rendezvous);
+	// save_packet_data(strobe_ack);
+
 	return RET_FAST_FORWARD;
 }
 
@@ -717,7 +740,7 @@ int staffetta_listen(uint32_t timer_duration) {
 				if ( strobe_LPL[PKT_DST] == strobe_ack[PKT_DST] && strobe_LPL[PKT_DATA] == strobe_ack[PKT_DATA] && strobe_LPL[PKT_SEQ] == strobe_ack[PKT_SEQ] ) {
 					// Is the same packet, drop it and go to sleep
 					channel_idle = 0;
-
+					saved_duplicate_drop++;
 				}
 			}
 	    }
@@ -817,8 +840,10 @@ int staffetta_listen(uint32_t timer_duration) {
 #if !FAST_FORWARD
 		// goto_idle(); // We don't want to go to sleep after receiving one packet, we want to use all our listening time
 		// printf("8|%u|%u|%u|%u|%u\n",strobe[PKT_SRC],strobe[PKT_DST],strobe[PKT_SEQ],strobe[PKT_DATA],strobe[PKT_GRADIENT]);
+		save_packet_data(strobe);
 		return RET_NO_RX;
 #endif /*!FAST_FORWARD*/
+		save_packet_data(strobe);
       	// printf("8|%u|%u|%u|%u|%u|%lu\n",strobe[PKT_SRC],strobe[PKT_DST],strobe[PKT_SEQ],strobe[PKT_DATA],strobe[PKT_GRADIENT], avg_rendezvous);
     }
 }
@@ -1087,8 +1112,10 @@ int staffetta_cca() {
 #if !FAST_FORWARD
 		// goto_idle(); // We don't want to go to sleep after receiving one packet, we want to use all our listening time
 		// printf("8|%u|%u|%u|%u|%u\n",strobe[PKT_SRC],strobe[PKT_DST],strobe[PKT_SEQ],strobe[PKT_DATA],strobe[PKT_GRADIENT]);
+		save_packet_data(strobe);
 		return RET_NO_RX;
 #endif /*!FAST_FORWARD*/
+		save_packet_data(strobe);
       	// printf("8|%u|%u|%u|%u|%u|%lu\n",strobe[PKT_SRC],strobe[PKT_DST],strobe[PKT_SEQ],strobe[PKT_DATA],strobe[PKT_GRADIENT], avg_rendezvous);
     }
 }
@@ -1122,10 +1149,10 @@ int staffetta_main() {
 	rtimer_clock_t t_operation;
 	uint32_t operation_duration;
 	uint8_t cca = 0;
+	int i;
 
     //turn radio on
     // Get operation duration depending on NODE_ENERGY_STATE
-
     operation_duration = get_operation_duration();
     // t_op = node_duty_cycle;
     sleep_t = node_duty_cycle;
@@ -1146,6 +1173,12 @@ int staffetta_main() {
     	}
     }
 	stop_radio();
+
+	for (i=0; i<saved_idx && i<10; i++) {
+		printf("8|%u|%u|%u|%u|%u|%lu\n",saved_strobes[i][0],saved_strobes[i][1],saved_strobes[i][2],saved_strobes[i][3],saved_strobes[i][4], saved_energy[i]);
+	}
+	printf("23|%d\n",saved_duplicate_drop );
+	clear_saved_data();
 	return return_value;    
 } /*END_WHILE*/
 

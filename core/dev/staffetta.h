@@ -113,7 +113,7 @@
 #define ADAPTIVE_PACKET_CREATION  0
 #define RANDOM_PACKET_CREATION    0
 // #define SCALE_FACTOR 100
-#define DYN_DC 		0 // Staffetta adaptative wakeups
+#define DYN_DC 		1 // Staffetta adaptative wakeups
 #define MAX_EDC   255
 
 

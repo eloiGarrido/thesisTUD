@@ -225,6 +225,10 @@ int read_lines(char message[MESSAGE_SIZE], uint16_t lines, uint8_t solarNoMover)
 
 #endif /*COFFEE_FILE_SYSTEM*/
 
+uint32_t get_remaining_energy(void) {
+	return remaining_energy;
+}
+
 
 #ifdef MODEL_SOLAR
 uint8_t init_solar_file() {

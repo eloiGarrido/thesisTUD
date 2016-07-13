@@ -569,7 +569,11 @@ int staffetta_transmit(uint32_t operation_duration) {
 		  		edc_sum += edc[i];
 			}
 	  	}
+#if DYN_DC
+	  	avg_edc = MIN( node_gradient + (edc_sum / AVG_EDC_SIZE), MAX_EDC);
+#else
   		avg_edc = MIN( (6 / node_energy_state) + (edc_sum / AVG_EDC_SIZE ), MAX_EDC);
+#endif /*DYN_DC*/
 #else
 	 	if ( avg_edc > strobe_ack[PKT_GRADIENT] && rendezvous_time < (uint32_t)RENDEZ_TIME ) {
 

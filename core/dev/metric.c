@@ -45,12 +45,20 @@
 /*---------------------------------------------------------------------------*/
 /* VARIABLES AND CONSTANTS */
 uint32_t node_duty_cycle;
-node_energy_state_t node_energy_state = NS_LOW;
+uint8_t node_gradient = 20;
+node_energy_state_t node_energy_state = NS_ZERO;
 uint32_t harvesting_rate = 0;
+#if LOW_ENERGY
+int B = 85;
+static int phi[3] = {1, 1, -B_goal};
+#else
 int B = 100;
+static int phi[3] = {100, 1, -B_goal};
+#endif
+
 static int theta[3] = {2,-1,1};
 static int rho = 1, u = 1, u_avg = 1;
-static int phi[3] = {100, 1, -B_goal};
+
 /*---------------------------------------------------------------------------*/
 /* FUNCTIONS */
 void compute_node_duty_cycle(void){
@@ -125,6 +133,21 @@ void compute_node_state(void){
 #if FIX_NODE_STATE
     node_energy_state = NS_MID;
 #else
+#if ADAPTIVE_DC
+    if (remaining_energy > (uint32_t)NS_ENERGY_LOW) {
+        node_gradient = 20 / rho;
+        if (remaining_energy > (uint32_t)NS_ENERGY_HIGH) {
+            node_energy_state = NS_HIGH;
+        } else if (remaining_energy > (uint32_t)NS_ENERGY_MID){
+            node_energy_state = NS_MID;
+        } else {
+            node_energy_state = NS_LOW;
+        } 
+    } else {
+        node_energy_state = NS_ZERO;
+    }
+
+#else
 #if HYSTERESIS
     switch (node_energy_state)
     {
@@ -172,7 +195,7 @@ void compute_node_state(void){
         node_energy_state = NS_ZERO;
     }
 #endif /*HYSTERESIS*/
-
+#endif /*ADAPTIVE_DC*/
 #endif /*FIX_NODE_STATE*/
 }
 

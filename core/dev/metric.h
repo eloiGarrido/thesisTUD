@@ -52,7 +52,7 @@ typedef enum{
 	NS_MID,
 	NS_HIGH
 } node_energy_state_t;
-
+extern uint8_t node_gradient;
 extern uint32_t node_duty_cycle;
 extern node_energy_state_t node_energy_state;
 extern uint32_t harvesting_rate;

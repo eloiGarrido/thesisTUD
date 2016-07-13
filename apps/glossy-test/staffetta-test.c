@@ -76,7 +76,7 @@ PROCESS_THREAD(staffetta_print_stats_process, ev, data){
             acum_harvest = 0;
             counter = 0;
         }
-#if DYN_DC
+#if NEW_EDC
         data_counter++;
         if (data_counter >= gen_data) {
             staffetta_add_data(round_stats++);

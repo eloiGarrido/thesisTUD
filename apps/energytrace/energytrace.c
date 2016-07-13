@@ -400,7 +400,6 @@ PROCESS_THREAD(energytrace_process, ev, data) {
 #ifdef MODEL_SOLAR
 			rd = 0;
     		rd = get_solar_energy();
-    		rd = rd / 2;
 
 #else
 #if FIXED_ENERGY_STEP
@@ -420,7 +419,6 @@ PROCESS_THREAD(energytrace_process, ev, data) {
 			if ( (uint32_t)(remaining_energy + rd) > (uint32_t)ENERGY_MAX_CAPACITY_SOLAR ) {
       			acum_harvest += ((uint32_t)ENERGY_MAX_CAPACITY_SOLAR - remaining_energy);
 				remaining_energy = (uint32_t)ENERGY_MAX_CAPACITY_SOLAR;
-				printf("HEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEERE\n");
 			} else {
 				remaining_energy += rd;
 				acum_harvest += rd;

@@ -539,15 +539,23 @@ int staffetta_transmit(uint32_t operation_duration) {
   		avg_edc = MIN( (6 / node_energy_state) + (edc_sum / AVG_EDC_SIZE ), MAX_EDC);
 #else
 	 	if ( avg_edc > strobe_ack[PKT_GRADIENT] && rendezvous_time < (uint32_t)RENDEZ_TIME ) {
-	    	edc_idx = find_worst_edc_entry();
-	    	if (edc_idx != MAX_EDC) {
-	     		edc[edc_idx] = strobe_ack[PKT_GRADIENT];
-	     		edc_id[edc_idx] = strobe_ack[PKT_SRC];
-	     	}
-			edc_sum = 0;
-			for (i=0;i<AVG_EDC_SIZE;i++) {
-			    edc_sum += edc[i];
-			}
+	  //   	edc_idx = find_worst_edc_entry();
+		 //    edc[edc_idx] =  strobe_ack[PKT_GRADIENT];
+		 //    edc_idx = (edc_idx+1)%AVG_EDC_SIZE;
+	  //   	if (edc_idx != MAX_EDC) {
+	  //    		edc[edc_idx] = strobe_ack[PKT_GRADIENT];
+	  //    		edc_id[edc_idx] = strobe_ack[PKT_SRC];
+	  //    	}
+			// edc_sum = 0;
+			// for (i=0;i<AVG_EDC_SIZE;i++) {
+			//     edc_sum += edc[i];
+			// }
+    		edc[edc_idx] =  strobe_ack[PKT_GRADIENT];
+		    edc_idx = (edc_idx+1)%AVG_EDC_SIZE;
+		    edc_sum = 0;
+		    for (i=0;i<AVG_EDC_SIZE;i++){
+				edc_sum += edc[i];
+		    }
 		}
 		avg_edc = MIN( ((avg_rendezvous/10) + (edc_sum/AVG_EDC_SIZE)), MAX_EDC); //limit to 255
 		// avg_edc = MIN( ((avg_rendezvous/100) + (edc_sum/AVG_EDC_SIZE)), MAX_EDC); //limit to 255

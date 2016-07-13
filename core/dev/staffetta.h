@@ -116,8 +116,11 @@
 #define DYN_DC 		1 // Staffetta adaptative wakeups
 #define MAX_EDC   255
 
-
+#if NEW_EDC
 #define PKTS_PER_NODE  3
+#else
+#define PKTS_PER_NODE  DATA_SIZE
+#endif 
 #define WAKE_UP_PERIOD  10
 #define WITH_COLLISION_AVOIDANCE 1
 /*-------------------------- MACROS -------------------------------------------------*/

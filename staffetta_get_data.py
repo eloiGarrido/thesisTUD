@@ -17,8 +17,8 @@ from topology import gen_topology
 Log Converter
 convert Cooja results into statistical data and graphs
 '''
-env = 'uni'
-# env = 'home'
+# env = 'uni'
+env = 'home'
 repeated = False
 dropbox = False
 media = True
@@ -108,7 +108,7 @@ class LogConverter(object):
             if repeated == True:
                 LogConverter.general_path = "/home/jester/"
             elif media == True:
-                LogConverter.general_path = "/media/jester/UUI/simulations/090716/"
+                LogConverter.general_path = "/media/jester/UUI/simulations/090716/sim/"
             else:
                 LogConverter.general_path = "/home/jester/contiki/tools/cooja/build/"
 
@@ -139,7 +139,7 @@ class LogConverter(object):
                 {'id': i, 'node_state': [],'Tw':[],'sleep_ref':[], 'q_size': [], 'energy_array': [], 'edc': [], 'grad': [], 'edc_id': [],
                  'no_energy': 0, 'time5': [], 'xPos': 0, 'yPos': 0, 'accum_harvest': [], 'accum_consumption': [],
                  'rv_time': [], 'time2': [], 'time3': [], 'time4': [], 'time6': [], 'time_on': [], 'time_off': [],
-                 'duplicate':[], 'abs_time_off': [], 'pkt': [], 'num_wakeups': [], 'on_time': [], 'avg_edc': [], 'seq': [],
+                 'duplicates':[], 'abs_time_off': [], 'pkt': [], 'num_wakeups': [], 'on_time': [], 'avg_edc': [], 'seq': [],
                  'energy_trace': [], 'node_energy_state': [], 'remaining_energy': [], 'harvesting_rate': []})
 
             # --------------------------- Output Functions ---------------------------#
@@ -283,6 +283,9 @@ class LogConverter(object):
                     else:
                         pkt_delay.append({'src': node, 'seq': seq, 'delay': 'lost'})
                 elif index != -2:
+                    discard = self.packet_end_of_simulation(seq, pkt_seq, nodes)
+                    if discard == True:
+                        continue
                     sink_t = self.nodes[0]['pkt'][index].split(',')
                     # delay_t = long(sink_t[4]) - long( self.nodes[nodes]['time4'][pkt_seq] )
                     delay_t = float(sink_t[4]) - float(self.nodes[node - 1]['time4'][int(seq)])
@@ -895,7 +898,7 @@ if __name__ == '__main__':
     #     exit(1)
     f = []
     # for (dirpath, dirnames, filenames) in walk("/media/jester/UUI/sim2/"):
-    for (dirpath, dirnames, filenames) in walk("/media/egarrido/data/simulations/090716/sim/"):
+    for (dirpath, dirnames, filenames) in walk("/media/jester/UUI/simulations/090716/sim/"):
         f.extend(filenames)
         break
     for file in f:

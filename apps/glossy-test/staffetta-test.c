@@ -87,21 +87,21 @@ PROCESS_THREAD(staffetta_print_stats_process, ev, data){
             acum_harvest = 0;
             counter = 0;
         }
-#if NEW_EDC
+// #if NEW_EDC
         data_counter++;
         if (data_counter >= gen_data) {
             staffetta_add_data(round_stats++);
             gen_data = random_rand()%12 + 12;
             data_counter = 0;
         }
-#else //For the original ORW we generate packets periodically every 5 seconds to "maintain" the link quality
-        data_counter++;
-        if (data_counter >= gen_data) {
-            staffetta_add_data(round_stats++);
-            gen_data = random_rand()%48 + 24;
-            data_counter = 0;
-        }
-#endif
+// #else //For the original ORW we generate packets periodically every 5 seconds to "maintain" the link quality
+//         data_counter++;
+//         if (data_counter >= gen_data) {
+//             staffetta_add_data(round_stats++);
+//             gen_data = random_rand()%48 + 24;
+//             data_counter = 0;
+//         }
+// #endif
         etimer_set(&et,CLOCK_SECOND*5);
         PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
     }
@@ -116,7 +116,11 @@ static uint32_t get_next_wakeup(uint32_t sleep_reference){
     random_increment = random_rand()%1000; // Get randomized wakeup point in ms
     Tw = (1000 * time_counter) + random_increment + (node_duty_cycle*10) - (old_Tw);
     old_Tw = (1000 * time_counter) + random_increment;
+// #if NEW_EDC 
     time_counter++;
+// #else
+//     time_counter = time_counter + 2;
+// #endif
     return (uint32_t) Tw;
 }
 

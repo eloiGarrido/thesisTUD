@@ -17,8 +17,8 @@ from topology import gen_topology
 Log Converter
 convert Cooja results into statistical data and graphs
 '''
-# env = 'uni'
-env = 'home'
+env = 'uni'
+# env = 'home'
 repeated = False
 dropbox = False
 media = True
@@ -93,7 +93,7 @@ class LogConverter(object):
             if repeated == True:
                 LogConverter.general_path = "/home/egarrido/"
             elif media == True:
-                LogConverter.general_path = "/media/egarrido/data/simulations/090716/sim/"
+                LogConverter.general_path = "/media/egarrido/data/simulations/130716/sim/"
             elif (dropbox == True):
                 LogConverter.general_path = "/home/egarrido/Dropbox/thesisTUDelft/21_05_sim1_16n/"
             else:
@@ -898,14 +898,15 @@ if __name__ == '__main__':
     #     exit(1)
     f = []
     # for (dirpath, dirnames, filenames) in walk("/media/jester/UUI/sim2/"):
-    for (dirpath, dirnames, filenames) in walk("/media/jester/UUI/simulations/090716/sim/"):
+    for (dirpath, dirnames, filenames) in walk("/media/egarrido/data/simulations/130716/sim"):
         f.extend(filenames)
         break
     for file in f:
-        name = file.replace('.log', '').split('_')
+        file_t = file.replace('-','_').replace('21','31')
+        name = file_t.replace('.log', '').split('_')
         minutes = int(name[2].replace('min',''))
         nodes = int(name[1])
-        out = file.replace('.log', '')
+        out = file_t.replace('.log', '')
         # out = name
 
         adapter = LogConverter(file, nodes, minutes, out)

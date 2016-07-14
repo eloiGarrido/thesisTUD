@@ -79,7 +79,7 @@ PROCESS_THREAD(staffetta_print_stats_process, ev, data){
         staffetta_print_stats();
         counter = counter + 1;
         if (counter >= 2){
-#if DYN_DC && NEW_EDC
+#if DYN_DC
             printf("6|%d|%lu|%lu|%lu|%lu\n", node_gradient, remaining_energy, harvesting_rate, acum_consumption, acum_harvest);
 #else
             printf("6|%d|%lu|%lu|%lu|%lu\n", node_energy_state, remaining_energy, harvesting_rate, acum_consumption, acum_harvest);

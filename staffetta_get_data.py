@@ -61,8 +61,8 @@ class LogConverter(object):
         pkts, collisions = self.organize_pkts()
         # paths = self.create_pkt_path(pkts)
 
-        # paths = self.get_packet_path()
-
+        paths = self.get_packet_path()
+        self.print_packet_paths(paths)
         # self.output_file(paths,"paths",0)
         # self.output_file(pkts, "packets",1)
         pkt_delay, pkt_delay_raw = self.get_end_to_end_delay(pkts)
@@ -96,7 +96,7 @@ class LogConverter(object):
             if repeated == True:
                 LogConverter.general_path = "/home/egarrido/"
             elif media == True:
-                LogConverter.general_path = "/media/egarrido/data/simulations/130716/sim/"
+                LogConverter.general_path = "/media/egarrido/data/simulations/150716/sim/"
             elif (dropbox == True):
                 LogConverter.general_path = "/home/egarrido/Dropbox/thesisTUDelft/21_05_sim1_16n/"
             else:
@@ -318,7 +318,32 @@ class LogConverter(object):
         return sorted_pkt_list
 
     def organize_path(self, original_packets):
-        return
+        # original_packets['path'].append(original_packets['src'])
+        path = list(reversed(original_packets['path']))
+        energy = list(reversed(original_packets['energy']))
+        return path, energy
+
+    def compute_energy_path(self, original_packet):
+
+        min_t = 100000000000
+        if len(original_packet['energy']) > 1:
+            avg_energy = sum( original_packet['energy']) / (len(original_packet['energy']) - 1)
+        else:
+            avg_energy = 0
+        if len(original_packet['energy']) > 1:
+            if min(original_packet['energy']) != 0.0:
+                delta_energy = max(original_packet['energy']) - min(original_packet['energy'])
+            else:
+                for value in original_packet['energy']:
+                    if value < min_t and value != 0.0:
+                        min_t = value
+                if min_t != 0.0 and min_t != 100000000000:
+                    delta_energy = max(original_packet['energy']) - min_t
+                else:
+                    delta_energy = 0.0
+        else:
+            delta_energy = 0.0
+        return avg_energy, delta_energy
 
     def get_packet_path(self):
         # TODO Check functionallity with simple topology
@@ -327,7 +352,7 @@ class LogConverter(object):
         # Get original packets on each node
         for i in range(1, self.number_of_nodes):
             for seq_len in range(0, len(self.nodes[i]['seq'])):
-                pkt_t = {'src':i + 1,'seq': seq_len,'energy':[], 'path':[]}  # SRC | DST | SEQ | Energy 0 TODO Add initial energy at creation instance
+                pkt_t = {'src':i + 1,'seq': seq_len,'energy':[], 'path':[], 'avg_energy': 0, 'delta_energy': 0}  # SRC | DST | SEQ | Energy 0 TODO Add initial energy at creation instance
                 orig_packet.append(pkt_t)
         # Find the path of each packet through the network
         for original_packet in orig_packet:
@@ -336,12 +361,15 @@ class LogConverter(object):
                     pkt_t = pkt.split(',')
                     if int(pkt_t[3]) == original_packet['src'] and int(pkt_t[2]) == original_packet['seq']:
                     # if int(pkt_t[3]) == original_packet['seq'] and int(pkt_t[2]) == original_packet['src']:
-                        original_packet['path'].append(nodes)
-                        original_packet['energy'].append(pkt_t[5])
+                        if (nodes + 1) in original_packet['path']:
+                            continue
+                        original_packet['path'].append(nodes + 1)
+                        original_packet['energy'].append(float(pkt_t[5]))
                         # TODO Add energy
         # We now have all the path but without sorting
         for original_packet in orig_packet:
-            self.organize_path(original_packet)
+            original_packet['path'], original_packet['energy'] = self.organize_path(original_packet)
+            original_packet['avg_energy'], original_packet['delta_energy'] = self.compute_energy_path(original_packet)
 
         return orig_packet
 
@@ -651,7 +679,57 @@ class LogConverter(object):
         plt.draw()
         plt.savefig(LogConverter.file_path + filename + '.eps', format='eps')
 
+
     # --------------------- ENERGY GRAPHS ---------------------------------------- #
+
+    def print_packet_paths(self, paths):
+        print('>> Printing packet paths...')
+        avg_energies = []
+        delta_energies = []
+        total_avg_energies = []
+        total_delta_energies = []
+
+        index = np.arange(2, self.number_of_nodes + 1)
+        bar_width = 0.35
+        opacity = 0.4
+        error_config = {'ecolor': '0.3'}
+
+
+        for i in range (0, self.number_of_nodes - 1):
+            avg_energies.append([])
+            delta_energies.append([])
+        for path in paths:
+            avg_energies[path['src']-2].append(path['avg_energy'])
+            delta_energies[path['src']-2].append(path['delta_energy'])
+
+        for i in range(0, len(avg_energies)):
+            total_avg_energies.append(sum(avg_energies[i])/ len(avg_energies[i]))  # Initial energy add as harvested
+            total_delta_energies.append(sum(delta_energies[i]) / len(delta_energies[i]))  # Initial energy add as harvested
+
+        fig, ax = plt.subplots()
+        ax2 = ax.twinx()
+        rects1 = ax.bar(index, total_avg_energies, bar_width, color='r')
+
+        rects2 = ax2.bar(index + bar_width, total_delta_energies, bar_width, color='y')
+
+        ax.set_ylabel('Average Energy')
+        ax2.set_ylabel('Delta Energy')
+
+        box = ax.get_position()
+        box2 = ax2.get_position()
+
+        ax.set_position([box.x0, box.y0 + box.height * 0.1,
+                         box.width, box.height * 0.9])
+        ax2.set_position([box2.x0, box2.y0 + box2.height * 0.1,
+                         box2.width, box2.height * 0.9])
+        ax.legend((rects1[0], rects2[0]), ('Average Energy', 'Delta Energy'),loc='upper center', bbox_to_anchor=(0.5, -0.05),
+          fancybox=True, shadow=True, ncol=5)
+
+        plt.title('Energy Path Statistics')
+        ax.legend()
+        plt.draw()
+        plt.savefig(LogConverter.file_path + 'path_energy.eps', format='eps')
+
     def print_energy_levels(self):
         print('>> Printing energy levels...')
         plt.figure()
@@ -929,7 +1007,7 @@ if __name__ == '__main__':
     #     exit(1)
     f = []
     # for (dirpath, dirnames, filenames) in walk("/media/jester/UUI/sim2/"):
-    for (dirpath, dirnames, filenames) in walk("/media/egarrido/data/simulations/130716/sim"):
+    for (dirpath, dirnames, filenames) in walk("/media/egarrido/data/simulations/150716/sim"):
         f.extend(filenames)
         break
     for file in f:

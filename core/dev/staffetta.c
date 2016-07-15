@@ -108,6 +108,11 @@ static uint8_t node_on;
 uint32_t sleep_t;
 static uint32_t last_rxtx;
 static uint32_t last_cpu;
+
+static uint8_t transmission_success = 0;
+static uint8_t transmission_counter = 0;
+static uint8_t transmission_inc = 0;
+
 /* --------------------------- RADIO FUNCTIONS ---------------------- */
 
 static inline void radio_flush_tx(void) {
@@ -413,6 +418,8 @@ int staffetta_transmit(uint32_t operation_duration) {
 #endif /*WITH_AGGREGATE*/
 
 	// If the queue is empty, exit
+	 // Increment transmission counter
+    transmission_success = 0;
     if(read_data()==0){
 		goto_idle();
 		return RET_EMPTY_QUEUE;
@@ -576,15 +583,20 @@ int staffetta_transmit(uint32_t operation_duration) {
 #endif /*DYN_DC*/
 #else
 	 	if ( avg_edc > strobe_ack[PKT_GRADIENT] && rendezvous_time < (uint32_t)RENDEZ_TIME ) {
-
-    		edc[edc_idx] =  strobe_ack[PKT_GRADIENT];
+ 			
+    		edc[edc_idx] =  strobe_ack[PKT_GRADIENT] + transmission_counter;
 		    edc_idx = (edc_idx+1)%AVG_EDC_SIZE;
 		    edc_sum = 0;
 		    for (i=0;i<AVG_EDC_SIZE;i++){
 				edc_sum += edc[i];
 		    }
+		    transmission_counter = 1;
+ 			transmission_success = 1;
 		}
-		avg_edc = MIN( ((avg_rendezvous/10) + (edc_sum/AVG_EDC_SIZE)), MAX_EDC); //limit to 255
+		// avg_edc = MIN( ((avg_rendezvous/10) + (edc_sum/AVG_EDC_SIZE)), MAX_EDC); //limit to 255
+		avg_edc = MIN( (edc_sum/AVG_EDC_SIZE), MAX_EDC); //limit to 255
+		 
+		
 		// avg_edc = MIN( ((avg_rendezvous/100) + (edc_sum/AVG_EDC_SIZE)), MAX_EDC); //limit to 255
 #endif /*NEW_EDC*/
 #endif /*ORW_GRADIENT*/
@@ -1161,6 +1173,7 @@ int staffetta_main() {
     // t_op = node_duty_cycle;
     sleep_t = node_duty_cycle;
     // Wake up, start the timer and CCA
+    transmission_inc = 0;
     radio_on();
     t_operation = RTIMER_NOW();
     while (operation_duration != -1 && RTIMER_CLOCK_LT (RTIMER_NOW(),t_operation + operation_duration)) {
@@ -1171,6 +1184,10 @@ int staffetta_main() {
     		if (read_data() == 0) {
     			return_value = staffetta_listen(operation_duration); // Queue is empty, we can start listening
     		} else {
+    			if (transmission_inc == 0 && transmission_success == 0){
+    				transmission_counter = MIN(transmission_counter + 1, 255);
+    				transmission_inc = 1;
+    			}
     			return_value = staffetta_transmit(operation_duration); // We have packets in the queue, LET'S TRANSMIT
     		}
 			cca = 0;	

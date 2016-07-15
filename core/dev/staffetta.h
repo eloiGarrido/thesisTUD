@@ -105,7 +105,7 @@
 
 #define ENERGY_HARV       1 //Enable dynamic budget depending on Energy Harvesting capabilities
 #define NEW_EDC           0
-#define AGEING            0 //EDC vector ages depending on rendezvous value
+#define AGEING            1 //EDC vector ages depending on rendezvous value
 // #define EDC_WITH_RV         0
 #define STAFFETTA_ENERGEST  1
 #define ELAPSED_TIME        0

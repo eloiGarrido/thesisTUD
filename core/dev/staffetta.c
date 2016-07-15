@@ -584,14 +584,41 @@ int staffetta_transmit(uint32_t operation_duration) {
 #else
 	 	if ( avg_edc > strobe_ack[PKT_GRADIENT] && rendezvous_time < (uint32_t)RENDEZ_TIME ) {
  			
-    		edc[edc_idx] =  strobe_ack[PKT_GRADIENT] + transmission_counter;
+
+	    	edc_idx = find_worst_edc_entry();
+	    	if (edc_idx != MAX_EDC) {
+		     	edc[edc_idx] = strobe_ack[PKT_GRADIENT] + transmission_counter;
+		     	edc_id[edc_idx] = strobe_ack[PKT_SRC];
+
+#if AGEING
+	    	// edc_age[edc_idx] = rendezvous_time / (RENDEZ_TIME/10);
+		    	edc_age[edc_idx] = rendezvous_time / 10;
+
+		    	// printf("rendezvous_time:%lu|RENDEZ_TIME:%lu|edc_age:%lu\n",(uint32_t) rendezvous_time, (uint32_t)RENDEZ_TIME/10,(uint32_t)edc_age[edc_idx] );
+
+		    	if ( edc_age[edc_idx] == 0 ) {
+					edc_age_counter[edc_idx] = 20;
+		    	} else if ( edc_age[edc_idx] > 0 && edc_age[edc_idx] <= 2 ) {
+					edc_age_counter[edc_idx] = 16;
+		    	} else if ( edc_age[edc_idx] > 2 && edc_age[edc_idx] <= 4 ) {
+		    		edc_age_counter[edc_idx] = 12;
+		    	} else if ( edc_age[edc_idx] > 4 && edc_age[edc_idx] <= 6 ) {
+					edc_age_counter[edc_idx] = 8;
+		    	} else {
+					edc_age_counter[edc_idx] = 4;
+		    	}
+#endif /*AGEING*/
+		       	transmission_counter = 1;
+ 				transmission_success = 1;
+		    }
+
+    		// edc[edc_idx] =  strobe_ack[PKT_GRADIENT] + transmission_counter;
 		    edc_idx = (edc_idx+1)%AVG_EDC_SIZE;
 		    edc_sum = 0;
 		    for (i=0;i<AVG_EDC_SIZE;i++){
 				edc_sum += edc[i];
 		    }
-		    transmission_counter = 1;
- 			transmission_success = 1;
+		 
 		}
 		// avg_edc = MIN( ((avg_rendezvous/10) + (edc_sum/AVG_EDC_SIZE)), MAX_EDC); //limit to 255
 		avg_edc = MIN( (edc_sum/AVG_EDC_SIZE), MAX_EDC); //limit to 255

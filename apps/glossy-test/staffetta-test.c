@@ -9,6 +9,8 @@
 //node_energy_state_t node_energy_state;
 static uint8_t round_stats;
 static int loop_stats;
+static uint32_t Tw;
+
 
 PROCESS(staffetta_test, "Staffetta test");
 AUTOSTART_PROCESSES(&staffetta_test);
@@ -19,6 +21,8 @@ PROCESS_THREAD(staffetta_print_stats_process, ev, data){
     PROCESS_BEGIN();
 
     static struct etimer et;
+    static uint8_t data_counter = 0;
+    static uint8_t gen_data;
 
     round_stats = PAKETS_PER_NODE;
     loop_stats = node_id;
@@ -62,28 +66,26 @@ PROCESS_THREAD(staffetta_print_stats_process, ev, data){
         PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
     }
 #else
-    // etimer_set(&et,CLOCK_SECOND*25+(random_rand()%(CLOCK_SECOND*10)));
+    gen_data = random_rand()%12 + 12;
     etimer_set(&et,CLOCK_SECOND*1+(random_rand()%(CLOCK_SECOND*10)));
     PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
     while(1) {
         staffetta_print_stats();
         counter = counter + 1;
-        if (counter >= 25){
-            staffetta_add_data(round_stats++);
+        if (counter >= 2){
+            // printf("6|%d|%lu|%lu|%lu|%lu\n", node_energy_state, remaining_energy, harvesting_rate, acum_consumption, acum_harvest);
+            printf("6|%lu|%lu|%lu|%lu|%lu\n", Tw, remaining_energy, harvesting_rate, acum_consumption, acum_harvest);
             acum_consumption = 0; // Reset acumulative values
             acum_harvest = 0;
             counter = 0;
         }
-        // staffetta_add_data(round_stats++);
-
-        etimer_set(&et,CLOCK_SECOND*1);
-
-
-
-        // etimer_set(&et,CLOCK_SECOND*10);
-        // // printf("6|%d|%lu|%lu|%lu|%lu\n", node_energy_state, remaining_energy, harvesting_rate, acum_consumption, acum_harvest);
-        // acum_consumption = 0; // Reset acumulative values
-        // acum_harvest = 0;
+        data_counter++;
+        if (data_counter >= gen_data) {
+            staffetta_add_data(round_stats++);
+            gen_data = random_rand()%12 + 12;
+            data_counter = 0;
+        }
+        etimer_set(&et,CLOCK_SECOND*5);
         PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
     }
 #endif /*ADAPTIVE_PACKET_CREATION*/
@@ -98,7 +100,7 @@ PROCESS_THREAD(staffetta_test, ev, data){
 
     static struct etimer et;
     int staffetta_result;
-    uint32_t wakeups,Tw;
+    uint32_t wakeups;
 
     leds_init();
     // leds_on(LEDS_GREEN);
@@ -128,21 +130,19 @@ PROCESS_THREAD(staffetta_test, ev, data){
             timer_on = RTIMER_NOW();
             staffetta_result = staffetta_send_packet();
             timer_off = RTIMER_NOW();
-
-            // printf("9|%lu|%lu\n",timer_on,timer_off); //Notify when a node goes to sleep
+            printf("9|%lu|%lu\n",timer_on,timer_off); //Notify when a node goes to sleep
         } else { // Node did not have enough energy to operate
-            // printf("5\n");
+            printf("5\n");
         }
 #else
         if (node_energy_state != NS_ZERO){
             timer_on = RTIMER_NOW();
             staffetta_result = staffetta_send_packet();
             timer_off = RTIMER_NOW();
-
-            // printf("9|%lu|%lu\n",timer_on,timer_off); //Notify when a node goes to sleep
+            printf("9|%lu|%lu\n",timer_on,timer_off); //Notify when a node goes to sleep
 
         } else { // Node did not have enough energy to operate
-            // printf("5\n");
+            printf("5\n");
         }
 #endif /*ENERGY_HARV*/
     }

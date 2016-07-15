@@ -104,6 +104,16 @@ static enum mac_state current_state = disabled;
 
 static struct pt pt;
 
+static uint8_t saved_strobes[10][5];
+static uint32_t saved_energy;
+static uint8_t saved_duplicate_drop = 0;
+static int saved_idx = 0;
+//uint16_t harvesting_rate;
+//node_energy_state_t node_energy_state;
+static uint8_t node_on;
+uint32_t sleep_t;
+static uint32_t last_rxtx;
+static uint32_t last_cpu;
 //uint16_t harvesting_rate;
 //node_energy_state_t node_energy_state;
 /* --------------------------- RADIO FUNCTIONS ---------------------- */
@@ -495,7 +505,8 @@ int staffetta_send_packet(void) {
 			}
 #if !FAST_FORWARD
 			goto_idle();
-			printf("8|%u|%u|%u|%u|%u\n",strobe[PKT_SRC],strobe[PKT_DST],strobe[PKT_SEQ],strobe[PKT_DATA],strobe[PKT_GRADIENT]);
+			saved_energy = get_remaining_energy()
+			printf("8|%u|%u|%u|%u|%u|%lu\n",strobe[PKT_SRC],strobe[PKT_DST],strobe[PKT_SEQ],strobe[PKT_DATA],strobe[PKT_GRADIENT], saved_energy);
 			return RET_NO_RX;
 #endif /*!FAST_FORWARD*/
       	// printf("8|%u|%u|%u|%u|%u|%lu\n",strobe[PKT_SRC],strobe[PKT_DST],strobe[PKT_SEQ],strobe[PKT_DATA],strobe[PKT_GRADIENT], avg_rendezvous);
@@ -651,7 +662,6 @@ int staffetta_send_packet(void) {
 				rendezvous[rendezvous_idx] = rendezvous_time;
 				rendezvous_idx = (rendezvous_idx+1)%AVG_SIZE;
 			}
-			// TODO make a running average
 			rendezvous_sum = 0;
 			for (i=0;i<AVG_SIZE;i++){
 				rendezvous_sum += rendezvous[i];
@@ -665,8 +675,7 @@ int staffetta_send_packet(void) {
 	    	edc_idx = find_worst_edc_entry();
 	     	edc[edc_idx] = strobe_ack[PKT_GRADIENT];
 	     	edc_id[edc_idx] = strobe_ack[PKT_SRC];
-
-#if AGEING //TODO Check that ageing works
+#if AGEING
 	    	edc_age[edc_idx] = rendezvous_time / (RENDEZ_TIME/10);
 	    	if ( edc_age[edc_idx] == 0 ){
 				edc_age_counter[edc_idx] = 10;
@@ -690,44 +699,21 @@ int staffetta_send_packet(void) {
 #else
      	if ( avg_edc > strobe_ack[PKT_GRADIENT] && rendezvous_time < RENDEZ_TIME ) {
 			
-			// edc[edc_idx] = strobe_ack[PKT_GRADIENT];
-			// edc_id[edc_idx] = strobe_ack[PKT_SRC];
-			// edc_idx = (edc_idx+1)%AVG_EDC_SIZE;
+			edc[edc_idx] = strobe_ack[PKT_GRADIENT];
+			edc_id[edc_idx] = strobe_ack[PKT_SRC];
+			edc_idx = (edc_idx+1)%AVG_EDC_SIZE;
 
-	    	edc_idx = find_worst_edc_entry();
-	    	if (edc_idx != MAX_EDC){
-	     		edc[edc_idx] = strobe_ack[PKT_GRADIENT];
-	     		edc_id[edc_idx] = strobe_ack[PKT_SRC];
-	     	}
 			edc_sum = 0;
 			for (i=0;i<AVG_EDC_SIZE;i++){
 			    edc_sum += edc[i];
 			}
 		}
-		// avg_edc = MIN( ((rendezvous_time/100) + (edc_sum/AVG_EDC_SIZE)), MAX_EDC); //limit to 255
 		avg_edc = MIN( ((avg_rendezvous/100) + (edc_sum/AVG_EDC_SIZE)), MAX_EDC); //limit to 255
 #endif /*NEW_EDC*/
 #endif /*ORW_GRADIENT*/
 
 #if DYN_DC
-#if ENERGY_HARV
-            switch (node_energy_state){
-                case NS_LOW:
-                    // num_wakeups = MAX(1,( (NS_ENERGY_LOW/SCALE_FACTOR) * 10)/avg_rendezvous);
-                    num_wakeups = MAX(1,( 410 * 10)/avg_rendezvous);
-                    break;
-                case NS_MID:
-                    // num_wakeups = MAX(1,( (NS_ENERGY_MID/SCALE_FACTOR) * 10)/avg_rendezvous);
-                    num_wakeups = MAX(1,( 750 * 10)/avg_rendezvous);
-                    break;
-                case NS_HIGH:
-                    // num_wakeups = MAX(1,( (NS_ENERGY_HIGH/SCALE_FACTOR) * 10)/avg_rendezvous);
-                    num_wakeups = MAX(1,( 1500 * 10)/avg_rendezvous);
-                    break;
-            }
-#else
 			num_wakeups = MAX(1,(BUDGET*10)/avg_rendezvous);
-#endif /*ENERGY_HARV*/
 #else
 			num_wakeups = 10;
 #endif /*DYN_DC*/
@@ -743,10 +729,7 @@ int staffetta_send_packet(void) {
 
 	    radio_flush_rx();
 	    goto_idle();
-	    printf("18|%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu\n",edc[0],edc[1],edc[2],edc[3],edc[4],edc[5],edc[6],edc[7],edc[8],edc[9] );
-	    printf("19|%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu\n",edc_id[0],edc_id[1],edc_id[2],edc_id[3],edc_id[4],edc_id[5],edc_id[6],edc_id[7],edc_id[8],edc_id[9] );
-      	printf("8|%u|%u|%u|%u|%u|%lu\n",strobe_ack[PKT_SRC],strobe_ack[PKT_DST],strobe_ack[PKT_SEQ],strobe_ack[PKT_DATA],strobe_ack[PKT_GRADIENT], avg_rendezvous);
-
+      	printf("8|%u|%u|%u|%u|%u|%lu\n",strobe_ack[PKT_SRC],strobe_ack[PKT_DST],strobe_ack[PKT_SEQ],strobe_ack[PKT_DATA],strobe_ack[PKT_GRADIENT], saved_energy);
 	    return RET_FAST_FORWARD;
 	}
 
@@ -892,58 +875,107 @@ int staffetta_send_packet(void) {
 		}
 	}
 
-	void staffetta_print_stats(void){
+// 	void staffetta_print_stats(void){
+// #if STAFFETTA_ENERGEST
+// 		printf("14|%ld\n",avg_edc);
+// #else
+// 	    uint32_t on_time,elapsed_time;
+// 	    on_time = ((energest_type_time(ENERGEST_TYPE_TRANSMIT)+energest_type_time(ENERGEST_TYPE_LISTEN)) * 1000) / RTIMER_ARCH_SECOND;
+// 	    elapsed_time = clock_time() * 1000 / CLOCK_SECOND;
+// 	    if (!(IS_SINK)){
+// #if ORW_GRADIENT
+
+//       		printf("15|%ld|%d|%ld|%ld\n",(on_time*1000)/elapsed_time, q_size, avg_edc, num_wakeups );
+// #else
+// 			printf("3|%ld|%d\n",(on_time*1000)/elapsed_time,q_size);
+// #endif /*ORW_GRADIENT*/
+// 	    }
+// #endif /*STAFFETTA_ENERGEST*/
+// 	}
+
+// #if STAFFETTA_ENERGEST
+//     void staffetta_get_energy_consumption(uint32_t *rxtx_time)
+//     {
+// #if ELAPSED_TIME
+//  	    uint32_t on_time,elapsed_time;
+
+// 	    on_time = ( (energest_type_time(ENERGEST_TYPE_TRANSMIT) + energest_type_time(ENERGEST_TYPE_LISTEN) ) * 1000) / RTIMER_ARCH_SECOND;
+// 	    elapsed_time = clock_time() * 1000 / CLOCK_SECOND;
+// 	    *rxtx_time = (on_time*1000) / elapsed_time;
+//         if (!(IS_SINK)){
+// 			// printf("3|%ld\n",(on_time*1000)/elapsed_time);
+// 			// printf("2|%ld\n",num_wakeups);
+
+//       		printf("16|%ld|%ld|%d\n",(on_time*1000)/elapsed_time, num_wakeups, q_size);
+// 		}
+// #else
+//         static uint32_t last_rxtx;
+//         uint32_t all_rxtx, rxtx_time_t;
+
+//         all_rxtx = energest_type_time(ENERGEST_TYPE_TRANSMIT) + energest_type_time(ENERGEST_TYPE_LISTEN);
+//         rxtx_time_t = all_rxtx - last_rxtx;
+//         *rxtx_time = 1000 * ( (rxtx_time_t * 1000) / TMOTE_ARCH_SECOND);
+//         if (!(IS_SINK)){
+//             // printf("3|%ld\n", *rxtx_time);
+//             // printf("2|%ld\n",num_wakeups);
+//           	printf("16|%ld|%ld\n",*rxtx_time, num_wakeups);
+//         }
+//         last_rxtx = energest_type_time(ENERGEST_TYPE_LISTEN) + energest_type_time(ENERGEST_TYPE_TRANSMIT);
+
+// #endif /*ELAPSED_TIME*/
+
+//     }
+void staffetta_print_stats(void){
 #if STAFFETTA_ENERGEST
-		printf("14|%ld\n",avg_edc);
+	printf("14|%ld\n",avg_edc);
 #else
-	    uint32_t on_time,elapsed_time;
-	    on_time = ((energest_type_time(ENERGEST_TYPE_TRANSMIT)+energest_type_time(ENERGEST_TYPE_LISTEN)) * 1000) / RTIMER_ARCH_SECOND;
-	    elapsed_time = clock_time() * 1000 / CLOCK_SECOND;
-	    if (!(IS_SINK)){
+    uint32_t on_time,elapsed_time;
+    on_time = ((energest_type_time(ENERGEST_TYPE_TRANSMIT)+energest_type_time(ENERGEST_TYPE_LISTEN)) * 1000) / RTIMER_ARCH_SECOND;
+    elapsed_time = clock_time() * 1000 / CLOCK_SECOND;
+    if (!(IS_SINK)){
 #if ORW_GRADIENT
-			// printf("3|%ld|%d\n",(on_time*1000)/elapsed_time, q_size);
-			// printf("14|%ld\n",avg_edc);
-			// printf("2|%ld\n",num_wakeups);
-      		printf("15|%ld|%d|%ld|%ld\n",(on_time*1000)/elapsed_time, q_size, avg_edc, num_wakeups );
+  		printf("15|%ld|%d|%ld\n",(on_time*1000)/elapsed_time, q_size, avg_edc );
 #else
-			printf("3|%ld|%d\n",(on_time*1000)/elapsed_time,q_size);
+		printf("3|%ld|%d\n",(on_time*1000)/elapsed_time,q_size);
 #endif /*ORW_GRADIENT*/
-	    }
+    }
 #endif /*STAFFETTA_ENERGEST*/
+}
+#if STAFFETTA_ENERGEST
+
+
+void staffetta_get_energy_consumption(uint32_t *rxtx_time, uint32_t *cpu_time) {
+#if ELAPSED_TIME
+    uint32_t on_time,elapsed_time;
+    on_time = ( (energest_type_time(ENERGEST_TYPE_TRANSMIT) + energest_type_time(ENERGEST_TYPE_LISTEN) ) * 1000) / RTIMER_ARCH_SECOND;
+    elapsed_time = clock_time() * 1000 / CLOCK_SECOND;
+    *rxtx_time = (on_time*1000) / elapsed_time;
+    if (!(IS_SINK)){
+  		printf("16|%ld|%d\n",(on_time*1000)/elapsed_time, q_size);
 	}
 
-#if STAFFETTA_ENERGEST
-    void staffetta_get_energy_consumption(uint32_t *rxtx_time)
-    {
-#if ELAPSED_TIME
- 	    uint32_t on_time,elapsed_time;
-
-	    on_time = ( (energest_type_time(ENERGEST_TYPE_TRANSMIT) + energest_type_time(ENERGEST_TYPE_LISTEN) ) * 1000) / RTIMER_ARCH_SECOND;
-	    elapsed_time = clock_time() * 1000 / CLOCK_SECOND;
-	    *rxtx_time = (on_time*1000) / elapsed_time;
-        if (!(IS_SINK)){
-			// printf("3|%ld\n",(on_time*1000)/elapsed_time);
-			// printf("2|%ld\n",num_wakeups);
-
-      		printf("16|%ld|%ld|%d\n",(on_time*1000)/elapsed_time, num_wakeups, q_size);
-		}
 #else
-        static uint32_t last_rxtx;
-        uint32_t all_rxtx, rxtx_time_t;
+    uint32_t all_rxtx, rxtx_time_t, all_cpu, cpu_time_t;
+    all_rxtx = energest_type_time(ENERGEST_TYPE_TRANSMIT) + energest_type_time(ENERGEST_TYPE_LISTEN);
+    all_cpu = energest_type_time(ENERGEST_TYPE_CPU);
+    
+    rxtx_time_t = all_rxtx - last_rxtx;
+    cpu_time_t = all_cpu - last_cpu;
 
-        all_rxtx = energest_type_time(ENERGEST_TYPE_TRANSMIT) + energest_type_time(ENERGEST_TYPE_LISTEN);
-        rxtx_time_t = all_rxtx - last_rxtx;
-        *rxtx_time = 1000 * ( (rxtx_time_t * 1000) / TMOTE_ARCH_SECOND);
-        if (!(IS_SINK)){
-            // printf("3|%ld\n", *rxtx_time);
-            // printf("2|%ld\n",num_wakeups);
-          	printf("16|%ld|%ld\n",*rxtx_time, num_wakeups);
-        }
-        last_rxtx = energest_type_time(ENERGEST_TYPE_LISTEN) + energest_type_time(ENERGEST_TYPE_TRANSMIT);
+    *cpu_time  = (cpu_time_t  * 1000) / RTIMER_ARCH_SECOND;
+    *rxtx_time = (rxtx_time_t * 1000) / RTIMER_ARCH_SECOND;
+    // printf("all_rxtx:%lu|last_rxtx:%lu\n",all_rxtx,last_rxtx );
+    if (!(IS_SINK)){
+    	if(*rxtx_time != 0){
+      		printf("16|%lu|%d|%lu|\n",*rxtx_time, q_size, *cpu_time);
+      	}
+    }
+    last_rxtx = energest_type_time(ENERGEST_TYPE_LISTEN) + energest_type_time(ENERGEST_TYPE_TRANSMIT);
+    last_cpu = energest_type_time(ENERGEST_TYPE_CPU);
 
 #endif /*ELAPSED_TIME*/
 
-    }
+}
 #endif /*STAFFETTA_ENERGEST*/
 	void staffetta_add_data(uint8_t _seq){
 

@@ -78,7 +78,7 @@
 
 //TODO implement all the options
 
-#define PAKETS_PER_NODE 	6
+#define PAKETS_PER_NODE 	3
 #define WITH_CRC 		    1
 #define IS_SINK 		    (node_id == 1)
 //#define IS_SINK 		    (node_id < 4) // Mobile sink on flocklab
@@ -110,14 +110,14 @@
 #define AGEING              0 //EDC vector ages depending on rendezvous value
 // #define EDC_WITH_RV         0
 #define STAFFETTA_ENERGEST  1
-#define ELAPSED_TIME        1
+#define ELAPSED_TIME        0
 
 #define ADAPTIVE_PACKET_CREATION  0
 #define RANDOM_PACKET_CREATION    0
 // #define SCALE_FACTOR 100
-#define DYN_DC 			    0 // Staffetta adaptative wakeups
+#define DYN_DC 			    1 // Staffetta adaptative wakeups
 #if NEW_EDC
-#define MAX_EDC             100
+#define MAX_EDC             255
 #else
 #define MAX_EDC             255
 #endif /*NEW_EDC*/
@@ -232,5 +232,5 @@ void sink_listen(void);
 void staffetta_print_stats(void);
 void staffetta_add_data(uint8_t);
 void staffetta_init(void);
-void staffetta_get_energy_consumption(uint32_t * rxtx_time);
+void staffetta_get_energy_consumption(uint32_t *rxtx_time, uint32_t *cpu_time);
 #endif /* __STAFFETTA_H__ */

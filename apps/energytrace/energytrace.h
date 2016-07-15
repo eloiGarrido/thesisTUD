@@ -11,10 +11,11 @@
 #include "../../core/sys/clock.h"
 
 #define SHOW_ENERGY_INFO 	1
-
+#define ENERGY_SIZE 		10
 #define STAFFETTA_ENERGEST 	1
 #define COFFEE_FILE_SYSTEM
-#define SCALE_FACTOR 100
+#define SCALE_FACTOR 		100
+#define LOW_ENERGY 			1
 // #define FIXED_ENERGY_STEP  	1
 
 /* choose energy harvesting model */
@@ -57,18 +58,23 @@
 /* the energy (uJ) which is consumed per second (to simulate node activity) */
 #define ENERGY_CONSUMES_PER_SECOND 500*SCALE_FACTOR
 /*---------------------------------------------------------------------------*/
-// #define ENERGY_MAX_CAPACITY_SOLAR  54450 	//0.5 * 100mF * 3.3v^2 	-> in uJ
+// F = 2*E / V^2
+// 5F* 3^2 / 2 = 22.5W -> 22500 * SCALE_FACTOR -> 2250000
 
-// #define ENERGY_MAX_CAPACITY_SOLAR  5445*SCALE_FACTOR
-#define ENERGY_MAX_CAPACITY_SOLAR  544500
-// #define ENERGY_MAX_CAPACITY_MOVER  850*SCALE_FACTOR	//0.5 * 1mF * 3.3v^2	-> in uJ
-#define ENERGY_MAX_CAPACITY_MOVER  85000	//0.5 * 1mF * 3.3v^2	-> in uJ
+#define ENERGY_MAX_CAPACITY_SOLAR  2250000
+#define ENERGY_MAX_CAPACITY_MOVER  1125000	
+// #define ENERGY_INITIAL ENERGY_MAX_CAPACITY_SOLAR
+#if LOW_ENERGY
+// #define ENERGY_INITIAL 225
+#define ENERGY_INITIAL 1912500
+#else
+#define ENERGY_INITIAL ENERGY_MAX_CAPACITY_SOLAR
+#endif
 
 #define ENERGY_HARVEST_STEP_SOLAR 	100*SCALE_FACTOR		//Average solar harvest amount
 #define ENERGY_HARVEST_STEP_MOVER	70*SCALE_FACTOR		//Average mover harvest amount
-
 #define ENERGY_CONSUMES_PER_MS 		85*SCALE_FACTOR		//Energy consumed per in uJ
-
+#define CPU_CURRENT 20 //20uA
 
 /*---------------------------------------------------------------------------*/
 void energytrace_start(void);
@@ -102,7 +108,7 @@ typedef enum {
 } node_dc_state_t;
 
 void energytrace_print(char *str);
-
+uint32_t get_remaining_energy(void);
 extern uint32_t acum_consumption;
 extern uint32_t acum_harvest;
 extern uint32_t remaining_energy;

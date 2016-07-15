@@ -313,6 +313,10 @@ uint8_t init_mover_file()
 	}
 }
 
+uint32_t get_remaining_energy(void) {
+	return remaining_energy;
+}
+
 uint32_t get_mover_energy(void)
 {
   	int bytes_read = 0;
@@ -377,12 +381,15 @@ PROCESS_THREAD(energytrace_process, ev, data)
 {
 	static struct etimer periodic;
 	clock_time_t *period;
-	static node_class_t node_class; //EGB
-	uint32_t rxtx_time;
-	uint32_t energy_rxtx;
+	static node_class_t node_class; //EGB;
 	uint32_t rd = 0;
     uint8_t tx_level;
-
+	uint32_t rxtx_time;
+	uint32_t cpu_time;
+	uint32_t energy_rxtx;
+	uint32_t energy_cpu;
+	uint32_t total_energy;
+    int array_counter=0;
 
 
 	// remaining_energy = ENERGY_MAX_CAPACITY_SOLAR / 4;
@@ -450,32 +457,19 @@ PROCESS_THREAD(energytrace_process, ev, data)
 
 /*EGB---------------------------------------------------------------------------*/
 
-		// if (node_state == NODE_ACTIVE && remaining_energy < (uint32_t)ENERGY_LOWER_THRESHOLD)
-		// {
-		// 	node_state = NODE_INACTIVE;
-		// }
-		// else if (node_state == NODE_INACTIVE && remaining_energy > (uint32_t)ENERGY_UPPER_THRESHOLD)
-		// {
-		// 	node_state = NODE_ACTIVE;
-		// }
-
-
-		if (node_class == NODE_SOLAR)
-		{
+		if (node_class == NODE_SOLAR) {
 #ifdef MODEL_SOLAR
-//			rd = solar_energy_input(1); //TODO Validate
 			rd = 0;
-    	rd = get_solar_energy();
+    		rd = get_solar_energy();
 
 #else
 #if FIXED_ENERGY_STEP
-			  rd = ENERGY_HARVEST_STEP_SOLAR;
+		  	rd = ENERGY_HARVEST_STEP_SOLAR;
 #else
-				rd = random_rand() % 100;
-				rd = rd * 2 * ENERGY_HARVEST_STEP_SOLAR;
-				// rd = rd / 100;
-				rd = rd * 0.85;
-				// rd = rd * SCALE_FACTOR;
+			rd = random_rand() % 100;
+			rd = rd * 2 * ENERGY_HARVEST_STEP_SOLAR;
+			rd = rd * 0.85;
+
 #endif /*FIXED_ENERGY_STEP*/
 #endif /*MODEL_SOLAR*/
 
@@ -483,28 +477,20 @@ PROCESS_THREAD(energytrace_process, ev, data)
 			harvesting_array_index++;
 			if (harvesting_array_index > 9){ harvesting_array_index = 0;}
 
-			// if ((uint32_t)ENERGY_MAX_CAPACITY_SOLAR - remaining_energy < (uint32_t)rd )
-			if ( (remaining_energy + rd) > (uint32_t)ENERGY_MAX_CAPACITY_SOLAR )
-			{
-      	acum_harvest += ((uint32_t)ENERGY_MAX_CAPACITY_SOLAR - remaining_energy);
+			if ( (uint32_t)(remaining_energy + rd) > (uint32_t)ENERGY_MAX_CAPACITY_SOLAR ) {
+      			acum_harvest += ((uint32_t)ENERGY_MAX_CAPACITY_SOLAR - remaining_energy);
 				remaining_energy = (uint32_t)ENERGY_MAX_CAPACITY_SOLAR;
-			}
-			else
-			{
+			} else {
 				remaining_energy += rd;
 				acum_harvest += rd;
 			}
-
-		}
-		else if (node_class == NODE_MOVER) // TODO Add stored mover values and test
-		{
+		} else if (node_class == NODE_MOVER) {// TODO Add stored mover values and test
+		
 #ifdef MODEL_MOVER
 			rd = get_mover_energy();
 #else
 			rd = random_rand() % 100;
 			rd = rd * 2 * ENERGY_HARVEST_STEP_MOVER;
-			// rd = rd / 100;
-			// rd = rd * SCALE_FACTOR;
 
 #endif /*MODEL_MOVER*/
 
@@ -512,24 +498,15 @@ PROCESS_THREAD(energytrace_process, ev, data)
 			harvesting_array_index++;
 			if (harvesting_array_index > 9){ harvesting_array_index = 0;}
 
-			// if ((uint32_t)ENERGY_MAX_CAPACITY_MOVER - remaining_energy < (uint32_t)rd )
-			if ( (remaining_energy + rd) > (uint32_t)ENERGY_MAX_CAPACITY_MOVER )
-			{
-//				acum_harvest += (uint32_t)ENERGY_MAX_CAPACITY_MOVER - (remaining_energy + (uint32_t)rd);
-        acum_harvest +=  ((uint32_t)ENERGY_MAX_CAPACITY_MOVER - remaining_energy);
+			if ( (remaining_energy + rd) > (uint32_t)ENERGY_MAX_CAPACITY_MOVER ) {
+        		acum_harvest +=  ((uint32_t)ENERGY_MAX_CAPACITY_MOVER - remaining_energy);
 				remaining_energy = (uint32_t)ENERGY_MAX_CAPACITY_MOVER;
-
-			}
-			else
-			{
+			} else {
 				remaining_energy = remaining_energy + rd;
 				acum_harvest += rd;
 			}
 		}
-		else
-		{
-
-		}
+		else {}
 
 #ifdef MODEL_BERNOULLI
 
@@ -541,37 +518,64 @@ PROCESS_THREAD(energytrace_process, ev, data)
 		// int prob2 = random_rand() % PROB_SCALE_FACTOR;
 
 		// if (prob2 <= energy_consumes_prob) {
+// #if STAFFETTA_ENERGEST
+// 		rxtx_time = 0;
+// 		energy_rxtx = 0;
+// 		staffetta_get_energy_consumption(&rxtx_time);
+
+// 		tx_level = cc2420_get_txpower();
+//     // energy_rxtx = voltage * tx_current_consumption(tx_level) * rxtx_time / 1000 / 10;
+// 		energy_rxtx = voltage * tx_current_consumption(tx_level) * rxtx_time / 1000 / 10; //SCALE_FACTOR
+// 		energy_rxtx = energy_rxtx * SCALE_FACTOR;
+// 		if (remaining_energy > energy_rxtx)
+// 		{
+// 	    acum_consumption += energy_rxtx;
+// 			remaining_energy -= energy_rxtx;
+// 		}
+// 		else
+// 		{
+//       acum_consumption += remaining_energy;
+// 			remaining_energy = 0;
+// 		}
+// #else
+// 		if (remaining_energy > (uint32_t)ENERGY_CONSUMES_PER_MS)
+// 		{
+// 			remaining_energy = remaining_energy - (uint32_t)ENERGY_CONSUMES_PER_MS;
+// 		}
+// 		else
+// 		{
+// 			remaining_energy = 0;
+// 		}
+// #endif /*STAFFETTA_ENERGEST*/
 #if STAFFETTA_ENERGEST
 		rxtx_time = 0;
+		cpu_time = 0;
 		energy_rxtx = 0;
-		staffetta_get_energy_consumption(&rxtx_time);
+		energy_cpu = 0;
+		total_energy = 0;
+		// printf("CLOCK_SECOND:%lu\n",CLOCK_SECOND );
+		staffetta_get_energy_consumption(&rxtx_time, &cpu_time);
 
 		tx_level = cc2420_get_txpower();
-    // energy_rxtx = voltage * tx_current_consumption(tx_level) * rxtx_time / 1000 / 10;
-		energy_rxtx = voltage * tx_current_consumption(tx_level) * rxtx_time / 1000 / 10; //SCALE_FACTOR
-		energy_rxtx = energy_rxtx * SCALE_FACTOR;
-		if (remaining_energy > energy_rxtx)
-		{
-	    acum_consumption += energy_rxtx;
-			remaining_energy -= energy_rxtx;
-		}
-		else
-		{
-      acum_consumption += remaining_energy;
+		energy_cpu = (voltage * CPU_CURRENT * cpu_time) / 10000;
+		energy_rxtx = (voltage * tx_current_consumption(tx_level) * rxtx_time) / 10; //* SCALE_FACTOR / 1000
+		// if (energy_rxtx != 0) printf("remaining_energy:%lu|rd:%lu|energy_rxtx:%lu\n",remaining_energy, rd, energy_rxtx);
+		
+		total_energy = energy_rxtx + energy_cpu;
+		if (remaining_energy > total_energy) {
+	    	acum_consumption += total_energy;
+			remaining_energy -= total_energy;
+		} else {
+      		acum_consumption += remaining_energy;
 			remaining_energy = 0;
 		}
 #else
-		if (remaining_energy > (uint32_t)ENERGY_CONSUMES_PER_MS)
-		{
-			remaining_energy = remaining_energy - (uint32_t)ENERGY_CONSUMES_PER_MS;
-		}
-		else
-		{
+		if (remaining_energy > (uint32_t)ENERGY_CONSUMES_PER_MS) {
+			remaining_energy -= (uint32_t)ENERGY_CONSUMES_PER_MS;
+		} else {
 			remaining_energy = 0;
 		}
 #endif /*STAFFETTA_ENERGEST*/
-
-
 
     compute_node_state();
     compute_node_duty_cycle();

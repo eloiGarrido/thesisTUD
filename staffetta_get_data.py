@@ -60,6 +60,9 @@ class LogConverter(object):
 
         pkts, collisions = self.organize_pkts()
         # paths = self.create_pkt_path(pkts)
+
+        # paths = self.get_packet_path()
+
         # self.output_file(paths,"paths",0)
         # self.output_file(pkts, "packets",1)
         pkt_delay, pkt_delay_raw = self.get_end_to_end_delay(pkts)
@@ -314,6 +317,34 @@ class LogConverter(object):
         sorted_pkt_list = sorted(pkt_delay, key=lambda k: (k['src'], k['seq']))
         return sorted_pkt_list
 
+    def organize_path(self, original_packets):
+        return
+
+    def get_packet_path(self):
+        # TODO Check functionallity with simple topology
+        print('>> Getting packets path...')
+        orig_packet = []
+        # Get original packets on each node
+        for i in range(1, self.number_of_nodes):
+            for seq_len in range(0, len(self.nodes[i]['seq'])):
+                pkt_t = {'src':i + 1,'seq': seq_len,'energy':[], 'path':[]}  # SRC | DST | SEQ | Energy 0 TODO Add initial energy at creation instance
+                orig_packet.append(pkt_t)
+        # Find the path of each packet through the network
+        for original_packet in orig_packet:
+            for nodes in range (0, self.number_of_nodes):
+                for pkt in self.nodes[nodes]['pkt']:
+                    pkt_t = pkt.split(',')
+                    if int(pkt_t[3]) == original_packet['src'] and int(pkt_t[2]) == original_packet['seq']:
+                    # if int(pkt_t[3]) == original_packet['seq'] and int(pkt_t[2]) == original_packet['src']:
+                        original_packet['path'].append(nodes)
+                        original_packet['energy'].append(pkt_t[5])
+                        # TODO Add energy
+        # We now have all the path but without sorting
+        for original_packet in orig_packet:
+            self.organize_path(original_packet)
+
+        return orig_packet
+
     def get_end_to_end_delay(self, packets):
         print('>> Getting end-to-end delay...')
         orig_packet = []
@@ -374,9 +405,9 @@ class LogConverter(object):
             self.nodes[id - 1]['accum_harvest'].append(float(msg[7]))
             self.nodes[id - 1]['time6'].append(time)
         elif msg_type == 7:  # Packet path (Sink)
-            self.nodes[id - 1]['pkt'].append(msg[3] + ',' + msg[4] + ',' + msg[5] + ',' + msg[6] + ',' + str(time))
+            self.nodes[id - 1]['pkt'].append(msg[3] + ',' + msg[4] + ',' + msg[5] + ',' + msg[6] + ',' + str(time) + ',' + '0.0')
         elif msg_type == 8:  # Packet path (Node)
-            self.nodes[id - 1]['pkt'].append(msg[3] + ',' + msg[4] + ',' + msg[5] + ',' + msg[6] + ',' + str(time))
+            self.nodes[id - 1]['pkt'].append(msg[3] + ',' + msg[4] + ',' + msg[5] + ',' + msg[6] + ',' + str(time) + ',' + msg[8])
             self.nodes[id - 1]['grad'].append(float(msg[7]))
             # self.nodes[id - 1]['rv_time'].append(float(msg[8]))
             self.nodes[id - 1]['energy_trace'].append(float(msg[8]))
@@ -451,7 +482,7 @@ class LogConverter(object):
             for j in range(0, len(self.nodes[i]['pkt'])):
                 temp = self.nodes[i]['pkt'][j]
                 temp_t = temp.split(',')
-                idx = int(temp_t[len(temp_t) - 2])
+                idx = int(temp_t[len(temp_t) - 3])
                 if idx != 255:
                     try:
                         if temp in pkts_with_origin[idx - 1] == False:
@@ -461,7 +492,7 @@ class LogConverter(object):
                 else:
                     collisions[i].append(temp_t)
 
-            print('Collisions: ' + str(len(collisions[i])))
+            # print('Collisions: ' + str(len(collisions[i])))
         return pkts_with_origin, collisions
 
     def get_node_dc(self, node_id):

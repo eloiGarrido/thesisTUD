@@ -100,6 +100,9 @@ static uint8_t strobe_LPL[STAFFETTA_PKT_LEN+3];
 
 static uint8_t saved_strobes[10][5];
 static uint32_t saved_energy[10];
+static uint8_t saved_num_strobes[10] = {0};
+static uint8_t	strobe_counter = 0;
+
 static uint8_t saved_duplicate_drop = 0;
 static int saved_idx = 0;
 //uint16_t harvesting_rate;
@@ -113,6 +116,9 @@ static uint8_t transmission_success = 0;
 static uint8_t transmission_counter = 0;
 static uint8_t transmission_inc = 0;
 
+#if NEW_EDC
+uint8_t dummy_pkt_counter = 0;
+#endif
 /* --------------------------- RADIO FUNCTIONS ---------------------- */
 
 static inline void radio_flush_tx(void) {
@@ -197,6 +203,7 @@ static void goto_idle() {
 static void clear_saved_data(void) {
 	int i;
 	for (i=0; i<10; i++) {
+		saved_num_strobes[i] = 0;
 		saved_strobes[i][0] = 0;
 		saved_strobes[i][1] = 0;
 		saved_strobes[i][2] = 0;
@@ -205,7 +212,13 @@ static void clear_saved_data(void) {
 		saved_energy[i] = 0;
 	}
 	saved_duplicate_drop = 0;
+	strobe_counter = 0;
 	saved_idx = 0;
+}
+
+static void save_number_strobes(uint8_t strobes) {
+	saved_num_strobes[strobe_counter] = strobes;
+	strobe_counter = (strobe_counter + 1) % 10;
 }
 
 static void save_packet_data(uint8_t pkt_data[STAFFETTA_PKT_LEN+3]) {
@@ -350,15 +363,15 @@ static uint8_t find_packet_with_same_source(uint8_t _data, uint8_t _seq) {
 #if AGEING
 static inline uint32_t ageing_ratio(uint32_t rv_time) {
 	if ( rv_time == 0 ){
-		return 10*4;
+		return 10*2;
 	}else if ( rv_time > 0 && rv_time <= 2 ) {
-		return 8*4;
+		return 8*2;
 	}else if ( rv_time > 2 && rv_time <= 4 ) {
-		return 6*4;
+		return 6*2;
 	}else if ( rv_time > 4 && rv_time <= 6 ) {
-		return 4*4;
+		return 4*2;
 	}else {
-		return 2*4;
+		return 2*2;
 	}
 }
 
@@ -558,15 +571,15 @@ int staffetta_transmit(uint32_t operation_duration) {
 		    	// printf("rendezvous_time:%lu|RENDEZ_TIME:%lu|edc_age:%lu\n",(uint32_t) rendezvous_time, (uint32_t)RENDEZ_TIME/10,(uint32_t)edc_age[edc_idx] );
 
 		    	if ( edc_age[edc_idx] == 0 ) {
-					edc_age_counter[edc_idx] = 20;
+					edc_age_counter[edc_idx] = 10;
 		    	} else if ( edc_age[edc_idx] > 0 && edc_age[edc_idx] <= 2 ) {
-					edc_age_counter[edc_idx] = 16;
-		    	} else if ( edc_age[edc_idx] > 2 && edc_age[edc_idx] <= 4 ) {
-		    		edc_age_counter[edc_idx] = 12;
-		    	} else if ( edc_age[edc_idx] > 4 && edc_age[edc_idx] <= 6 ) {
 					edc_age_counter[edc_idx] = 8;
-		    	} else {
+		    	} else if ( edc_age[edc_idx] > 2 && edc_age[edc_idx] <= 4 ) {
+		    		edc_age_counter[edc_idx] = 6;
+		    	} else if ( edc_age[edc_idx] > 4 && edc_age[edc_idx] <= 6 ) {
 					edc_age_counter[edc_idx] = 4;
+		    	} else {
+					edc_age_counter[edc_idx] = 2;
 		    	}
 #endif /*AGEING*/
 		    }
@@ -577,9 +590,11 @@ int staffetta_transmit(uint32_t operation_duration) {
 			}
 	  	}
 #if DYN_DC
-	  	avg_edc = MIN( node_gradient + (edc_sum / AVG_EDC_SIZE), MAX_EDC);
+	  	// avg_edc = MIN( node_gradient + (edc_sum / AVG_EDC_SIZE), MAX_EDC);
+	  	avg_edc = MIN( node_gradient + (6 / node_energy_state) + (edc_sum / AVG_EDC_SIZE), MAX_EDC);
 #else
   		avg_edc = MIN( (6 / node_energy_state) + (edc_sum / AVG_EDC_SIZE ), MAX_EDC);
+
 #endif /*DYN_DC*/
 #else
 	 	if ( avg_edc > strobe_ack[PKT_GRADIENT] && rendezvous_time < (uint32_t)RENDEZ_TIME ) {
@@ -594,18 +609,16 @@ int staffetta_transmit(uint32_t operation_duration) {
 	    	// edc_age[edc_idx] = rendezvous_time / (RENDEZ_TIME/10);
 		    	edc_age[edc_idx] = rendezvous_time / 10;
 
-		    	// printf("rendezvous_time:%lu|RENDEZ_TIME:%lu|edc_age:%lu\n",(uint32_t) rendezvous_time, (uint32_t)RENDEZ_TIME/10,(uint32_t)edc_age[edc_idx] );
-
 		    	if ( edc_age[edc_idx] == 0 ) {
-					edc_age_counter[edc_idx] = 20;
+					edc_age_counter[edc_idx] = 10;
 		    	} else if ( edc_age[edc_idx] > 0 && edc_age[edc_idx] <= 2 ) {
-					edc_age_counter[edc_idx] = 16;
-		    	} else if ( edc_age[edc_idx] > 2 && edc_age[edc_idx] <= 4 ) {
-		    		edc_age_counter[edc_idx] = 12;
-		    	} else if ( edc_age[edc_idx] > 4 && edc_age[edc_idx] <= 6 ) {
 					edc_age_counter[edc_idx] = 8;
-		    	} else {
+		    	} else if ( edc_age[edc_idx] > 2 && edc_age[edc_idx] <= 4 ) {
+		    		edc_age_counter[edc_idx] = 6;
+		    	} else if ( edc_age[edc_idx] > 4 && edc_age[edc_idx] <= 6 ) {
 					edc_age_counter[edc_idx] = 4;
+		    	} else {
+					edc_age_counter[edc_idx] = 2;
 		    	}
 #endif /*AGEING*/
 		       	transmission_counter = 1;
@@ -636,6 +649,7 @@ int staffetta_transmit(uint32_t operation_duration) {
 	}
 	radio_flush_rx();
 	goto_idle();
+	save_number_strobes(strobes);
 	// printf("8|%u|%u|%u|%u|%u|%lu\n",strobe_ack[PKT_SRC],strobe_ack[PKT_DST],strobe_ack[PKT_SEQ],strobe_ack[PKT_DATA],strobe_ack[PKT_GRADIENT], avg_rendezvous);
 	// save_packet_data(strobe_ack);
 
@@ -1194,7 +1208,7 @@ int staffetta_main() {
 	uint8_t cca = 0;
 	int i;
 
-    //turn radio on
+	clear_saved_data();
     // Get operation duration depending on NODE_ENERGY_STATE
     operation_duration = get_operation_duration();
     // t_op = node_duty_cycle;
@@ -1203,6 +1217,9 @@ int staffetta_main() {
     transmission_inc = 0;
     radio_on();
     t_operation = RTIMER_NOW();
+#if NEW_EDC
+    dummy_pkt_counter++; // Increment counter and generate dummy packet to maintain the metric if not reset
+#endif 
     while (operation_duration != -1 && RTIMER_CLOCK_LT (RTIMER_NOW(),t_operation + operation_duration)) {
     	if (cca == 0) {
     		return_value = staffetta_cca();
@@ -1216,6 +1233,11 @@ int staffetta_main() {
     				transmission_inc = 1;
     			}
     			return_value = staffetta_transmit(operation_duration); // We have packets in the queue, LET'S TRANSMIT
+#if NEW_EDC
+    			if (return_value == RET_FAST_FORWARD) {
+    				dummy_pkt_counter = 0;
+				}
+#endif
     		}
 			cca = 0;	
     	}
@@ -1225,8 +1247,9 @@ int staffetta_main() {
 	for (i=0; i<saved_idx && i<10; i++) {
 		printf("8|%u|%u|%u|%u|%u|%lu\n",saved_strobes[i][0],saved_strobes[i][1],saved_strobes[i][2],saved_strobes[i][3],saved_strobes[i][4], saved_energy[i]);
 	}
+	printf("24|%u|%u|%u|%u|%u|%u|%u|%u|%u|%u\n",saved_num_strobes[0],saved_num_strobes[1], saved_num_strobes[2], saved_num_strobes[3], saved_num_strobes[4], saved_num_strobes[5],saved_num_strobes[6], saved_num_strobes[7], saved_num_strobes[8], saved_num_strobes[9]);
 	printf("23|%d\n",saved_duplicate_drop );
-	clear_saved_data();
+	// clear_saved_data();
 	return return_value;    
 } /*END_WHILE*/
 

@@ -46,6 +46,8 @@
 #define MIN(a, b) ((a) < (b)? (a) : (b))
 #define MAX(a, b) ((a) > (b)? (a) : (b))
 
+#define MAX_HR_GRAD 5000
+
 typedef enum{
 	NS_ZERO,
 	NS_LOW,
@@ -56,6 +58,7 @@ extern uint8_t node_gradient;
 extern uint32_t node_duty_cycle;
 extern node_energy_state_t node_energy_state;
 extern uint32_t harvesting_rate;
+extern uint8_t node_harvest_gradient;
 
 void compute_node_duty_cycle(void);
 uint32_t get_duty_cycle(void);
@@ -63,5 +66,6 @@ void compute_node_state(void);
 node_energy_state_t get_node_state(void);
 void compute_harvesting_rate(void);
 uint32_t get_harvesting_rate(void);
+void compute_harvest_gradient(void);
 
 #endif /* METRIC_H */

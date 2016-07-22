@@ -96,7 +96,7 @@ class LogConverter(object):
             if repeated == True:
                 LogConverter.general_path = "/home/egarrido/"
             elif media == True:
-                LogConverter.general_path = "/media/egarrido/data/simulations/150716/sim/"
+                LogConverter.general_path = "/media/egarrido/data/simulations/log_files/"
             elif (dropbox == True):
                 LogConverter.general_path = "/home/egarrido/Dropbox/thesisTUDelft/21_05_sim1_16n/"
             else:
@@ -551,12 +551,16 @@ class LogConverter(object):
         for i in range(1, self.number_of_nodes):
             total_count = len(self.nodes[i]['time_on']) + int(self.nodes[i]['no_energy'])
             plt.bar(i + 1, self.nodes[i]['no_energy'], align='center')
-            print(float(self.nodes[i]['no_energy']))
-            print(float(total_count))
-            print('------------')
+            # print(float(self.nodes[i]['no_energy']))
+            # print(float(total_count))
+            # print('------------')
             counter = counter + 1
-            dead_node_avg += (100.0 * float(self.nodes[i]['no_energy'])) / float(total_count)
-            plt.annotate(str((100.0 * float(self.nodes[i]['no_energy'])) / float(total_count)) + '%', xy=(i + 1, 0))
+            if total_count != 0:
+                dead_node_avg += (100.0 * float(self.nodes[i]['no_energy'])) / float(total_count)
+                plt.annotate(str((100.0 * float(self.nodes[i]['no_energy'])) / float(total_count)) + '%', xy=(i + 1, 0))
+            else:
+                # plt.annotate(str((100.0 * float(self.nodes[i]['no_energy'])) / float(total_count)) + '%', xy=(i + 1, 0))
+                dead_node_avg += 0.0
         # Compute average dead nodes
         dead_node_avg = dead_node_avg / counter
         # Print average
@@ -703,9 +707,14 @@ class LogConverter(object):
             delta_energies[path['src']-2].append(path['delta_energy'])
 
         for i in range(0, len(avg_energies)):
-            total_avg_energies.append(sum(avg_energies[i])/ len(avg_energies[i]))  # Initial energy add as harvested
-            total_delta_energies.append(sum(delta_energies[i]) / len(delta_energies[i]))  # Initial energy add as harvested
-
+            try:
+                total_avg_energies.append(sum(avg_energies[i])/ len(avg_energies[i]))  # Initial energy add as harvested
+            except:
+                total_avg_energies.append(0)
+            try:
+                total_delta_energies.append(sum(delta_energies[i]) / len(delta_energies[i]))  # Initial energy add as harvested
+            except:
+                total_delta_energies.append(0)
         fig, ax = plt.subplots()
         ax2 = ax.twinx()
         rects1 = ax.bar(index, total_avg_energies, bar_width, color='r')
@@ -806,8 +815,10 @@ class LogConverter(object):
             for j in range(0, len(self.nodes[i]['node_energy_state'])):
                 sum_t += float(self.nodes[i]['node_energy_state'][j])
                 counter += 1.0
-            avg_state.append(sum_t / counter)
-
+            try:
+                avg_state.append(sum_t / counter)
+            except:
+                avg_state.append(0)
             # plt.plot(self.nodes[i]['node_energy_state'])
         for i in range(1, self.number_of_nodes):
             result = map(float, self.nodes[i]['node_energy_state'])
@@ -1001,23 +1012,30 @@ if __name__ == '__main__':
     '''
     Main function call, pass file name + number of nodes.
     '''
-    # if len(sys.argv) < 2:
-    #     print('Usage: python log_converter.py <LOG_FILENAME>')
-    #     print(len(sys.argv))
-    #     exit(1)
-    f = []
-    # for (dirpath, dirnames, filenames) in walk("/media/jester/UUI/sim2/"):
-    for (dirpath, dirnames, filenames) in walk("/media/egarrido/data/simulations/150716/sim"):
-        f.extend(filenames)
-        break
-    for file in f:
-        file_t = file.replace('-','_').replace('21','31')
-        name = file_t.replace('.log', '').split('_')
-        minutes = int(name[2].replace('min',''))
-        nodes = int(name[1])
-        out = file_t.replace('.log', '')
-        # out = name
 
-        adapter = LogConverter(file, nodes, minutes, out)
-        adapter = None      
-    # adapter = LogConverter(sys.argv[1], int(sys.argv[2]), int(sys.argv[3]), sys.argv[4])
+    f = []
+
+    if env == 'uni':
+        for (dirpath, dirnames, filenames) in walk("/media/egarrido/data/simulations/log_files/"):
+            f.extend(filenames)
+            break
+        for file in f:
+            name = file.replace('.log', '').split('_')
+            minutes = int(name[2].replace('min',''))
+            nodes = int(name[1])
+            out = file.replace('.log', '')
+
+            adapter = LogConverter(file, nodes, minutes, out)
+            adapter = None
+    else:
+        for (dirpath, dirnames, filenames) in walk("/media/jester/UUI/simulations/log_files"):
+            f.extend(filenames)
+            break
+        for file in f:
+            name = file.replace('.log', '').split('_')
+            minutes = int(name[2].replace('min', ''))
+            nodes = int(name[1])
+            out = file.replace('.log', '')
+
+            adapter = LogConverter(file, nodes, minutes, out)
+            adapter = None

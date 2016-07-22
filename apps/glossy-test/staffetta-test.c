@@ -24,20 +24,30 @@ PROCESS_THREAD(staffetta_print_stats_process, ev, data){
     static uint8_t counter = 0;
     static uint8_t data_counter = 0;
     static uint8_t gen_data;
-
+    static uint8_t gen_dummy = 0;
 #if ADAPTIVE_PACKET_CREATION
-    static uint8_t counter = 0;
     etimer_set(&et,CLOCK_SECOND*25+(random_rand()%(CLOCK_SECOND*10)));
 
     PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
     while(1) {
-        if(energy_change == 1)
-        {
+#if NEW_EDC
+        if (dummy_pkt_counter >= 10){
+            if (random_rand()%100 > 50){
+                gen_dummy = 1;
+            }
+        }
+
+
+        if(energy_change == 1 || gen_dummy == 1 ) {
+            gen_dummy = 0;
+#else
+        if(energy_change == 1) {  
+#endif /*NEW_EDC*/
             staffetta_print_stats();
             staffetta_add_data(round_stats++);
             energy_change = 0;
         }
-        etimer_set(&et,CLOCK_SECOND*1);
+        etimer_set(&et,CLOCK_SECOND*2);
         counter = counter + 1;
         if (counter >= 15){
             
@@ -52,24 +62,24 @@ PROCESS_THREAD(staffetta_print_stats_process, ev, data){
         }
         PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
     }
-#elif RANDOM_PACKET_CREATION
-    #define RAND_PACKET_CREATION 50
+// #elif RANDOM_PACKET_CREATION
+//     #define RAND_PACKET_CREATION 50
 
-    etimer_set(&et,CLOCK_SECOND*25+(random_rand()%(CLOCK_SECOND*10)));
-    PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
-    while(1) {
-        staffetta_print_stats();
-        staffetta_add_data(round_stats++);
+//     etimer_set(&et,CLOCK_SECOND*25+(random_rand()%(CLOCK_SECOND*10)));
+//     PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
+//     while(1) {
+//         staffetta_print_stats();
+//         staffetta_add_data(round_stats++);
 
-        etimer_set(&et,CLOCK_SECOND * 1 + (random_rand()%(CLOCK_SECOND*60)));
-#if DYN_DC && NEW_EDC
-            printf("6|%d|%lu|%lu|%lu|%lu\n", node_gradient, remaining_energy, harvesting_rate, acum_consumption, acum_harvest);
-#else
-            printf("6|%d|%lu|%lu|%lu|%lu\n", node_energy_state, remaining_energy, harvesting_rate, acum_consumption, acum_harvest);
-#endif        acum_consumption = 0; // Reset acumulative values
-        acum_harvest = 0;
-        PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
-    }
+//         etimer_set(&et,CLOCK_SECOND * 1 + (random_rand()%(CLOCK_SECOND*60)));
+// #if DYN_DC && NEW_EDC
+//             printf("6|%d|%lu|%lu|%lu|%lu\n", node_gradient, remaining_energy, harvesting_rate, acum_consumption, acum_harvest);
+// #else
+//             printf("6|%d|%lu|%lu|%lu|%lu\n", node_energy_state, remaining_energy, harvesting_rate, acum_consumption, acum_harvest);
+// #endif        acum_consumption = 0; // Reset acumulative values
+//         acum_harvest = 0;
+//         PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
+//     }
 #else
 
     gen_data = random_rand()%12 + 12;
@@ -87,21 +97,25 @@ PROCESS_THREAD(staffetta_print_stats_process, ev, data){
             acum_harvest = 0;
             counter = 0;
         }
-// #if NEW_EDC
+
         data_counter++;
+#if NEW_EDC
+        if (dummy_pkt_counter >= 10){
+            if (random_rand()%100 > 50){
+                gen_dummy = 1;
+            }
+        }
+
+
+        if (data_counter >= gen_data || gen_dummy == 1) {
+            gen_dummy = 0;
+#else
         if (data_counter >= gen_data) {
+#endif /*NEW_EDC*/
             staffetta_add_data(round_stats++);
             gen_data = random_rand()%12 + 12;
             data_counter = 0;
         }
-// #else //For the original ORW we generate packets periodically every 5 seconds to "maintain" the link quality
-//         data_counter++;
-//         if (data_counter >= gen_data) {
-//             staffetta_add_data(round_stats++);
-//             gen_data = random_rand()%48 + 24;
-//             data_counter = 0;
-//         }
-// #endif
         etimer_set(&et,CLOCK_SECOND*5);
         PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
     }

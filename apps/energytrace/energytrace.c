@@ -473,17 +473,8 @@ PROCESS_THREAD(energytrace_process, ev, data) {
 		tx_level = cc2420_get_txpower();
 		energy_cpu = (voltage * CPU_CURRENT * cpu_time) / 10000;
 		energy_rxtx = (voltage * tx_current_consumption(tx_level) * rxtx_time) / 10; //* SCALE_FACTOR / 1000
-		// if (energy_rxtx != 0) printf("remaining_energy:%lu|rd:%lu|energy_rxtx:%lu\n",remaining_energy, rd, energy_rxtx);
-		
-		total_energy = energy_rxtx + energy_cpu;
 
-		// if (remaining_energy > energy_rxtx) {
-	 //    	acum_consumption += energy_rxtx;
-		// 	remaining_energy -= energy_rxtx;
-		// } else {
-  //     		acum_consumption += remaining_energy;
-		// 	remaining_energy = 0;
-		// }
+		total_energy = energy_rxtx + energy_cpu;
 
 		if (remaining_energy > total_energy) {
 	    	acum_consumption += total_energy;
@@ -499,10 +490,10 @@ PROCESS_THREAD(energytrace_process, ev, data) {
 			remaining_energy = 0;
 		}
 #endif /*STAFFETTA_ENERGEST*/
-    compute_node_state();
+    // compute_node_state();
+	compute_harvest_gradient();
     compute_node_duty_cycle();
     compute_harvesting_rate();
-
 
 #if ADAPTIVE_PACKET_CREATION
 		energy_change = context_trigger();

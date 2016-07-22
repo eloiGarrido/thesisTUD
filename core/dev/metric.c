@@ -49,7 +49,7 @@ uint8_t node_gradient = 20;
 node_energy_state_t node_energy_state = NS_ZERO;
 uint32_t harvesting_rate = 0;
 #if LOW_ENERGY
-int B = 85;
+int B = 95;
 static int phi[3] = {1, 1, -B_goal};
 #else
 int B = 100;
@@ -58,7 +58,9 @@ static int phi[3] = {100, 1, -B_goal};
 
 static int theta[3] = {2,-1,1};
 static int rho = 1, u = 1, u_avg = 1;
-
+static uint32_t cons_array[10];
+static uint32_t harv_array[10];
+static uint8_t array_idx = 0;
 /*---------------------------------------------------------------------------*/
 /* FUNCTIONS */
 void compute_node_duty_cycle(void){
@@ -128,6 +130,40 @@ uint32_t get_duty_cycle(void){
     return 1;
 #endif
 }
+void compute_harvest_gradient(void) {
+    uint32_t avg_cons, avg_harv, hr_grad;
+    int i = 0;
+    cons_array[array_idx] = acum_consumption;
+    harv_array[array_idx] = acum_harvest;
+
+    for (i=0; i<10;i++) {
+        avg_cons += cons_array[i];
+        avg_harv += harv_array[i];
+    }
+    avg_cons = avg_cons / 10;
+    avg_harv = avg_harv / 10;
+
+    if (avg_harv == 0) {
+        hr_grad = MAX_HR_GRAD;
+    } else {
+        hr_grad = avg_cons / avg_harv;
+    }
+
+    // Discretize hr_grad value into LOW, MID and HIGH
+    if (remaining_energy >= (uint32_t)NS_ENERGY_LOW) {
+        if (hr_grad > 1000) {
+            node_energy_state = NS_LOW;
+        } else if (hr_grad > 500) {
+            node_energy_state = NS_MID;
+        } else {
+            node_energy_state = NS_HIGH;
+        }
+    } else {
+        node_energy_state = NS_ZERO;
+    }
+    array_idx = (array_idx + 1) % 10;
+}
+
 
 void compute_node_state(void){
 #if FIX_NODE_STATE

@@ -117,7 +117,7 @@
 #define MAX_EDC   255
 
 #if NEW_EDC
-#define PKTS_PER_NODE  3
+#define PKTS_PER_NODE  5
 #else
 #define PKTS_PER_NODE  DATA_SIZE
 #endif 
@@ -221,7 +221,7 @@ struct staffettamac_config {
   rtimer_clock_t strobe_wait_time;
 };
 
-
+extern uint8_t  dummy_pkt_counter;
 extern uint32_t sleep_t;
 /*------------------------- FUNCTIONS --------------------------------------------------*/
 int staffetta_main();

@@ -111,7 +111,7 @@ class LogConverter(object):
             if repeated == True:
                 LogConverter.general_path = "/home/jester/"
             elif media == True:
-                LogConverter.general_path = "/media/jester/UUI/simulations/090716/sim/"
+                LogConverter.general_path = "/media/jester/UUI/simulations/log_files/"
             else:
                 LogConverter.general_path = "/home/jester/contiki/tools/cooja/build/"
 

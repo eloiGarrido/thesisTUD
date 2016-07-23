@@ -137,7 +137,8 @@ void compute_harvest_gradient(void) {
     harv_array[array_idx] = acum_harvest;
     
     node_gradient = 20 / rho;
-    
+    avg_cons = 0;
+    avg_harv = 0;
     for (i=0; i<10;i++) {
         avg_cons += cons_array[i];
         avg_harv += harv_array[i];
@@ -146,16 +147,16 @@ void compute_harvest_gradient(void) {
     avg_harv = avg_harv / 10;
 
     if (avg_harv == 0) {
-        hr_grad = MAX_HR_GRAD;
+        hr_grad = (uint32_t)MAX_HR_GRAD;
     } else {
         hr_grad = avg_cons / avg_harv;
     }
 
     // Discretize hr_grad value into LOW, MID and HIGH
     if (remaining_energy >= (uint32_t)NS_ENERGY_LOW) {
-        if (hr_grad > 1000) {
+        if (hr_grad > 5) {
             node_energy_state = NS_LOW;
-        } else if (hr_grad > 500) {
+        } else if (hr_grad > 2) {
             node_energy_state = NS_MID;
         } else {
             node_energy_state = NS_HIGH;
@@ -164,6 +165,9 @@ void compute_harvest_gradient(void) {
         node_energy_state = NS_ZERO;
     }
     array_idx = (array_idx + 1) % 10;
+    // printf("avg_cons:%lu,avg_harv:%lu\n",avg_cons,avg_harv);
+    // printf("hr_grad:%lu|node_energy_state:%u\n",hr_grad, node_energy_state );
+
 }
 
 

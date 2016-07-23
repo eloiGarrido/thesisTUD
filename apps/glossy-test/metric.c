@@ -135,7 +135,9 @@ void compute_harvest_gradient(void) {
     int i = 0;
     cons_array[array_idx] = acum_consumption;
     harv_array[array_idx] = acum_harvest;
-
+    
+    node_gradient = 20 / rho;
+    
     for (i=0; i<10;i++) {
         avg_cons += cons_array[i];
         avg_harv += harv_array[i];
@@ -162,6 +164,7 @@ void compute_harvest_gradient(void) {
         node_energy_state = NS_ZERO;
     }
     array_idx = (array_idx + 1) % 10;
+    printf("hr_grad:%lu|node_energy_state:%u\n",hr_grad, node_energy_state );
 }
 
 

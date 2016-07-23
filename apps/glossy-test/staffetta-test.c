@@ -52,7 +52,7 @@ PROCESS_THREAD(staffetta_print_stats_process, ev, data){
         if (counter >= 15){
             
 #if DYN_DC && NEW_EDC
-            printf("6|%d|%lu|%lu|%lu|%lu\n", node_gradient, remaining_energy, harvesting_rate, acum_consumption, acum_harvest);
+            printf("6|%d|%lu|%lu|%lu|%lu\n", 20/node_gradient, remaining_energy, harvesting_rate, acum_consumption, acum_harvest);
 #else
             printf("6|%d|%lu|%lu|%lu|%lu\n", node_energy_state, remaining_energy, harvesting_rate, acum_consumption, acum_harvest);
 #endif
@@ -62,24 +62,24 @@ PROCESS_THREAD(staffetta_print_stats_process, ev, data){
         }
         PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
     }
-// #elif RANDOM_PACKET_CREATION
-//     #define RAND_PACKET_CREATION 50
+#elif RANDOM_PACKET_CREATION
+    #define RAND_PACKET_CREATION 50
 
-//     etimer_set(&et,CLOCK_SECOND*25+(random_rand()%(CLOCK_SECOND*10)));
-//     PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
-//     while(1) {
-//         staffetta_print_stats();
-//         staffetta_add_data(round_stats++);
+    etimer_set(&et,CLOCK_SECOND*25+(random_rand()%(CLOCK_SECOND*10)));
+    PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
+    while(1) {
+        staffetta_print_stats();
+        staffetta_add_data(round_stats++);
 
-//         etimer_set(&et,CLOCK_SECOND * 1 + (random_rand()%(CLOCK_SECOND*60)));
-// #if DYN_DC && NEW_EDC
-//             printf("6|%d|%lu|%lu|%lu|%lu\n", node_gradient, remaining_energy, harvesting_rate, acum_consumption, acum_harvest);
-// #else
-//             printf("6|%d|%lu|%lu|%lu|%lu\n", node_energy_state, remaining_energy, harvesting_rate, acum_consumption, acum_harvest);
-// #endif        acum_consumption = 0; // Reset acumulative values
-//         acum_harvest = 0;
-//         PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
-//     }
+        etimer_set(&et,CLOCK_SECOND * 1 + (random_rand()%(CLOCK_SECOND*60)));
+#if DYN_DC && NEW_EDC
+            printf("6|%d|%lu|%lu|%lu|%lu\n", 20/node_gradient, remaining_energy, harvesting_rate, acum_consumption, acum_harvest);
+#else
+            printf("6|%d|%lu|%lu|%lu|%lu\n", node_energy_state, remaining_energy, harvesting_rate, acum_consumption, acum_harvest);
+#endif        acum_consumption = 0; // Reset acumulative values
+        acum_harvest = 0;
+        PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
+    }
 #else
 
     gen_data = random_rand()%12 + 12;
@@ -90,10 +90,11 @@ PROCESS_THREAD(staffetta_print_stats_process, ev, data){
         counter = counter + 1;
         if (counter >= 2){
 #if DYN_DC
-            printf("6|%d|%lu|%lu|%lu|%lu\n", node_gradient, remaining_energy, harvesting_rate, acum_consumption, acum_harvest);
+            printf("6|%d|%lu|%lu|%lu|%lu\n", 20/node_gradient, remaining_energy, harvesting_rate, acum_consumption, acum_harvest);
 #else
             printf("6|%d|%lu|%lu|%lu|%lu\n", node_energy_state, remaining_energy, harvesting_rate, acum_consumption, acum_harvest);
-#endif            acum_consumption = 0; // Reset acumulative values
+#endif            
+            acum_consumption = 0; // Reset acumulative values
             acum_harvest = 0;
             counter = 0;
         }

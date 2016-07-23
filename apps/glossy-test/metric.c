@@ -164,7 +164,7 @@ void compute_harvest_gradient(void) {
         node_energy_state = NS_ZERO;
     }
     array_idx = (array_idx + 1) % 10;
-    printf("hr_grad:%lu|node_energy_state:%u\n",hr_grad, node_energy_state );
+    // printf("hr_grad:%lu|node_energy_state:%u\n",hr_grad, node_energy_state );
 }
 
 

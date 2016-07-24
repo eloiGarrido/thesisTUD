@@ -559,6 +559,7 @@ int staffetta_transmit(uint32_t operation_duration) {
 #if NEW_EDC
 	  	// if ((rendezvous_time<RENDEZ_TIME) && (avg_edc > strobe_ack[PKT_GRADIENT]) && (node_id != strobe_ack[PKT_SRC])) {
 	  	if ((avg_edc > strobe_ack[PKT_GRADIENT]) && (node_id != strobe_ack[PKT_SRC])) {
+	  		dummy_pkt_counter = 0;
 	    	edc_idx = find_worst_edc_entry();
 	    	if (edc_idx != MAX_EDC) {
 		     	edc[edc_idx] = strobe_ack[PKT_GRADIENT];

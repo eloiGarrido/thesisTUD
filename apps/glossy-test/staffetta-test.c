@@ -31,8 +31,8 @@ PROCESS_THREAD(staffetta_print_stats_process, ev, data){
     PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
     while(1) {
 #if NEW_EDC
-        if (dummy_pkt_counter >= 10){
-            if (random_rand()%100 > 50){
+        if (dummy_pkt_counter >= 30){
+            if (random_rand()%100 < 35){
                 gen_dummy = 1;
             }
         }
@@ -101,8 +101,8 @@ PROCESS_THREAD(staffetta_print_stats_process, ev, data){
 
         data_counter++;
 #if NEW_EDC
-        if (dummy_pkt_counter >= 10){
-            if (random_rand()%100 > 50){
+        if (dummy_pkt_counter >= 30){
+            if (random_rand()%100 < 35){
                 gen_dummy = 1;
             }
         }
